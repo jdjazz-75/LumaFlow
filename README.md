@@ -2,8 +2,8 @@
 
 **Votre table lumineuse, réinventée.** La retouche redevient un terrain de jeu.
 
-> 📖 **Documentation complète** : [`docs/index.html`](docs/index.html) — ouvrez ce fichier
-> dans un navigateur pour la version illustrée (captures d'écran, avant/après de chaque réglage).
+> 📖 **Documentation complète** : **[jdjazz-75.github.io/LumaFlow](https://jdjazz-75.github.io/LumaFlow/)**
+> — la version illustrée, avec captures d'écran et avant/après de chaque réglage.
 
 ---
 
@@ -29,7 +29,7 @@ qui ne vous plaît pas, oubliez-le : l'original repose intact, juste en dessous,
 **⚡ 100 % local. 0 % cloud.** Vos photos ne quittent jamais votre ordinateur. Pas d'upload, pas de
 compte, pas d'attente — tout tourne en local, dès le lancement.
 
-→ [Page Présentation](docs/index.html)
+→ [Page Présentation](https://jdjazz-75.github.io/LumaFlow/)
 
 ---
 
@@ -75,7 +75,7 @@ cd web
 npm run dev
 ```
 
-→ [Page Installation — détails, cas particuliers et reconstruction du front](docs/installation.html)
+→ [Page Installation — détails, cas particuliers et reconstruction du front](https://jdjazz-75.github.io/LumaFlow/installation.html)
 
 ---
 
@@ -111,7 +111,7 @@ npm run dev
 **Raccourcis clavier** : ↑/↓ changer d'étape · ←/→ changer de vignette · Espace, double-clic ou
 icône loupe pour ouvrir le Zoom · Échap pour fermer · clic sur une ligne assombrie pour y revenir.
 
-→ [Page Fonctionnalités — captures d'écran et description complète](docs/fonctionnalites.html)
+→ [Page Fonctionnalités — captures d'écran et description complète](https://jdjazz-75.github.io/LumaFlow/fonctionnalites.html)
 
 ---
 
@@ -126,18 +126,18 @@ suivantes sont directement visibles et navigables :
 |---|---|---|
 | — | **Geometry** | Rotation manuelle et correction de perspective libre à 4 coins |
 | — | **Cadrage (Framing)** | Recadrage libre avec guides de composition |
-| 1 | **[Film](docs/workflow/film.html)** | Rendu et grain argentique — moteur de gradation paramétrique partagé par les looks Fujifilm |
-| 2 | **[Bleach Bypass](docs/workflow/bleach-bypass.html)** | Même moteur, presets de négatifs désaturés type bleach-bypass |
-| 3 | **[Color Splash](docs/workflow/color-splash.html)** | Désature l'image sauf jusqu'à 3 plages de teinte conservées |
-| 4 | **[Monochrome](docs/workflow/monochrome.html)** | Duotone : supprime la couleur puis colorise la luminance avec une teinte unique |
-| 5 | **[B&W](docs/workflow/bw.html)** | Simulations noir et blanc alternatives (filtres colorés, émulations Kodak/Ilford) |
-| 6 | **[Light](docs/workflow/light.html)** | Exposition et contraste, courbe de tons, halo, texture, split sujet/fond par masque |
-| 7 | **[Vignettage](docs/workflow/vignettage.html)** | Assombrissement des bords, forme éditable à l'écran |
+| 1 | **[Film](https://jdjazz-75.github.io/LumaFlow/workflow/film.html)** | Rendu et grain argentique — moteur de gradation paramétrique partagé par les looks Fujifilm |
+| 2 | **[Bleach Bypass](https://jdjazz-75.github.io/LumaFlow/workflow/bleach-bypass.html)** | Même moteur, presets de négatifs désaturés type bleach-bypass |
+| 3 | **[Color Splash](https://jdjazz-75.github.io/LumaFlow/workflow/color-splash.html)** | Désature l'image sauf jusqu'à 3 plages de teinte conservées |
+| 4 | **[Monochrome](https://jdjazz-75.github.io/LumaFlow/workflow/monochrome.html)** | Duotone : supprime la couleur puis colorise la luminance avec une teinte unique |
+| 5 | **[B&W](https://jdjazz-75.github.io/LumaFlow/workflow/bw.html)** | Simulations noir et blanc alternatives (filtres colorés, émulations Kodak/Ilford) |
+| 6 | **[Light](https://jdjazz-75.github.io/LumaFlow/workflow/light.html)** | Exposition et contraste, courbe de tons, halo, texture, split sujet/fond par masque |
+| 7 | **[Vignettage](https://jdjazz-75.github.io/LumaFlow/workflow/vignettage.html)** | Assombrissement des bords, forme éditable à l'écran |
 
 Le détail de **chaque vignette** et de **chaque réglage manuel** de chaque ligne — avec les images
 avant/après illustrant isolément la contribution de chaque curseur — n'est pas repris ici :
 il vit dans la documentation HTML, dont c'est le format naturel.
 
-→ [Détail des étapes du workflow](docs/workflow/index.html)
+→ [Détail des étapes du workflow](https://jdjazz-75.github.io/LumaFlow/workflow/index.html)
 
 
