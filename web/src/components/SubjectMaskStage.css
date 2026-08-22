@@ -1,0 +1,185 @@
+/* LumaFlow v1.0 (2026-08-07)
+ * Styles de l'éditeur de contour Masque Sujet (SubjectMaskStage) : contour, halo de plume,
+ * sommets/milieux d'arête et barre de contrôles flottante (adoucissement/inversion).
+ */
+
+/* Subject/background boundary editor (feature 047) -- vertex/midpoint markers positioned by their
+own fractional coordinate (inline style), unlike CropCanvas.css's fixed nw/n/ne/... handle classes,
+since a polygon vertex count is variable. Stage/photo-bounds/mask layout itself is reused verbatim
+from crop-canvas__* (CropCanvas.css) -- only additive rules below. */
+
+.subject-mask-stage__outline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.subject-mask-stage__outline path {
+  stroke: var(--guide-limit-color);
+  stroke-width: 1.5px;
+  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.85));
+}
+
+/* Adoucissement preview -- a soft, blurred band along the contour showing where light.py's
+_polygon_mask feather ramp actually falls (see ZoomOverlay.tsx's featherRadiusPx computation).
+Rendered under the crisp outline/handles so it never interferes with dragging. */
+.subject-mask-stage__feather-halo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.subject-mask-stage__feather-halo path {
+  stroke: var(--guide-limit-color);
+  stroke-opacity: 0.35;
+}
+
+.subject-mask-stage__vertex {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px;
+  border-radius: var(--radius-round);
+  background: var(--guide-limit-color);
+  border: 1.5px solid rgba(5, 8, 10, 0.6);
+  cursor: grab;
+  touch-action: none;
+}
+
+.subject-mask-stage__vertex:active {
+  cursor: grabbing;
+}
+
+.subject-mask-stage__midpoint {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin: -8px;
+  border-radius: var(--radius-round);
+  background: rgba(5, 8, 10, 0.72);
+  border: 1.5px dashed var(--guide-overlay-color);
+  color: var(--guide-overlay-color);
+  font-size: 11px;
+  line-height: 1;
+  cursor: copy;
+  touch-action: none;
+  user-select: none;
+}
+
+/* Explicit z-index (not left on DOM-order auto-stacking) -- matches the convention documented at
+the top of ZoomOverlay.css: every floating control sibling of .zoom-overlay__compare/
+.zoom-overlay__compare-wrap must declare one, so a future sibling gaining its own explicit z-index
+can't silently repaint above this one regardless of DOM order (see the zoom-overlay z-index table
+and zoom-overlay-zindex-stacking-regression precedent -- already bit Vignette once). */
+.subject-mask-stage__controls {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translate(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--bd);
+  background: rgba(5, 8, 10, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.subject-mask-stage__control-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Same custom thumb/track look as ZoomOverlay.css's .zoom-overlay__slider-row input[type="range"]
+(thin track, amber thumb) -- kept as a separate rule since this row's flex sizing differs (grows
+within the floating control bar instead of a fixed sidebar column). Previously left unstyled,
+which fell back to the browser's native range look (thick track, blue thumb on Chrome/Windows). */
+.subject-mask-stage__control-row input[type="range"] {
+  flex: 1;
+  min-width: 100px;
+  max-width: 220px;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 13px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.subject-mask-stage__control-row input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--bdh);
+}
+
+.subject-mask-stage__control-row input[type="range"]::-moz-range-track {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--bdh);
+}
+
+.subject-mask-stage__control-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--amber);
+  border: none;
+  margin-top: -5.5px;
+  cursor: pointer;
+}
+
+.subject-mask-stage__control-row input[type="range"]::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--amber);
+  border: none;
+  cursor: pointer;
+}
+
+.subject-mask-stage__control-label {
+  font-size: 12px;
+  color: var(--t2);
+  white-space: nowrap;
+}
+
+.subject-mask-stage__control-value {
+  font-size: 12px;
+  color: var(--amber);
+  font-family: var(--font-ui);
+  min-width: 24px;
+}
+
+.subject-mask-stage__invert-button {
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--bd);
+  background: none;
+  color: var(--t2);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.subject-mask-stage__invert-button:hover {
+  border-color: var(--bdh);
+  color: var(--t1);
+}
+
+.subject-mask-stage__invert-button--on {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--accent-text);
+}
+

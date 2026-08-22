@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node / frontend
+node_modules/
+web/dist/
+web/test-results/
+web/playwright-report/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# ---------------------------------------------------------------------------
+# IA / assistants et outillage Spec Kit — jamais publie
+# ---------------------------------------------------------------------------
+
+# Configuration et competences d'assistants IA
+.agents/
+.claude/
+.cursor/
+.github/copilot-instructions.md
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+.aider*
+
+# Outillage GitHub Spec Kit (workflow pilote par IA)
+.specify/
+features/
+specs/
+ALL_FEATURES_COMBINED.md
+ARBITRAGES.md
+USAGE-SPECKIT.md
+PERF-ZOOM-RENDER-PLAN.md
+backlog.csv
+manifest.json
+
+# Ancien README (backlog Spec Kit)
+README-old.md

@@ -1,0 +1,203 @@
+/* LumaFlow v1.0 (2026-08-07)
+ * Styles de l'éditeur de forme interactif de Vignettage (VignetteShapeStage) : contour ellipse/
+ * bande, halo de plume, poignées, centre déplaçable, cadran de rotation et barre d'outils.
+ */
+
+/* Vignetting's interactive shape editor (ellipse/line-band) -- dynamic-aids pass on top of
+feature 044. Rendered INSIDE the shared zoomable/pannable compare viewport
+(.zoom-overlay__compare-content), alongside the existing before/after split (not a replacement,
+unlike Masque Sujet's maskActive) -- see ZoomOverlay.tsx. Visual language (amber stroke + drop
+shadow for the outline, amber stroke+blur for the halo) matches CropCanvas.css's
+.crop-canvas__guides and SubjectMaskStage.css's own feather halo exactly. */
+
+.vignette-shape-stage__root {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Stacked BELOW .zoom-overlay__handle (the before/after split handle, z-index 2 in
+  ZoomOverlay.css) -- both default to the image's own center, so without an explicit order the
+  amber center dot would paint over the split handle's grip/arrows whenever they coincide (found
+  during manual verification: looked like the split handle itself had become an amber circle). */
+  z-index: 1;
+}
+
+.vignette-shape-stage__outline,
+.vignette-shape-stage__feather-halo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.vignette-shape-stage__outline path,
+.vignette-shape-stage__outline line.vignette-shape-stage__border-line {
+  fill: none;
+  stroke: var(--guide-limit-color);
+  stroke-width: 1.5px;
+  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.85));
+}
+
+.vignette-shape-stage__outline .vignette-shape-stage__center-line {
+  stroke: var(--guide-overlay-color);
+  stroke-width: 1px;
+  /* stroke-dasharray set inline (px units) rather than here: vector-effect:non-scaling-stroke
+  computes dash patterns in screen-pixel space too, so a viewBox-fraction value here would render
+  as an imperceptibly tiny dash (a real gotcha hit during manual verification). */
+  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.85));
+}
+
+.vignette-shape-stage__feather-halo path,
+.vignette-shape-stage__feather-halo line {
+  stroke: var(--guide-limit-color);
+  stroke-opacity: 0.35;
+}
+
+/* Wide, transparent hit-target line for the line-band's border handles (the visible line above is
+only 1.5px) -- same "fat invisible + thin visible" pairing as GeometryCanvas.css's
+.geometry-canvas__guide-line-hit. */
+.vignette-shape-stage__border-hit {
+  stroke: transparent;
+  stroke-width: 16px;
+  cursor: grab;
+  pointer-events: stroke;
+}
+
+.vignette-shape-stage__vertex {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin: -6px;
+  border-radius: var(--radius-round);
+  background: var(--guide-limit-color);
+  border: 1.5px solid rgba(5, 8, 10, 0.6);
+  cursor: move;
+  touch-action: none;
+}
+
+.vignette-shape-stage__center {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin: -6px;
+  border-radius: var(--radius-round);
+  background: rgba(5, 8, 10, 0.72);
+  border: 1.5px solid var(--guide-limit-color);
+  touch-action: none;
+}
+
+/* Only draggable (and visually "hot") while the "Déplacer" tool is selected -- always visible
+either way, per the product requirement that the center stay visible at all times. */
+.vignette-shape-stage__center--active {
+  background: var(--guide-limit-color);
+  cursor: grab;
+}
+
+.vignette-shape-stage__center--active:active {
+  cursor: grabbing;
+}
+
+.vignette-shape-stage__dial-angle-label {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  font-size: 12px;
+  line-height: normal;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  color: var(--amber);
+  pointer-events: none;
+}
+
+/* Rotation dial -- copies GeometryCanvas.css's .geometry-canvas__dial exactly (same dashed-circle
+look, pointer, handle), except positioned via inline style at the SHAPE's own center (left/top set
+per-instance in VignetteShapeStage.tsx) instead of Geometry's fixed 50%/50% (always the image
+center). */
+.vignette-shape-stage__dial {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  height: 30%;
+  aspect-ratio: 1;
+  border: 1px dashed var(--guide-overlay-color);
+  border-radius: 50%;
+  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.85));
+  pointer-events: none;
+}
+
+.vignette-shape-stage__dial-pointer {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50%;
+  pointer-events: none;
+}
+
+.vignette-shape-stage__dial-pointer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 50%;
+  left: 50%;
+  width: 1px;
+  transform: translate(-50%);
+  background: var(--guide-limit-color);
+}
+
+.vignette-shape-stage__dial-handle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--guide-limit-color);
+  border: 1.5px solid rgba(5, 8, 10, 0.6);
+  cursor: grab;
+  pointer-events: auto;
+}
+
+/* Floating toolbar (Déplacer/Rotation/Redimensionner) -- same floating-bar look as
+SubjectMaskStage.css's .subject-mask-stage__controls. Needs an explicit z-index above
+.vignette-shape-stage__root's (1, see that rule's comment) -- both are now stacked in the same
+context once either has an explicit z-index, and the toolbar sits at the bottom of the viewport,
+squarely inside the shape stage's full-viewport bounds. */
+.vignette-shape-stage__controls {
+  position: absolute;
+  z-index: 3;
+  bottom: 12px;
+  left: 50%;
+  transform: translate(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--bd);
+  background: rgba(5, 8, 10, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.vignette-shape-stage__tool-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--t2);
+  cursor: pointer;
+}
+
+.vignette-shape-stage__tool-button:hover {
+  border-color: var(--bdh);
+  color: var(--t1);
+}
+
+.vignette-shape-stage__tool-button--selected {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--accent-text);
+}

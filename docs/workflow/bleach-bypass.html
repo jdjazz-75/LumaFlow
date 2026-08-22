@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bleach Bypass — LumaFlow</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="../index.html">LumaFlow</a>
+    <nav>
+      <ul class="nav-main">
+        <li><a href="../index.html">Présentation</a></li>
+        <li><a href="../installation.html">Installation</a></li>
+        <li><a href="../fonctionnalites.html">Fonctionnalités</a></li>
+        <li><a href="../workflow/index.html">Workflow</a></li>
+      </ul>
+      <div class="nav-section-label">Étapes du workflow</div>
+      <ul class="nav-workflow">
+        <li><a href="../workflow/film.html">Film</a></li>
+        <li><a href="../workflow/bleach-bypass.html" class="active">Bleach Bypass</a></li>
+        <li><a href="../workflow/color-splash.html">Color Splash</a></li>
+        <li><a href="../workflow/monochrome.html">Monochrome</a></li>
+        <li><a href="../workflow/bw.html">B&W</a></li>
+        <li><a href="../workflow/light.html">Light</a></li>
+        <li><a href="../workflow/vignettage.html">Vignettage</a></li>
+      </ul>
+    </nav>
+  </aside>
+  <main class="content">
+    <article>
+<h1 id="4-2-bleach-bypass">4.2 Bleach Bypass</h1>
+<p><strong>Moteur</strong> : identique à Film (§4.1) — même module, mêmes 19 réglages manuels, seul l'ensemble de presets change. Cette ligne rassemble des variantes désaturées façon « bleach bypass » (procédé de blanchiment argentique donnant un rendu quasi monochrome, froid et très contrasté).</p>
+<h2 id="vignettes">Vignettes</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Vignette</th><th>Effet</th></tr></thead>
+<tbody>
+<tr><td><strong>Neutre</strong></td><td>Aucune transformation.</td></tr>
+<tr><td><strong>Eterna Bleach Bypass</strong></td><td>Contraste très fort (+45), hautes lumières poussées, ombres très creusées, saturation réduite de 70 % (quasi monochrome), très refroidie (−350K), virage ombres cyan-bleu (205°), grain marqué. Le rendu « bleach bypass » chimique classique : froid, métallique, très contrasté.</td></tr>
+<tr><td><strong>Inky Depths</strong></td><td>Basé sur Eterna Bleach Bypass : hautes lumières poussées à leur maximum, désaturation encore accrue (quasi noir et blanc), grain plus doux et plus gros, Dynamic Range 200, balance des blancs « sous-marine » très froide avec une légère dominante magenta. Rendu encore plus froid et « encré ».</td></tr>
+<tr><td><strong>Titanium</strong></td><td>Basé sur Eterna Bleach Bypass : désaturation accrue, grain fin et léger, Dynamic Range 400, balance des blancs réchauffée en théorie mais contrebalancée par le virage ombres froid hérité — rendu plat, métallique et argenté.</td></tr>
+<tr><td><strong>Ecowarrior</strong></td><td>Basé sur Eterna Bleach Bypass : ombres nettement rouvertes, saturation relevée (reste sombre par rapport à la base neutre du moteur), grain fort et fin, réchauffée avec une pointe magenta. Variante plus dorée et « terreuse ».</td></tr>
+<tr><td><strong>Milestone</strong></td><td>Basé sur Classic Chrome : hautes lumières relevées, saturation réduite, clarté renforcée, sans grain, forte dominante chaude/dorée (balance des blancs 10000K).</td></tr>
+<tr><td><strong>Loki</strong></td><td>Basé sur Classic Negative : hautes lumières et ombres nettement rouvertes (rendu plus aérien), netteté et clarté renforcées, sans grain, teinte quasi neutre avec une pointe de vert.</td></tr>
+<tr><td><strong>Sunset Strip</strong></td><td>Basé sur Classic Negative : saturation légèrement relevée, netteté réduite (aspect flou/vaporeux), clarté fortement réduite, grain fin, Dynamic Range 400, dominante dorée-verte marquée (balance des blancs). Le rendu « coucher de soleil » évoqué par son nom.</td></tr>
+<tr><td><strong>Quicklime</strong></td><td>Basé sur Classic Chrome : hautes lumières relevées, saturation réduite, netteté réduite, sans grain, forte dominante jaune-vert (« citron vert »).</td></tr>
+</tbody></table></div>
+<h2 id="r-glages-manuels">Réglages manuels</h2>
+<h3 id="intensit">Intensité</h3>
+<ul>
+<li><strong>Intensité</strong> (<code>intensity</code>, 0..1) — mélange le résultat gradé avec l'image d'origine (ou, pour un look noir et blanc, avec sa conversion en niveaux de gris) : 0 = aucun effet, 1 = effet complet.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/intensity.png" alt="Intensité" loading="lazy"></p>
+<h3 id="tonalit">Tonalité</h3>
+<ul>
+<li><strong>Contraste</strong> (<code>contrast</code>, -100..100) — accentue (positif) ou réduit (négatif) l'écart entre ombres et hautes lumières autour du gris moyen.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/contrast.png" alt="Contraste" loading="lazy"></p>
+<ul>
+<li><strong>Hautes lumières</strong> (<code>highlights</code>, -100..100) — éclaircit/durcit (positif) ou compresse/protège (négatif) la zone des tons clairs.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/highlights.png" alt="Hautes lumières" loading="lazy"></p>
+<ul>
+<li><strong>Ombres</strong> (<code>shadows</code>, -100..100) — éclaircit/ouvre (positif) ou assombrit/creuse (négatif) la zone des tons foncés.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/shadows.png" alt="Ombres" loading="lazy"></p>
+<ul>
+<li><strong>Noir minimal / écrêtage</strong> (<code>black_clip</code>, 0..0,10) — relève le point noir : les tons presque noirs sont progressivement écrasés vers le noir pur.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/black_clip.png" alt="Noir minimal" loading="lazy"></p>
+<ul>
+<li><strong>Dynamic Range</strong> (<code>dynamic_range</code>, Off/DR200/DR400) — protège conjointement les hautes lumières et ouvre les ombres (composé à partir des réglages de tonalité ci-dessus), pour un rendu plus plat et proche d'un profil « log ».</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/dynamic_range.png" alt="Dynamic Range" loading="lazy"></p>
+<h3 id="couleur">Couleur</h3>
+<ul>
+<li><strong>Saturation globale</strong> (<code>global_saturation</code>, ×0..2) — multiplie la saturation de l'image entière.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/global_saturation.png" alt="Saturation globale" loading="lazy"></p>
+<ul>
+<li><strong>Saturation HSL</strong> (<code>hsl_saturation_scale</code>, ×0..2) — amplifie ou réduit les corrections de saturation par teinte déjà propres au look sélectionné (ici Classic Chrome, qui atténue magenta/rouge/vert/bleu) ; à 0, cette composante du look disparaît.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/hsl_saturation_scale.png" alt="Saturation HSL" loading="lazy"></p>
+<ul>
+<li><strong>Luminance HSL</strong> (<code>hsl_luminance_scale</code>, ×0..2) — amplifie ou réduit les corrections de luminance par teinte du look (ici Astia, qui éclaircit légèrement les teintes chair/orange).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/hsl_luminance_scale.png" alt="Luminance HSL" loading="lazy"></p>
+<ul>
+<li><strong>Température</strong> (<code>temperature</code>, -1000..1000) — réchauffe (positif) ou refroidit (négatif) la balance des blancs (approximation, pas un calcul planckien).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/temperature.png" alt="Température" loading="lazy"></p>
+<ul>
+<li><strong>Teinte</strong> (<code>tint</code>, -20..20) — pousse vers le magenta (positif) ou le vert (négatif).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/tint.png" alt="Teinte" loading="lazy"></p>
+<ul>
+<li><strong>Virage coloré</strong> (<code>split_tone_scale</code>, ×0..2) — amplifie ou réduit la force du virage colorimétrique ombres/hautes lumières déjà défini par le look (ici Classic Chrome : ombres bleu-cyan, hautes lumières dorées) ; à 0, le virage disparaît.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/split_tone_scale.png" alt="Virage coloré" loading="lazy"></p>
+<ul>
+<li><strong>Col. Chr. Effect</strong> (<code>color_chrome_effect</code>, Off/Weak/Strong) — approfondit/protège les pixels les plus saturés et les plus lumineux de l'image, relativement au reste de cette même image. L'effet ne cible que le haut du classement (percentile) de saturation/luminosité <em>propre à chaque image</em> — sur une photo dont les couleurs sont déjà toutes proches en intensité (comme la photo d'exemple utilisée pour les autres réglages), la plage réellement ciblée est trop étroite pour se voir ; illustré ici sur une grille de teintes à plusieurs niveaux de vivacité, où seule la rangée la plus saturée/lumineuse (en haut) est visiblement assombrie/désaturée, les rangées plus ternes restant inchangées.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/color_chrome_effect.png" alt="Col. Chr. Effect" loading="lazy"></p>
+<ul>
+<li><strong>Col. Chr. Blue</strong> (<code>color_chrome_blue</code>, Off/Weak/Strong) — même mécanisme, restreint aux teintes bleu/cyan (ciel, eau). Sur la même grille : seules les cases bleu/cyan de la rangée la plus vive changent, toutes les autres teintes (rouge, orange, jaune, vert, magenta) restent identiques — la restriction de teinte de ce réglage, bien visible en comparaison directe.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/color_chrome_blue.png" alt="Col. Chr. Blue" loading="lazy"></p>
+<h3 id="texture-grain">Texture &amp; Grain</h3>
+<ul>
+<li><strong>Clarté</strong> (<code>clarity</code>, -100..100) — contraste local à rayon large (masque flou sur la luminance) ; négatif = adoucit/brume, positif = accentue la texture des tons moyens.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/clarity.png" alt="Clarté" loading="lazy"></p>
+<ul>
+<li><strong>Netteté</strong> (<code>sharpness</code>, -100..100) — accentuation fine du détail (masque flou à rayon serré, par canal) ; négatif = flou, positif = netteté.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/sharpness.png" alt="Netteté" loading="lazy"></p>
+<ul>
+<li><strong>Grain</strong> (<code>grain_std</code>, 0..0,05) — ajoute un grain argentique déterministe (même image, même grain à chaque rendu).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/grain_std.png" alt="Grain" loading="lazy"></p>
+<h3 id="r-glages-sp-cifiques-au-rendu-noir-et-blanc">Réglages spécifiques au rendu noir et blanc</h3>
+<p>Deux réglages n'ont d'effet que sur un look déjà converti en niveaux de gris (Acros et les presets de la ligne B&amp;W, §4.5) — sans effet sur Film/Bleach Bypass tant qu'aucun filtre B&amp;W n'est actif :</p>
+<ul>
+<li><strong>Mono Colour WC</strong> (<code>mono_color_wc</code>, -20..20) — virage chaud/froid appliqué à l'image déjà grise (distinct de la Température, qui agit avant la conversion).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/mono_color_wc.png" alt="Mono Colour WC" loading="lazy"></p>
+<ul>
+<li><strong>Mono Colour MG</strong> (<code>mono_color_mg</code>, -20..20) — virage vert/magenta appliqué à l'image déjà grise.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/film/mono_color_mg.png" alt="Mono Colour MG" loading="lazy"></p>
+    </article>
+  </main>
+</div>
+</body>
+</html>

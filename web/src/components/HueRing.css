@@ -1,0 +1,44 @@
+/* LumaFlow v1.0 (2026-08-07)
+ * Styles du sélecteur circulaire de plages de teinte (HueRing) : anneau spectre, secteurs de
+ * plume (feather) et curseurs (knobs) par intervalle actif.
+ */
+
+/* Circular hue-range selector (feature 046) -- companion to ZoomOverlay.css, same token
+palette (var(--amber)/var(--bd)/var(--t1)/var(--t3)). No mockup precedent exists for this
+control (the reference mockup has no "splash"/hue-wheel content at all) -- structure is new, but
+colors/radii/spacing stay within the normative tokens of tokens.css. */
+
+.hue-ring {
+  width: 100%;
+  max-width: 200px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto 12px;
+  display: block;
+  touch-action: none;
+  user-select: none;
+}
+
+.hue-ring__wedge {
+  opacity: 0.92;
+  stroke: rgba(5, 8, 10, 0.5);
+  stroke-width: 0.5;
+}
+
+.hue-ring__knob {
+  stroke: var(--t1);
+  stroke-width: 2.5;
+  cursor: grab;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.55));
+}
+
+.hue-ring__knob--dragging {
+  cursor: grabbing;
+  stroke: var(--amber);
+  stroke-width: 3;
+}
+
+.hue-ring__empty {
+  fill: var(--t3);
+  font-size: 11px;
+  font-family: var(--font-ui);
+}

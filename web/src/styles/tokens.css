@@ -1,0 +1,68 @@
+/* LumaFlow v1.0 (2026-08-07)
+ * Jetons de design (couleurs, typographie, rayons) -- source de vérité CSS de l'IHM Web.
+ */
+/* Design tokens -- sourced verbatim from the reference mockup's own :root
+block; the mockup is the reference, not a paraphrase of it. Variable names
+kept identical to it for direct traceability. This file is the single source
+of truth for the whole Web UI: no component may hardcode a color, font or
+radius that belongs here. */
+:root {
+  /* Backgrounds, darkest to lightest */
+  --app: #05080a;
+  --header: #06090b;
+  --sidebar: #080c0e;
+  --surface: #0b0f11;
+  --surface-center: #0c1113; /* center of the workspace's radial gradient */
+  --panel: #101416;
+  --card: #13181b; /* row panel background -- see LumaRow panelBg */
+  --card-inner: #111518; /* vignette card background */
+
+  /* Borders */
+  --bd: rgba(255, 255, 255, 0.08);
+  --bdh: rgba(255, 255, 255, 0.14);
+  --bd-header: rgba(255, 255, 255, 0.07);
+  --bd-zone: rgba(255, 255, 255, 0.06);
+
+  /* Amber accent -- couleur d'accentuation configurable via Préférences > Général (2026-08-07);
+  ces valeurs statiques ne sont que le fallback pré-chargement, AppShell.tsx les écrase au runtime
+  depuis les Préférences chargées, même logique que --guide-limit-color/--guide-overlay-color
+  ci-dessous. --amber-rgb est le triplet RGB de --amber (une custom property hex ne peut pas être
+  décomposée en CSS pur pour construire un rgba() -- nécessaire aux endroits qui composaient un
+  rgba() en dur). --accent-text est la couleur de texte/icône contrastée sur fond plein accent
+  (bouton d'action, pastille de statut active...), calculée par luminosité côté AppShell.tsx. */
+  --amber: #e3a75e;
+  --amber2: #d89a52;
+  --amber-rgb: 227, 167, 94;
+  --halo: rgba(226, 167, 94, 0.28);
+  --accent-text: #05080a;
+
+  /* Guide colors (Geometry/Cadrage/Masque Sujet/Vignette aide dynamique), configurable via
+  Préférences > Vignettes -- these static values are only the pre-Préférences defaults; AppShell.tsx
+  overrides them on the root element at runtime from the loaded Preferences (2026-08-06). */
+  --guide-limit-color: var(--amber);
+  --guide-overlay-color: rgba(255, 255, 255, 0.95);
+
+  /* Text */
+  --t1: #e8e3da;
+  --t2: #b3aea7;
+  --t3: #7e8586;
+
+  /* Typography -- rationalized 2026-07-06 to a single UI family: Segoe UI
+  Variable everywhere, no separate mono family. */
+  --font-ui: "Segoe UI Variable", system-ui, sans-serif;
+
+  /* Fixed 7-step type scale -- no size outside this scale */
+  --fs-12: 12px;
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-18: 18px;
+  --fs-20: 20px;
+  --fs-24: 24px;
+  --fs-28: 28px;
+
+  /* Border radii -- no radius outside this scale */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-round: 999px;
+}

@@ -1,0 +1,137 @@
+{
+  "rows": [
+    {
+      "identifier": "geometry",
+      "label": "Geometry",
+      "category": "geometry",
+      "addon_identifiers": null,
+      "short_description": "Recadrage et redressement",
+      "thumbnail_presets": [
+        "neutral"
+      ]
+    },
+    {
+      "identifier": "framing",
+      "label": "Framing",
+      "category": "framing",
+      "addon_identifiers": null,
+      "short_description": "Cadrage libre et aides \u00e0 la composition",
+      "thumbnail_presets": [
+        "neutral"
+      ]
+    },
+    {
+      "identifier": "film",
+      "label": "Film",
+      "category": "film",
+      "addon_identifiers": null,
+      "short_description": "Rendu et grain argentique",
+      "thumbnail_presets": [
+        "neutral",
+        "Velvia",
+        "Astia",
+        "Pro Neg. Std",
+        "Eterna",
+        "Classic Negative",
+        "Classic Chrome",
+        "Rizzle Clicks",
+        "Glacier Blue"
+      ]
+    },
+    {
+      "identifier": "bleach_bypass",
+      "label": "Bleach Bypass",
+      "category": "film",
+      "addon_identifiers": null,
+      "short_description": "Bleach bypass et n\u00e9gatifs d\u00e9satur\u00e9s",
+      "thumbnail_presets": [
+        "neutral",
+        "Eterna Bleach Bypass",
+        "Inky Depths",
+        "Titanium",
+        "Ecowarrior",
+        "Milestone",
+        "Loki",
+        "Sunset Strip",
+        "Quicklime"
+      ]
+    },
+    {
+      "identifier": "color_splash",
+      "label": "Color Splash",
+      "category": "color_splash",
+      "addon_identifiers": null,
+      "short_description": "Noir et blanc + couleur(s) conserv\u00e9e(s)",
+      "thumbnail_presets": [
+        "neutral",
+        "Rouge",
+        "Orange",
+        "Jaune",
+        "Vert",
+        "Bleu",
+        "Violet"
+      ]
+    },
+    {
+      "identifier": "monochrome",
+      "label": "Monochrome",
+      "category": "monochrome_tone",
+      "addon_identifiers": null,
+      "short_description": "Colorisation duotone (grayscale + teinte unique)",
+      "thumbnail_presets": [
+        "neutral",
+        "Rouge",
+        "Sepia",
+        "Jaune",
+        "Vert",
+        "Bleu",
+        "Violet"
+      ]
+    },
+    {
+      "identifier": "bw",
+      "label": "B&W",
+      "category": "film",
+      "addon_identifiers": null,
+      "short_description": "Filtres et simulations noir et blanc alternatives",
+      "thumbnail_presets": [
+        "neutral",
+        "Acros",
+        "Acros + Yellow",
+        "Acros + Red",
+        "Acros + Green",
+        "Acros + Blue",
+        "Kodak T-MAX 3200",
+        "Kodak Tri-X",
+        "Ilford FP4"
+      ]
+    },
+    {
+      "identifier": "light",
+      "label": "Light",
+      "category": "light",
+      "addon_identifiers": null,
+      "short_description": "Exposition et contraste",
+      "thumbnail_presets": [
+        "neutral",
+        "Low Key",
+        "Dramatique",
+        "Soft",
+        "Balance",
+        "High Key"
+      ]
+    },
+    {
+      "identifier": "vignette",
+      "label": "Vignettage",
+      "category": "vignette",
+      "addon_identifiers": null,
+      "short_description": "Assombrissement des bords",
+      "thumbnail_presets": [
+        "neutral",
+        "Round Central",
+        "Linear Top+Bottom"
+      ]
+    }
+  ]
+}

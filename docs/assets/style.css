@@ -1,0 +1,366 @@
+/* LumaFlow v1.0 (2026-08-12) */
+/* Style du wiki de documentation statique -- palette reprise des jetons de design de l'IHM
+   (web/src/styles/tokens.css) pour rester visuellement cohérent avec l'application. */
+
+:root {
+  --app: #05080a;
+  --sidebar: #080c0e;
+  --surface: #0b0f11;
+  --panel: #101416;
+  --card: #13181b;
+  --card-inner: #111518;
+  --bd: rgba(255, 255, 255, 0.08);
+  --bdh: rgba(255, 255, 255, 0.14);
+  --amber: #e3a75e;
+  --amber2: #d89a52;
+  --accent-text: #05080a;
+  --t1: #e8e3da;
+  --t2: #b3aea7;
+  --t3: #7e8586;
+  --font-ui: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--app);
+  color: var(--t1);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  flex: 0 0 260px;
+  background: var(--sidebar);
+  border-right: 1px solid var(--bd);
+  padding: 24px 20px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar .brand {
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--amber);
+  text-decoration: none;
+  margin-bottom: 24px;
+  letter-spacing: 0.02em;
+}
+
+.sidebar nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar nav li {
+  margin: 2px 0;
+}
+
+.sidebar nav a {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: var(--t2);
+  text-decoration: none;
+  font-size: 14px;
+  transition: background 0.12s, color 0.12s;
+}
+
+.sidebar nav a:hover {
+  background: var(--card);
+  color: var(--t1);
+}
+
+.sidebar nav a.active {
+  background: var(--card);
+  color: var(--amber);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--amber);
+}
+
+.nav-main {
+  margin-bottom: 20px;
+}
+
+.nav-section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--t3);
+  padding: 0 10px;
+  margin-bottom: 6px;
+}
+
+.nav-workflow a {
+  padding-left: 18px;
+  font-size: 13.5px;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  padding: 40px 48px 80px;
+  max-width: 980px;
+}
+
+article h1 {
+  font-size: 30px;
+  color: var(--t1);
+  margin: 0 0 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--bd);
+}
+
+article h2 {
+  font-size: 22px;
+  color: var(--amber);
+  margin: 40px 0 14px;
+}
+
+article h3 {
+  font-size: 17px;
+  color: var(--t1);
+  margin: 28px 0 10px;
+}
+
+article p {
+  color: var(--t2);
+  margin: 12px 0;
+}
+
+article p.figure {
+  margin: 16px 0 20px;
+}
+
+article strong {
+  color: var(--t1);
+  font-weight: 600;
+}
+
+article em {
+  color: var(--t2);
+}
+
+article code {
+  background: var(--card-inner);
+  border: 1px solid var(--bd);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 0.88em;
+  color: var(--amber);
+}
+
+article pre {
+  background: var(--card-inner);
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+article pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--t1);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+article hr {
+  border: none;
+  border-top: 1px solid var(--bd);
+  margin: 36px 0;
+}
+
+article ul,
+article ol {
+  color: var(--t2);
+  padding-left: 24px;
+  margin: 12px 0;
+}
+
+article li {
+  margin: 8px 0;
+}
+
+article img {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--bd);
+  display: block;
+  margin: 6px 0;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  margin: 16px 0;
+  border: 1px solid var(--bd);
+  border-radius: 8px;
+}
+
+article table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14.5px;
+}
+
+article th,
+article td {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--bd);
+  vertical-align: top;
+}
+
+article th {
+  background: var(--panel);
+  color: var(--t1);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+article tr:last-child td {
+  border-bottom: none;
+}
+
+article tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.home-brand {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--amber);
+  margin: 0 0 22px;
+}
+
+.hero-title {
+  font-size: 40px;
+  line-height: 1.15;
+  margin: 0 0 14px;
+  color: var(--t1);
+}
+
+.tagline {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin: 0 0 22px;
+}
+
+.lede {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--t2);
+  max-width: 60ch;
+  margin: 0 0 40px;
+}
+
+.section-title {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t3);
+  margin: 40px 0 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--bd);
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.feature {
+  background: var(--card);
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  padding: 20px 22px;
+}
+
+.feature .k {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--t1);
+  margin-bottom: 8px;
+}
+
+.feature .v {
+  display: block;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--t2);
+}
+
+.local-strip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--card-inner);
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  padding: 18px 22px;
+}
+
+.local-strip .glyph {
+  font-size: 22px;
+  flex: none;
+  color: var(--amber);
+}
+
+.local-strip .txt {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--t2);
+}
+
+@media (max-width: 720px) {
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+  .hero-title {
+    font-size: 30px;
+  }
+}
+
+@media (max-width: 860px) {
+  .layout {
+    flex-direction: column;
+  }
+  .sidebar {
+    position: static;
+    height: auto;
+    width: 100%;
+    flex: none;
+    border-right: none;
+    border-bottom: 1px solid var(--bd);
+  }
+  .content {
+    padding: 28px 20px 60px;
+    max-width: 100%;
+  }
+}

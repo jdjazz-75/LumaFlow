@@ -1,0 +1,243 @@
+/* LumaFlow v1.0 (2026-08-07)
+ * Styles du stage de recadrage libre (CropToolStage) : cadre, poignées, masque d'assombrissement,
+ * guides de composition et sélecteur de guide/miroir en pied de stage.
+ */
+
+/* Reconstructed 2026-07-24: this file was accidentally deleted (assumed dead once CropCanvas.tsx
+was removed) while CropToolStage.tsx -- kept, still used by ZoomOverlayGeneric's Cadrage toggle --
+turned out to still import it. Rebuilt from the last successful production build's bundled CSS
+output (functionally identical rules, values unchanged), since no git history exists in this repo
+to restore from. The original file's explanatory comments (mockup value provenance, HiDPI notes,
+etc., if any) could not be recovered and are not reflected here. */
+
+/* display:flex/align-items/justify-content are only load-bearing for the --preview modifier below
+(a plain centered <img>, no viewport/photo-bounds involved) -- the edit-mode .crop-canvas__viewport
+is position:absolute;inset:0, so it ignores this stage's own flex alignment entirely. */
+.crop-canvas__stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid var(--bd);
+  background-color: #0a0d0f;
+  touch-action: none;
+  user-select: none;
+}
+
+.crop-canvas__stage--preview {
+  cursor: pointer;
+}
+
+.crop-canvas__preview-photo {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.crop-canvas__preview-badge {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translate(-50%);
+  padding: 7px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--bd);
+  background: rgba(5, 8, 10, 0.72);
+  backdrop-filter: blur(4px);
+  color: var(--t2);
+  font-size: 12.5px;
+  font-family: var(--font-ui);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* 2026-07-31, second remediation pass -- see GeometryCanvas.css's fuller explanation of why grid
+(the first attempted fix) was also wrong: it capped the wrapper correctly but broke the invariant
+that .photo-bounds's rendered box must be PIXEL-IDENTICAL to the <img>'s, which CropToolStage.tsx's
+fractionFromPointer() (and every crop-frame/handle percentage) depends on for correctness -- not
+just appearance. Fixed the same way: .photo-bounds is sized in real pixels from JS
+(useFittedImageBox) in the standalone editing context (CropToolStage.tsx), via the new
+.crop-canvas__viewport scrollable wrapper (mirrors ZoomOverlay.css's .zoom-overlay__compare).
+
+These classes serve a SECOND, different context too: SubjectMaskStage.tsx's SubjectMaskLayer reuses
+them verbatim, but nested directly inside ZoomOverlay.tsx's .zoom-overlay__compare-content, which is
+ALREADY sized in exact pixels matching the image's natural aspect ratio (that component's own
+naturalSize/zoomPercent mechanism) -- no independent fit computation needed there, so the plain
+100%/100% below (this rule's fallback, also its only rule in that context since no inline style
+ever overrides it there) is already exactly correct by construction. Do not reintroduce a fit-only
+CSS mechanism here that would only be correct for one of the two contexts -- see plan v2. */
+.crop-canvas__viewport {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  overflow: auto;
+  touch-action: none;
+  user-select: none;
+}
+
+.crop-canvas__photo-bounds {
+  position: relative;
+  margin: auto;
+  flex-shrink: 0;
+  width: 100%;
+  height: 100%;
+  line-height: 0;
+}
+
+.crop-canvas__photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.crop-canvas__mask {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.crop-canvas__mask path {
+  fill: rgba(5, 8, 10, 0.72);
+}
+
+.crop-canvas__frame {
+  position: absolute;
+  border: 1.5px solid var(--guide-limit-color);
+  box-shadow: 0 0 0 1px rgba(5, 8, 10, 0.4);
+  background: none;
+  cursor: move;
+}
+
+.crop-canvas__guides {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.crop-canvas__guides line,
+.crop-canvas__guides path {
+  stroke: var(--guide-overlay-color);
+  stroke-width: 1.25px;
+  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.85));
+}
+
+.crop-canvas__handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin: -6px;
+  border-radius: var(--radius-round);
+  background: var(--guide-limit-color);
+  border: 1.5px solid rgba(5, 8, 10, 0.6);
+}
+
+.crop-canvas__handle--nw {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+
+.crop-canvas__handle--ne {
+  top: 0;
+  left: 100%;
+  cursor: nesw-resize;
+}
+
+.crop-canvas__handle--sw {
+  top: 100%;
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.crop-canvas__handle--se {
+  top: 100%;
+  left: 100%;
+  cursor: nwse-resize;
+}
+
+.crop-canvas__handle--n {
+  top: 0;
+  left: 50%;
+  cursor: ns-resize;
+}
+
+.crop-canvas__handle--s {
+  top: 100%;
+  left: 50%;
+  cursor: ns-resize;
+}
+
+.crop-canvas__handle--w {
+  top: 50%;
+  left: 0;
+  cursor: ew-resize;
+}
+
+.crop-canvas__handle--e {
+  top: 50%;
+  left: 100%;
+  cursor: ew-resize;
+}
+
+/* Explicit z-index -- see GeometryCanvas.css's identical rule for the convention this follows
+(pan-zone ticks below it in the DOM order have their own explicit z-index:2). */
+.crop-canvas__guide-selector {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translate(-50%);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 24px);
+  overflow-x: auto;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--bd);
+  background: rgba(5, 8, 10, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.crop-canvas__mirror-toggles {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 2px;
+  padding-left: 6px;
+  border-left: 1px solid var(--bd);
+}
+
+.crop-canvas__guide-button {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--t2);
+  cursor: pointer;
+}
+
+.crop-canvas__guide-button:hover {
+  border-color: var(--bdh);
+  color: var(--t1);
+}
+
+.crop-canvas__guide-button--selected {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--accent-text);
+}

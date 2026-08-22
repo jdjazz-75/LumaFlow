@@ -1,0 +1,23 @@
+{
+  "schema_version": "1",
+  "source": {
+    "filename": "sunset.jpg",
+    "width": 4032,
+    "height": 3024,
+    "checksum": null
+  },
+  "steps": [
+    {
+      "step_identifier": "crop",
+      "thumbnail_identifier": "crop_neutral",
+      "parameters": {}
+    },
+    {
+      "step_identifier": "exposure",
+      "thumbnail_identifier": "exposure_plus1",
+      "parameters": {
+        "ev": 1.0
+      }
+    }
+  ]
+}

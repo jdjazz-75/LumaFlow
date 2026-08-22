@@ -1,0 +1,80 @@
+/* LumaFlow v1.0 (2026-08-07)
+ * Styles racines de l'AppShell : zone de travail centrale, placeholder, bandeaux d'erreur/
+ * avertissement/chargement et le footer d'aide contextuelle en bas de fenêtre.
+ */
+
+.app-shell {
+  width: 100%;
+  height: 100%;
+  background: var(--app);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.central-work-area {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  background: radial-gradient(120% 90% at 50% 0%, var(--surface-center) 0%, var(--surface) 60%);
+  display: flex;
+  flex-direction: column;
+}
+
+.work-placeholder {
+  margin: auto;
+  color: var(--t3);
+  font-size: var(--fs-14);
+  text-align: center;
+  padding: 0 40px;
+}
+
+.central-work-area__error,
+.central-work-area__warning {
+  flex: 0 0 auto;
+  margin: 12px 22px 0;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--amber);
+  color: var(--amber);
+  font-size: var(--fs-12);
+}
+
+/* Minimal busy indicator (050, FR-005) -- neutral (--bd/--t2), not amber: "work in progress" is
+not an alert, so it must not read as one at a glance next to .central-work-area__error/__warning
+above. Text-only, same restraint as the existing .prefs-loading precedent (PreferencesDialog.css)
+-- no spinner animation, no fabricated progress percentage (no endpoint exposes granular
+progress, so any bar would be invented). */
+.central-work-area__busy {
+  flex: 0 0 auto;
+  margin: 12px 22px 0;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--bd);
+  color: var(--t2);
+  font-size: var(--fs-12);
+}
+
+/* height:28px, literal value from the reference mockup -- this is the
+help-text footer, a distinct zone from the statusBar below it. */
+.app-footer {
+  flex: 0 0 auto;
+  height: 28px;
+  background: var(--header);
+  border-top: 1px solid var(--bd-zone);
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--t3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

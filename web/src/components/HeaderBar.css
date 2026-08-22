@@ -1,0 +1,83 @@
+/* LumaFlow v1.0 (2026-08-07)
+ * Styles de la barre d'en-tête (HeaderBar) : zone logo/titre, groupe de sélection de preset et
+ * zone d'actions (menu hamburger).
+ */
+
+/* Literal values sourced from the reference mockup's own header block --
+not rounded/reinterpreted. */
+
+.header-bar {
+  height: 56px;
+  flex: 0 0 56px;
+  background: var(--header);
+  border-bottom: 1px solid var(--bd-header);
+  display: flex;
+  align-items: center;
+  padding: 0 18px 0 0;
+}
+
+.header-left-zone {
+  width: 212px;
+  flex: 0 0 212px;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 12px 0 24px;
+  border-right: 1px solid var(--bd-zone);
+}
+
+.header-logo {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-round);
+  border: 1.5px solid var(--t1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.header-title {
+  font-size: var(--fs-16);
+  letter-spacing: 0.02em;
+  color: var(--t1);
+  font-weight: 600;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* .header-toggle (the sidebar fold/unfold button) removed along with the Sidebar itself
+(2026-07-29) -- see Sidebar.tsx's own header comment. */
+
+/* .header-project-name (plain text label) replaced by PresetSelector.css's
+.preset-selector (2026-08-05) -- see PresetSelector.tsx. */
+
+/* Sits right after .header-left-zone, whose own border-right already reads as the vertical
+separator between the app name and this "Preset" label + combobox group (2026-08-05). */
+.header-preset-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 18px;
+}
+
+/* Matches .vignette-card__caption-text's style (VignetteCard.css): fs-14, --t1 -- same visual
+weight as vignette names, per user request (2026-08-05). */
+.header-preset-label {
+  font-size: var(--fs-14);
+  color: var(--t1);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* .header-action / .header-action--accent (Ouvrir/Enregistrer/Exporter flat buttons) and
+.header-menu (bare hamburger button) were replaced by HeaderMenu.tsx's dropdown (2026-07-29) --
+see HeaderMenu.css for the surviving .header-menu button style and the new .header-menu-item
+rules that reuse the old --accent look (amber border/text/icon) as a :hover/:focus-visible state. */

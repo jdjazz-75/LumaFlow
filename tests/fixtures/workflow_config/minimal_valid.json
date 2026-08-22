@@ -1,0 +1,16 @@
+{
+  "rows": [
+    {
+      "category": "geometry",
+      "thumbnail_presets": ["neutral"]
+    },
+    {
+      "addon_identifiers": ["light_intensity"],
+      "thumbnail_presets": []
+    },
+    {
+      "category": "film",
+      "thumbnail_presets": ["neutral"]
+    }
+  ]
+}

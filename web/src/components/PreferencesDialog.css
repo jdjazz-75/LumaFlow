@@ -1,0 +1,419 @@
+/* LumaFlow v1.0 (2026-08-07)
+ * Styles de la boîte de dialogue Préférences (PreferencesDialog) : overlay, panneau, liste de
+ * catégories, champs numériques/chemins et la page Workflow (lignes/vignettes).
+ */
+
+/* Mirrors lumaflow/ui/preferences_dialog.py's styling decisions (F-031
+remediation): neutral panel look (PANEL_BG/BORDER_REST/Radii.PANEL), no
+amber ring except on the one primary action. No literal mockup markup
+exists for this dialog (the reference mockup has a sidebar entry but no
+dialog design) -- tokens only, ported from the earlier behavior, including its
+left category list ("Général"/"Workflow") + right content panel layout. */
+
+/* Popup feel, not a full-screen takeover: light dimming (the app underneath
+stays legible) + a floating dialog with real elevation (shadow), rather than
+the earlier near-opaque/blurred backdrop that read as "a different page".
+The scale+fade-in reuses the mockup's own popup motif (@keyframes lumaZoom
+-- its Zoom comparison overlay opens the exact same way), so this dialog
+and the Zoom overlay feel
+consistent rather than each inventing their own entrance animation. */
+@keyframes prefsPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.965);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.prefs-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 8, 10, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.prefs-dialog {
+  width: 720px;
+  height: 560px;
+  background: var(--panel);
+  border: 1px solid var(--bdh);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.35);
+  animation: prefsPopIn 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.prefs-title {
+  font-size: var(--fs-18);
+  font-weight: 600;
+  color: var(--t1);
+  flex: 0 0 auto;
+}
+
+.prefs-error {
+  font-size: var(--fs-12);
+  color: var(--amber);
+  flex: 0 0 auto;
+}
+
+.prefs-loading {
+  font-size: var(--fs-14);
+  color: var(--t3);
+}
+
+.prefs-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 16px;
+}
+
+.prefs-category-list {
+  width: 160px;
+  flex: 0 0 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-right: 1px solid var(--bd);
+  padding-right: 12px;
+}
+
+.prefs-category-item {
+  position: relative;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: none;
+  border-left: 2.5px solid transparent;
+  background: transparent;
+  color: var(--t2);
+  font-size: var(--fs-14);
+  font-family: var(--font-ui);
+  cursor: pointer;
+}
+
+.prefs-category-item--active {
+  background: var(--halo);
+  border-left: 2.5px solid var(--amber);
+  color: var(--t1);
+}
+
+.prefs-page {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.prefs-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.prefs-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--bd);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.prefs-group-title {
+  font-size: var(--fs-12);
+  color: var(--t2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.prefs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.prefs-row-label {
+  font-size: var(--fs-14);
+  color: var(--t2);
+}
+
+.prefs-row-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.prefs-row-input input {
+  width: 56px;
+  background: var(--card-inner);
+  border: 1px solid var(--bd);
+  border-radius: var(--radius-sm);
+  color: var(--t1);
+  font-family: var(--font-ui);
+  font-size: var(--fs-14);
+  padding: 4px 8px;
+  /* Native up/down spin buttons render in a fixed OS color CSS can't
+  reliably restyle (esp. on Windows/Chromium) -- hidden in favor of the
+  custom, light-colored .prefs-stepper buttons below. */
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.prefs-row-input input::-webkit-outer-spin-button,
+.prefs-row-input input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.prefs-row-input input:focus {
+  /* Focus must not change the border color (user feedback) -- only the
+  native focus ring is suppressed. */
+  outline: none;
+}
+
+.prefs-stepper {
+  display: flex;
+  flex-direction: column;
+  margin-left: -4px;
+}
+
+.prefs-stepper__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 12px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--t1);
+  cursor: pointer;
+}
+
+.prefs-stepper__btn:hover {
+  color: var(--amber);
+}
+
+.prefs-suffix {
+  font-size: var(--fs-12);
+  color: var(--t3);
+}
+
+/* Presets directory row (2026-08-05, header combobox): a path is long and variable-width, unlike
+the fixed-width numeric fields above -- stacks label above a full-width text field + button
+instead of the label-left/input-right layout used by .prefs-row. */
+.prefs-row--path {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.prefs-row-input--path {
+  width: 100%;
+}
+
+.prefs-row-input--path input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  color: var(--t2);
+}
+
+.prefs-browse-btn {
+  flex: 0 0 auto;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--bd);
+  background: transparent;
+  color: var(--t2);
+  font-size: var(--fs-12);
+  font-family: var(--font-ui);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.prefs-browse-btn:hover {
+  border-color: var(--bdh);
+  color: var(--t1);
+}
+
+.prefs-actions {
+  display: flex;
+  gap: 9px;
+  flex: 0 0 auto;
+}
+
+.prefs-btn {
+  flex: 1;
+  text-align: center;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--bd);
+  color: var(--t2);
+  font-size: var(--fs-14);
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-ui);
+}
+
+.prefs-btn:hover {
+  border-color: var(--bdh);
+  color: var(--t1);
+}
+
+.prefs-btn--primary {
+  background: var(--amber);
+  color: var(--accent-text);
+  font-weight: 600;
+  border: none;
+}
+
+.prefs-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* --- Workflow page (Préférences > Workflow, 2026-08-06): per-row vignette enable/disable +
+reorder. Rows themselves are structurally fixed (read-only header); only the unified per-row
+vignette list -- every vignette the row's addon can show, each with its own checkbox -- is
+editable. --- */
+
+.prefs-workflow-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--bd);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  height: 100%;
+}
+
+.prefs-workflow-title {
+  font-size: var(--fs-12);
+  color: var(--t2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.prefs-workflow-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prefs-workflow-source-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-12);
+  color: var(--t2);
+}
+
+.prefs-workflow-toolbar .prefs-btn {
+  flex: none;
+  padding: 6px 12px;
+  font-size: var(--fs-12);
+}
+
+.prefs-workflow-rows {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.prefs-workflow-row-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--bd);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+}
+
+.prefs-workflow-row-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--t1);
+  cursor: pointer;
+  text-align: left;
+}
+
+.prefs-workflow-row-header:hover {
+  color: var(--amber);
+}
+
+.prefs-workflow-row-label {
+  font-size: var(--fs-14);
+  color: inherit;
+  font-weight: 600;
+}
+
+.prefs-workflow-vignette-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.prefs-workflow-vignette-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.prefs-workflow-vignette-item:hover {
+  background: var(--card-inner);
+}
+
+.prefs-workflow-vignette-item--selected {
+  background: var(--halo);
+}
+
+.prefs-workflow-vignette-item--locked {
+  cursor: default;
+  color: var(--t3);
+}
+
+.prefs-workflow-vignette-label {
+  font-size: var(--fs-12);
+  color: var(--t1);
+}
+
+.prefs-workflow-vignette-item--locked .prefs-workflow-vignette-label {
+  color: var(--t3);
+}
+
+.prefs-workflow-row-toolbar {
+  display: flex;
+  gap: 8px;
+}
+
+.prefs-workflow-row-toolbar .prefs-btn {
+  flex: none;
+  padding: 4px 10px;
+  font-size: var(--fs-12);
+}

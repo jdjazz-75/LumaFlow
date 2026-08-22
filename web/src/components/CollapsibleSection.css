@@ -1,0 +1,56 @@
+/* LumaFlow v1.0 (2026-08-07)
+ * Styles du composant accordéon CollapsibleSection : en-tête cliquable, chevron et corps replié/
+ * déplié.
+ */
+
+/* Accordion primitive used by ZoomOverlayGeneric to group Film/Color Splash sliders.
+No expand/collapse transition (mount/unmount instead) -- no other collapsible content
+exists elsewhere in the app to match a motion convention against; see plan notes. */
+
+.collapsible-section {
+  margin-bottom: 13px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--bd);
+}
+
+.collapsible-section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.collapsible-section__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--t2);
+  cursor: pointer;
+  text-align: left;
+}
+
+.collapsible-section__header:hover {
+  color: var(--t1);
+}
+
+.collapsible-section__title {
+  flex: 1;
+  font-size: var(--fs-12);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  color: inherit;
+}
+
+.collapsible-section__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-round);
+  background: var(--amber);
+}
+
+.collapsible-section__body {
+  margin-top: 12px;
+}

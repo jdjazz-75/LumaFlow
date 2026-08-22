@@ -1,0 +1,22 @@
+{
+  "rows": [
+    {
+      "identifier": "finishing",
+      "label": "Finishing",
+      "category": "finishing",
+      "thumbnail_presets": ["neutral"]
+    },
+    {
+      "identifier": "light",
+      "label": "Light",
+      "category": "light",
+      "thumbnail_presets": ["neutral"]
+    },
+    {
+      "identifier": "geometry",
+      "label": "Geometry",
+      "category": "geometry",
+      "thumbnail_presets": ["neutral"]
+    }
+  ]
+}

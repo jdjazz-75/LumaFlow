@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Light — LumaFlow</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="../index.html">LumaFlow</a>
+    <nav>
+      <ul class="nav-main">
+        <li><a href="../index.html">Présentation</a></li>
+        <li><a href="../installation.html">Installation</a></li>
+        <li><a href="../fonctionnalites.html">Fonctionnalités</a></li>
+        <li><a href="../workflow/index.html">Workflow</a></li>
+      </ul>
+      <div class="nav-section-label">Étapes du workflow</div>
+      <ul class="nav-workflow">
+        <li><a href="../workflow/film.html">Film</a></li>
+        <li><a href="../workflow/bleach-bypass.html">Bleach Bypass</a></li>
+        <li><a href="../workflow/color-splash.html">Color Splash</a></li>
+        <li><a href="../workflow/monochrome.html">Monochrome</a></li>
+        <li><a href="../workflow/bw.html">B&W</a></li>
+        <li><a href="../workflow/light.html" class="active">Light</a></li>
+        <li><a href="../workflow/vignettage.html">Vignettage</a></li>
+      </ul>
+    </nav>
+  </aside>
+  <main class="content">
+    <article>
+<h1 id="4-6-light">4.6 Light</h1>
+<p><strong>Moteur</strong> : exposition, contraste et courbe de tons à 4 zones (Noirs/Ombres/Hautes lumières/ Blancs, chaque zone étant une fenêtre pondérée en cosinus autour de son propre centre de luminance), couleur/virage, texture/détail à 3 rayons, halo (bloom), un lissage protégé par les contours (« Douceur »), grain et vignettage — le tout modulable indépendamment sur un <strong>sujet</strong> et un <strong>fond</strong> définis par un contour polygonal tracé à la souris.</p>
+<h2 id="vignettes">Vignettes</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Vignette</th><th>Effet</th></tr></thead>
+<tbody>
+<tr><td><strong>Neutre</strong></td><td>Aucune transformation.</td></tr>
+<tr><td><strong>Balance</strong></td><td>Réglage discret : légère surexposition (+15), ombres nettement relevées, hautes lumières abaissées — un rééquilibrage doux de la plage dynamique, sans coloration ni texture ajoutée.</td></tr>
+<tr><td><strong>Low Key</strong></td><td>Sombre et contrasté : forte sous-exposition, contraste marqué, noirs/ombres creusés (avec écrêtage du point noir), hautes lumières et blancs à peine touchés (les accents clairs survivent) ; légère désaturation, dominante froide, virage bleu-cyan dans les ombres et orangé discret dans les hautes lumières ; clarté/texture/netteté renforcées, vignettage sombre marqué, grain visible. Le rendu sombre et « habité » classique.</td></tr>
+<tr><td><strong>High Key</strong></td><td>Clair et aérien : forte surexposition, contraste réduit, ombres largement relevées, plancher de noir relevé (jamais de noir pur — l'aspect « laiteux » propre au high-key) ; légère désaturation, dominante chaude pastel, virage doré dans les ombres et les hautes lumières ; clarté/texture légèrement réduites (plus de douceur), vignettage éclaircissant (pas assombrissant), grain minimal.</td></tr>
+<tr><td><strong>Dramatique</strong></td><td>Contraste très fort (le réglage dominant de ce preset), exposition et ombres à peine touchées à dessein (une version antérieure trop sombre écrasait le rendu plutôt que de le dynamiser), blancs relevés pour un éclat net face à des noirs profonds ; désaturation modérée, dominante froide, virage teal (195°) en ombres / orangé (35°) en hautes lumières — un « teal &amp; orange » cinématographique classique ; clarté/texture/netteté au maximum, vignettage et grain les plus marqués des 5 presets. Le rendu « affiche de film ».</td></tr>
+<tr><td><strong>Soft</strong></td><td>Doux et bas-contraste : ombres relevées, hautes lumières et blancs légèrement abaissés, plancher de noir relevé — plage tonale compressée et vaporeuse ; désaturation légère, dominante chaude ; clarté/texture/netteté toutes négatives (aucun mécanisme d'accentuation actif) ; seul preset à activer un vrai <strong>halo</strong> (lueur chaude diffusée depuis les zones lumineuses) et un lissage protégé par les contours (adoucit les zones plates, préserve les contours nets) ; grain minimal.</td></tr>
+</tbody></table></div>
+<h2 id="r-glages-manuels">Réglages manuels</h2>
+<h3 id="exposition-tonalit">Exposition &amp; Tonalité</h3>
+<ul>
+<li><strong>Intensité</strong> (<code>intensity</code>, 0..1) — mélange le résultat gradé avec l'image d'origine.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/intensity.png" alt="Intensité" loading="lazy"></p>
+<ul>
+<li><strong>Exposition</strong> (<code>exposure</code>, -100..100) — gain lumineux multiplicatif (±2 IL sur toute la plage), appliqué avant tout le reste.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/exposure.png" alt="Exposition" loading="lazy"></p>
+<ul>
+<li><strong>Contraste</strong> (<code>contrast</code>, -100..100) — écarte (positif) ou rapproche (négatif) la luminance de son pivot.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/contrast.png" alt="Contraste" loading="lazy"></p>
+<ul>
+<li><strong>Pivot de contraste</strong> (<code>contrast_pivot</code>, 0,2..0,8) — la valeur de luminance autour de laquelle le contraste bascule : plus bas, les tons clairs bougent davantage ; plus haut, ce sont les tons sombres.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/contrast_pivot.png" alt="Pivot de contraste" loading="lazy"></p>
+<ul>
+<li><strong>Noirs</strong> (<code>blacks</code>, -100..100) — zone la plus sombre de la courbe à 4 zones (centre 0,00).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/blacks.png" alt="Noirs" loading="lazy"></p>
+<ul>
+<li><strong>Ombres</strong> (<code>shadows</code>, -100..100) — zone sombre (centre 0,28).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/shadows.png" alt="Ombres" loading="lazy"></p>
+<ul>
+<li><strong>Hautes lumières</strong> (<code>highlights</code>, -100..100) — zone claire (centre 0,72).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/highlights.png" alt="Hautes lumières" loading="lazy"></p>
+<ul>
+<li><strong>Blancs</strong> (<code>whites</code>, -100..100) — zone la plus claire de la courbe (centre 1,00).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/whites.png" alt="Blancs" loading="lazy"></p>
+<ul>
+<li><strong>Point noir</strong> (<code>black_point</code>, 0..0,10) — écrase les tons presque noirs vers le noir pur.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/black_point.png" alt="Point noir" loading="lazy"></p>
+<ul>
+<li><strong>Plancher de noir</strong> (<code>black_floor</code>, 0..0,10) — relève au contraire le noir pur vers un gris mat/délavé (l'aspect « jamais tout à fait noir » du High Key).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/black_floor.png" alt="Plancher de noir" loading="lazy"></p>
+<h3 id="couleur">Couleur</h3>
+<ul>
+<li><strong>Saturation</strong> (<code>saturation</code>, ×0..2) — multiplicateur global de saturation.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/saturation.png" alt="Saturation" loading="lazy"></p>
+<ul>
+<li><strong>Température</strong> (<code>temperature</code>, -1000..1000).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/temperature.png" alt="Température" loading="lazy"></p>
+<ul>
+<li><strong>Teinte</strong> (<code>tint</code>, -20..20).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/tint.png" alt="Teinte" loading="lazy"></p>
+<ul>
+<li><strong>Virage ombres — teinte</strong> (<code>split_shadow_hue</code>, 0..360°) — couleur mélangée dans les tons sombres.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/split_shadow_hue.png" alt="Virage ombres — teinte" loading="lazy"></p>
+<ul>
+<li><strong>Virage ombres — force</strong> (<code>split_shadow_strength</code>, 0..20 %) — intensité de ce mélange.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/split_shadow_strength.png" alt="Virage ombres — force" loading="lazy"></p>
+<ul>
+<li><strong>Virage hautes lumières — teinte</strong> (<code>split_highlight_hue</code>, 0..360°).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/split_highlight_hue.png" alt="Virage hautes lumières — teinte" loading="lazy"></p>
+<ul>
+<li><strong>Virage hautes lumières — force</strong> (<code>split_highlight_strength</code>, 0..20 %).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/split_highlight_strength.png" alt="Virage hautes lumières — force" loading="lazy"></p>
+<ul>
+<li><strong>Saturation HSL</strong> (<code>hsl_saturation_scale</code>, ×0..2) et <strong>Luminance HSL</strong> (<code>hsl_luminance_scale</code>, ×0..2) — censés amplifier/réduire des ajustements de saturation/luminance par teinte propres au look sélectionné, sur le même principe que Film (§4.1). <strong>Non illustrés ici</strong> : à ce jour, aucun des 6 presets livrés ne renseigne ces tables internes — les deux curseurs sont donc inertes quel que soit le preset, réservés à un futur look calibré par teinte.</li>
+</ul>
+<h3 id="texture-nettet">Texture &amp; Netteté</h3>
+<ul>
+<li><strong>Clarté</strong> (<code>clarity</code>, -100..100) — contraste local à rayon large.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/clarity.png" alt="Clarté" loading="lazy"></p>
+<ul>
+<li><strong>Texture</strong> (<code>texture</code>, -100..100) — détail à rayon moyen, plus fin que la Clarté.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/texture.png" alt="Texture" loading="lazy"></p>
+<ul>
+<li><strong>Netteté</strong> (<code>sharpness</code>, -100..100) — accentuation fine (rayon 1 px).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/sharpness.png" alt="Netteté" loading="lazy"></p>
+<ul>
+<li><strong>Dehaze</strong> (<code>dehaze</code>, -100..100) — un correctif combiné (contraste local + recentrage du point noir + saturation), approximation d'un désembrumage plutôt qu'une simulation physique.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/dehaze.png" alt="Dehaze" loading="lazy"></p>
+<h3 id="halo-douceur">Halo &amp; Douceur</h3>
+<ul>
+<li><strong>Halo — seuil</strong> (<code>bloom_threshold</code>, 0..1) — luminance à partir de laquelle un pixel contribue à la lueur diffusée.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/bloom_threshold.png" alt="Halo — seuil" loading="lazy"></p>
+<ul>
+<li><strong>Halo — intensité</strong> (<code>bloom_amount</code>, 0..50 %) — opacité de la lueur, mélangée en mode Éclaircir.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/bloom_amount.png" alt="Halo — intensité" loading="lazy"></p>
+<ul>
+<li><strong>Halo — rayon</strong> (<code>bloom_radius</code>, 0..5 % de la largeur) — étalement du flou source de la lueur.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/bloom_radius.png" alt="Halo — rayon" loading="lazy"></p>
+<ul>
+<li><strong>Halo — chaleur</strong> (<code>bloom_warmth</code>, -500..500) — réchauffe/refroidit la couleur de la lueur elle-même, indépendamment de la Température générale.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/bloom_warmth.png" alt="Halo — chaleur" loading="lazy"></p>
+<ul>
+<li><strong>Douceur — intensité</strong> (<code>soft_detail_amount</code>, 0..50 %) — force d'un flou mélangé sur l'ensemble de l'image.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/soft_detail_amount.png" alt="Douceur — intensité" loading="lazy"></p>
+<ul>
+<li><strong>Douceur — rayon</strong> (<code>soft_detail_radius</code>, 0..8 px) — rayon de ce flou.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/soft_detail_radius.png" alt="Douceur — rayon" loading="lazy"></p>
+<ul>
+<li><strong>Protection des contours</strong> (<code>edge_protection</code>, 0..100 %) — résistance des contours nets détectés au flou de Douceur : plus élevé, plus les zones plates se lissent tout en gardant les contours (yeux, bords d'objets) nets.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/edge_protection.png" alt="Protection des contours" loading="lazy"></p>
+<h3 id="finition">Finition</h3>
+<ul>
+<li><strong>Vignettage</strong> (<code>vignette</code>, -100..100) — assombrissement (négatif) ou éclaircissement (positif) radial des bords.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/vignette.png" alt="Vignettage" loading="lazy"></p>
+<ul>
+<li><strong>Grain</strong> (<code>grain</code>, 0..0,05).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/light/grain.png" alt="Grain" loading="lazy"></p>
+<h2 id="masque-sujet-arri-re-plan">Masque Sujet/Arrière-plan</h2>
+<p>Un contour polygonal (sommets déplaçables à la souris, milieux d'arête cliquables pour insérer un nouveau sommet, jusqu'à 32 sommets, contour adouci) sépare l'image en deux régions. Parmi les 32 réglages ci-dessus, <strong>19</strong> deviennent réglables indépendamment pour le Sujet et le Fond (exposition, contraste, noirs/ombres/hautes lumières/blancs, point noir, plancher de noir, température, teinte, force des deux virages, clarté, texture, netteté, dehaze, saturation et les deux échelles HSL) ; les <strong>13 autres</strong> — pivot de contraste, teinte des deux virages, tout le groupe Halo &amp; Douceur, et toute la Finition (vignettage, grain) — restent globaux, appliqués une seule fois sur l'image composée, jamais scindés par le masque. Sans contour tracé, le réglage du Fond s'applique à l'image entière.</p>
+<p><img src="../screenshots/reglages/light/masque_sujet_fond.png" alt="Masque Sujet/Fond" loading="lazy"> <em>Exemple : un contour couvrant la moitié gauche de la photo, avec Exposition Sujet à +60 et Exposition Fond à −60 — un cas extrême pour rendre la séparation évidente.</em></p>
+    </article>
+  </main>
+</div>
+</body>
+</html>

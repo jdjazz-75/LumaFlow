@@ -1,0 +1,230 @@
+/* LumaFlow v1.0 (2026-08-07)
+ * Styles du stage de correction géométrique (GeometryToolStage) : cadre de distorsion à 4 coins,
+ * cadran de rotation, guides d'alignement et sélecteur d'outils/aides en pied de stage.
+ */
+
+/* Reconstructed 2026-07-24: this file was accidentally deleted (assumed dead once GeometryCanvas.tsx
+was removed) while GeometryToolStage.tsx -- kept, still used by ZoomOverlayGeneric's Geometry
+toggle -- turned out to still import it. Rebuilt from the last successful production build's
+bundled CSS output (functionally identical rules, values unchanged), since no git history exists
+in this repo to restore from. The original file's explanatory comments (mockup value provenance,
+HiDPI notes, etc., if any) could not be recovered and are not reflected here. */
+
+.geometry-canvas__stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid var(--bd);
+  background-color: #0a0d0f;
+}
+
+/* 2026-07-31, second remediation pass: an inline-block wrapper (original) let the photo overflow
+vertically (percentage max-height never resolves through an ancestor whose own height is only
+CAPPED, not explicit); switching to CSS Grid fixed the overflow but broke a DIFFERENT, more severe
+invariant -- .photo-bounds's own rendered box must be PIXEL-IDENTICAL to the <img>'s, because
+GeometryToolStage.tsx's fractionFromPointer() and every overlay element (quad outline, corner
+handles, guides) compute/position themselves via getBoundingClientRect()/percentages of THIS
+wrapper, never the <img> itself (same for CropToolStage.tsx and Masque Sujet's maskFractionFromPointer
+in ZoomOverlay.tsx). Grid's default stretch/start alignment for a replaced element with its own
+intrinsic aspect ratio can size the <img> smaller than its grid cell, anchored top-left -- wrapper
+still capped correctly (no overflow), but no longer equal to the image, so both the on-screen
+overlay AND the actual crop/corner coordinates sent to the backend were silently wrong (bug report:
+"le cadrage ne correspond pas du tout à la sélection").
+Fixed by no longer trying to solve "fit + cap + wrapper==image" with CSS alone: .photo-bounds is
+now sized in real pixels from JS (useFittedImageBox, mirrors ZoomOverlay.tsx's own naturalSize/
+viewportSize/computeFitPercent mechanism for its main compare pane), so wrapper and <img> always
+share the exact same explicit width/height by construction, at any zoom level -- see
+GeometryToolStage.tsx. The .geometry-canvas__viewport wrapper below is the new scrollable "available
+space" container (mirrors ZoomOverlay.css's .zoom-overlay__compare); .photo-bounds itself just
+centers within it via margin:auto and takes the explicit size, falling back to 100%/100% before the
+first fit computation resolves. */
+.geometry-canvas__viewport {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  overflow: auto;
+  touch-action: none;
+  user-select: none;
+}
+
+.geometry-canvas__photo-bounds {
+  position: relative;
+  margin: auto;
+  flex-shrink: 0;
+  width: 100%;
+  height: 100%;
+  line-height: 0;
+}
+
+.geometry-canvas__photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.geometry-canvas__overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.geometry-canvas__quad-outline {
+  fill: none;
+  stroke: var(--guide-limit-color);
+  stroke-width: 1.5px;
+  filter: drop-shadow(0 0 1px rgba(5, 8, 10, 0.4));
+  pointer-events: none;
+}
+
+.geometry-canvas__guide-line {
+  stroke: var(--guide-overlay-color);
+  stroke-width: 1.25px;
+  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.85));
+  pointer-events: none;
+}
+
+.geometry-canvas__guide-line-hit {
+  stroke: transparent;
+  stroke-width: 16px;
+  cursor: grab;
+  pointer-events: stroke;
+}
+
+.geometry-canvas__handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin: -6px;
+  border-radius: var(--radius-round);
+  background: var(--guide-limit-color);
+  border: 1.5px solid rgba(5, 8, 10, 0.6);
+  cursor: move;
+}
+
+.geometry-canvas__handle--tl,
+.geometry-canvas__handle--br {
+  cursor: nwse-resize;
+}
+
+.geometry-canvas__handle--tr,
+.geometry-canvas__handle--bl {
+  cursor: nesw-resize;
+}
+
+.geometry-canvas__dial {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 44%;
+  aspect-ratio: 1;
+  border: 1px dashed var(--guide-overlay-color);
+  border-radius: 50%;
+  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.85));
+  pointer-events: none;
+}
+
+.geometry-canvas__dial-pointer {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50%;
+  pointer-events: none;
+}
+
+.geometry-canvas__dial-pointer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 50%;
+  left: 50%;
+  width: 1px;
+  transform: translate(-50%);
+  background: var(--guide-limit-color);
+}
+
+.geometry-canvas__dial-handle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--guide-limit-color);
+  border: 1.5px solid rgba(5, 8, 10, 0.6);
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.geometry-canvas__dial-angle-label {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  font-size: 12px;
+  line-height: normal;
+  white-space: nowrap;
+  font-family: var(--font-ui);
+  color: var(--amber);
+  pointer-events: none;
+}
+
+/* Explicit z-index (2026-07-31, added alongside the new pan-zone ticks below it in the DOM order
+which have their own explicit z-index:2 via .zoom-overlay__pan-zone) -- see the zoom-overlay
+z-index convention/table at the top of ZoomOverlay.css and the zoom-overlay-zindex-stacking-
+regression precedent: once ANY floating sibling gets an explicit z-index, every other one must too,
+or it silently loses its former implicit DOM-order stacking. */
+.geometry-canvas__guide-selector {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translate(-50%);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 24px);
+  overflow-x: auto;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--bd);
+  background: rgba(5, 8, 10, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.geometry-canvas__guide-button {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--t2);
+  cursor: pointer;
+}
+
+.geometry-canvas__guide-button:hover {
+  border-color: var(--bdh);
+  color: var(--t1);
+}
+
+.geometry-canvas__guide-button--selected {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--accent-text);
+}
+
+.geometry-canvas__aid-toggles {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 2px;
+  padding-left: 6px;
+  border-left: 1px solid var(--bd);
+}

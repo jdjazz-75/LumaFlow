@@ -1,0 +1,760 @@
+/* LumaFlow v1.0 (2026-08-07)
+ * Styles du grand overlay Zoom (ZoomOverlay) : comparateur avant/après, poignée de split, zones de
+ * pan optique, panneau "Réglages manuels" (sliders/groupes/roue de teinte) et barre de zoom.
+ */
+
+/* Zoom overlay -- before/after split-compare + "Réglages manuels" sliders.
+Literal values copied from the reference mockup's own zoom-overlay block:
+the mockup is the reference, not a paraphrase of it. */
+
+/* Z-INDEX CONVENTION (bug recurred twice already -- Vignette, then Masque Sujet, see memory
+zoom-overlay-zindex-stacking-regression): every floating control that is a sibling of
+.zoom-overlay__compare/.zoom-overlay__compare-wrap MUST declare an explicit z-index. Once ANY
+sibling in that stacking context has one, the remaining "auto" siblings stop following DOM order
+and can silently repaint underneath it. Do not rely on DOM order alone -- copy a value from this
+table instead of guessing:
+  .zoom-overlay                        z-index: 5   (root, establishes the stacking context)
+  .zoom-overlay__pan-zone              z-index: 2   (also reused verbatim by Geometry/Cadrage, see
+                                                      web/src/lib/usePanZones.tsx)
+  .zoom-overlay__handle                z-index: 2
+  .vignette-shape-stage__controls      z-index: 3   (VignetteShapeStage.css)
+  .subject-mask-stage__controls        z-index: 2   (SubjectMaskStage.css)
+  .geometry-canvas__guide-selector     z-index: 3   (GeometryCanvas.css, added 2026-07-31 alongside
+                                                      Geometry's own pan-zone ticks)
+  .crop-canvas__guide-selector         z-index: 3   (CropCanvas.css, same reason)
+When adding a new floating control here, give it an explicit z-index too -- pick 2 unless it must
+specifically sit above another explicit one, in which case go higher and update this table. */
+
+@keyframes lumaZoom {
+  from {
+    opacity: 0;
+    transform: scale(0.965);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.zoom-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 8, 10, 0.86);
+  backdrop-filter: blur(7px);
+  display: flex;
+  padding: 24px;
+  gap: 20px;
+  animation: lumaZoom 200ms cubic-bezier(0.2, 0, 0, 1);
+  z-index: 5;
+}
+
+.zoom-overlay__main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.zoom-overlay__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.zoom-overlay__category {
+  font-size: 11px;
+  /* ancien: font-family:var(--font-mono) (JetBrains Mono) -- rationalized
+  2026-07-06 to the single Segoe UI Variable family (tokens.css's --font-ui). */
+  font-family: var(--font-ui);
+  letter-spacing: 0.14em;
+  color: var(--amber);
+}
+
+.zoom-overlay__option {
+  font-size: 13px;
+  color: var(--t2);
+}
+
+.zoom-overlay__spacer {
+  flex: 1;
+}
+
+.zoom-overlay__close {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--bd);
+  background: transparent;
+  color: var(--t2);
+  font-size: 13px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+}
+
+.zoom-overlay__close:hover {
+  border-color: var(--bdh);
+  color: var(--t1);
+}
+
+.zoom-overlay__error {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(200, 80, 80, 0.12);
+  border: 1px solid rgba(200, 80, 80, 0.35);
+  color: var(--t1);
+  font-size: 12.5px;
+}
+
+/* Wrapper non-scrollable ajouté pour les zones de pan (traits ambre, 2026-07-24) : porte le
+dimensionnement flexible (flex:1/min-height:0) qu'avait .zoom-overlay__compare seul auparavant, et
+sert d'ancrage position:relative fixe pour les 8 zones de pan ci-dessous -- elles doivent rester
+alignées sur le CADRE visible, pas défiler avec .zoom-overlay__compare-content (un enfant
+position:absolute de .zoom-overlay__compare continuerait, lui, à défiler avec son conteneur). */
+.zoom-overlay__compare-wrap {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.zoom-overlay__compare {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  /* ancien: overflow:hidden -- devenu overflow:auto pour le zoom optique (feature 038 côté Qt,
+  réintégré 2026-07-24) : quand .zoom-overlay__compare-content dépasse ce cadre, le défilement
+  natif (molette/trackpad/barre de défilement) sert de déplacement (pan), sans toucher au geste
+  de cliquer-glisser existant de la poignée AVANT/APRÈS. */
+  overflow: auto;
+  border: 1px solid var(--bd);
+  background: #0a0d0f;
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
+  /* display:flex + .zoom-overlay__compare-content's own margin:auto centers it when smaller than
+  the viewport WITHOUT clipping the overflowing edge when zoomed past it -- align-items:center on
+  this element instead would make the top/left overflow permanently unreachable by scroll (a
+  well-known CSS flex-centering-vs-scrolling conflict). */
+  display: flex;
+}
+
+/* The zoom-optique-sized content: explicit pixel width/height set inline once the photo's natural
+size and the current zoom percent are known (ZoomOverlay.tsx), falling back to 100%/100% (fills
+the viewport, today's pre-optical-zoom behavior) until then. Holds the two AVANT/APRÈS panes,
+badges, and split handle -- they travel together with this box during panning/zooming. */
+.zoom-overlay__compare-content {
+  position: relative;
+  margin: auto;
+  flex-shrink: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ancien : background-size:cover; background-position:center (rempli le cadre, quitte à rogner
+la photo si son ratio ne correspond pas exactement) -- correct tant que le Cadrage était figé
+avant d'ouvrir ce panneau, mais depuis l'intégration de Cadrage au Zoom de Film/Color Splash le
+ratio de la photo peut changer PENDANT que ce panneau existe (ex. recadrage à 50% de largeur) ;
+"cover" zoomait alors l'image pour combler la largeur du cadre, masquant le haut et le bas
+(retour utilisateur 2026-07-24). Remplacé par un vrai <img> centré (max-width/max-height:100%,
+.zoom-overlay__pane-img ci-dessous) qui letterboxe plutôt que de rogner -- même convention que
+CropCanvas.css/GeometryCanvas.css (qui n'ont jamais utilisé cover). Conservé en commentaire pour
+retour arrière simple :
+.zoom-overlay__pane {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+*/
+
+.zoom-overlay__pane {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ancien: max-width/max-height:100% -- ne fait que PLAFONNER la taille de l'image à sa taille
+intrinsèque, jamais l'agrandir. Fonctionnait par coïncidence en dessous de 100% (le cadre
+.zoom-overlay__compare-content est alors plus petit que l'image), mais au-dessus de 100% le cadre
+grossit sans que l'image suive (retour utilisateur 2026-07-24). Remplacé par un vrai remplissage +
+object-fit:contain, qui grandit ET rétrécit dans les deux sens tout en préservant le ratio d'aspect
+(pas de rognage, même garantie letterbox que le correctif précédent) :
+.zoom-overlay__pane-img {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+}
+*/
+
+.zoom-overlay__pane-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.zoom-overlay__pane-clip {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Pan zones -- 8 amber tick marks (4 edges + 4 L-bracket corners) around .zoom-overlay__compare-wrap,
+click-and-hold alternative to scroll-to-pan (feature 038 zoom optique, 2026-07-24). Positioned/
+sized entirely via inline style from ZoomOverlay.tsx (real pixel lengths computed from the
+viewport's own size) -- this rule only carries the shared visual look and hit-testing. Sits as a
+SIBLING of .zoom-overlay__compare (not a child), so it never scrolls with the zoomed content and a
+pointerdown here never reaches the split-handle drag handlers (no stopPropagation needed, the
+separation is structural -- see ZoomOverlay.tsx's renderPanZones). */
+/* ancien: opacity:0.55 au repos, opacity:0.9 au survol, pas de halo -- trop terne sur le fond
+sombre (retour utilisateur 2026-07-24) :
+.zoom-overlay__pan-zone {
+  position: absolute;
+  z-index: 2;
+  background: var(--amber);
+  border-radius: 2px;
+  opacity: 0.55;
+  touch-action: none;
+}
+.zoom-overlay__pan-zone:hover {
+  opacity: 0.9;
+}
+*/
+
+.zoom-overlay__pan-zone {
+  position: absolute;
+  z-index: 2;
+  background: var(--amber);
+  border-radius: 2px;
+  opacity: 0.85;
+  box-shadow: 0 0 5px rgba(var(--amber-rgb), 0.6);
+  touch-action: none;
+}
+
+.zoom-overlay__pan-zone:hover {
+  opacity: 1;
+  box-shadow: 0 0 8px rgba(var(--amber-rgb), 0.85);
+}
+
+.zoom-overlay__badge {
+  position: absolute;
+  top: 12px;
+  pointer-events: none;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  /* ancien: font-family:var(--font-mono) (JetBrains Mono) -- rationalized
+  2026-07-06 to the single Segoe UI Variable family (tokens.css's --font-ui). */
+  font-family: var(--font-ui);
+}
+
+.zoom-overlay__badge--before {
+  left: 12px;
+  background: rgba(5, 8, 10, 0.6);
+  backdrop-filter: blur(4px);
+  color: var(--t2);
+}
+
+.zoom-overlay__badge--after {
+  right: 12px;
+  background: rgba(var(--amber-rgb), 0.14);
+  border: 1px solid rgba(var(--amber-rgb), 0.4);
+  color: var(--amber);
+}
+
+.zoom-overlay__handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: rgba(232, 227, 218, 0.92);
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  /* Above VignetteShapeStage.css's .vignette-shape-stage__root (z-index 1) -- Vignette's shape
+  center defaults to the image's own center, same as this split handle, so this must win the paint
+  order or its light grip+arrows get visually replaced by the shape's amber center dot whenever
+  they coincide. */
+  z-index: 2;
+}
+
+.zoom-overlay__handle-grip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: rgba(5, 8, 10, 0.72);
+  backdrop-filter: blur(4px);
+  border: 1.5px solid rgba(232, 227, 218, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--t1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+  /* Purely decorative (the actual split-drag surface is the ancestor .zoom-overlay__compare) --
+  must stay out of hit-testing so it never swallows a click meant for an overlapping interactive
+  element underneath (e.g. Vignette's draggable center handle) now that it paints on top. */
+  pointer-events: none;
+}
+
+.zoom-overlay__panel {
+  width: 300px;
+  flex: 0 0 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--panel);
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  padding: 18px;
+  overflow-y: auto;
+}
+
+/* Geometry/Cadrage integrated into Film/Color Splash's own Zoom (cross-row corrections) -- two
+toggle rows above this row's own "Réglages manuels" groups, visually set apart by the same
+bottom-border convention as .zoom-overlay__range-group since they gate a completely different
+editing surface (the interactive stage replacing .zoom-overlay__compare above) rather than a
+plain slider. */
+.zoom-overlay__corrections {
+  padding-bottom: 9px;
+  margin-bottom: 9px;
+  border-bottom: 1px solid var(--bd);
+}
+
+.zoom-overlay__corrections .zoom-overlay__slider-row {
+  margin-bottom: 8px;
+}
+
+.zoom-overlay__corrections .zoom-overlay__slider-row:last-child {
+  margin-bottom: 0;
+}
+
+/* Light's region controls (feature 047, User Story 3) -- Global/Sujet/Fond segmented control +
+either "Masque sujet" (Sujet/Fond tabs) or .zoom-overlay__corrections itself, rendered as the NEXT
+sibling below (Global tab only, per user request 2026-07-28 -- Geometry/Cadrage belong under the
+tab row, not above it, unlike every other row's own top-of-panel placement). */
+.zoom-overlay__region-controls {
+  padding-bottom: 9px;
+  margin-bottom: 9px;
+  border-bottom: 1px solid var(--bd);
+}
+
+.zoom-overlay__region-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding: 3px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.zoom-overlay__region-tab {
+  flex: 1;
+  padding: 5px 0;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  color: var(--t2);
+  font-size: 12px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+}
+
+.zoom-overlay__region-tab:hover {
+  color: var(--t1);
+}
+
+.zoom-overlay__region-tab--active {
+  background: var(--amber);
+  color: var(--accent-text);
+}
+
+.zoom-overlay__compare--loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--t3);
+  font-size: 12.5px;
+  cursor: default;
+}
+
+.zoom-overlay__panel-title {
+  font-size: 13px;
+  color: var(--t1);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.zoom-overlay__panel-subtitle {
+  font-size: 11.5px;
+  color: var(--t3);
+  margin-bottom: 12px;
+}
+
+.zoom-overlay__sliders {
+  display: flex;
+  flex-direction: column;
+}
+
+.zoom-overlay__slider-row {
+  margin-bottom: 13px;
+}
+
+.zoom-overlay__slider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.zoom-overlay__slider-label {
+  font-size: 12.5px;
+  color: var(--t2);
+}
+
+.zoom-overlay__slider-value {
+  font-size: 12px;
+  color: var(--amber);
+  /* ancien: font-family:var(--font-mono) (JetBrains Mono) -- rationalized
+  2026-07-06 to the single Segoe UI Variable family (tokens.css's --font-ui). */
+  font-family: var(--font-ui);
+}
+
+/* ancien look natif (accent-color seul -- rendu épais sur Chrome/Windows,
+retour utilisateur 2026-07-23) -- conservé en commentaire pour retour arrière
+simple, ne pas supprimer :
+.zoom-overlay__slider-row input[type="range"] {
+  width: 100%;
+  accent-color: var(--amber);
+}
+*/
+
+.zoom-overlay__slider-row input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 13px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.zoom-overlay__slider-row input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--bdh);
+}
+
+.zoom-overlay__slider-row input[type="range"]::-moz-range-track {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--bdh);
+}
+
+.zoom-overlay__slider-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--amber);
+  border: none;
+  margin-top: -5.5px;
+  cursor: pointer;
+}
+
+.zoom-overlay__slider-row input[type="range"]::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--amber);
+  border: none;
+  cursor: pointer;
+}
+
+/* Range group (feature 046) -- groups a HueRing handle's enable toggle, feather, and
+saturation-boost controls together, per hue_range/slider naming convention (see
+ZoomOverlay.tsx's groupHueRanges). */
+.zoom-overlay__range-group {
+  margin-bottom: 13px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--bd);
+}
+
+.zoom-overlay__range-group:last-of-type {
+  border-bottom: none;
+}
+
+/* Wraps one COLOR_WHEEL_PAIRS entry (feature 047) -- only needed when a group renders more than
+one wheel (Light's shadow/highlight split-tone) so each gets its own label above it; Monochrome's
+single wheel renders without this wrapper's label (see ZoomOverlay.tsx). */
+.zoom-overlay__color-wheel-group {
+  margin-bottom: 13px;
+}
+
+.zoom-overlay__color-wheel-group .zoom-overlay__slider-label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.zoom-overlay__toggle {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-round);
+  border: 1px solid var(--bd);
+  background: transparent;
+  color: var(--t2);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.zoom-overlay__toggle:hover {
+  border-color: var(--bdh);
+  color: var(--t1);
+}
+
+.zoom-overlay__toggle--on {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--accent-text);
+}
+
+/* filter_color (B&W row, 2026-08-04) -- 4 labeled on/off buttons instead of a plain numeric
+slider (see ZoomOverlay.tsx's FILTER_COLOR_OPTIONS): "1"/"2"/"3"/"4" on a drag slider gave no way
+to tell which number was which color. Reuses the same on/off visual language as
+.zoom-overlay__toggle (amber fill when active) rather than tinting each button its own color, to
+stay inside the app's single-accent visual language -- the color is
+identified by its label text, not by a color swatch. */
+.zoom-overlay__filter-color-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.zoom-overlay__filter-color-button {
+  flex: 1 1 0;
+  padding: 6px 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--bd);
+  background: transparent;
+  color: var(--t2);
+  font-size: 12px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  text-align: center;
+}
+
+.zoom-overlay__filter-color-button:hover {
+  border-color: var(--bdh);
+  color: var(--t1);
+}
+
+.zoom-overlay__filter-color-button--on {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--accent-text);
+}
+
+.zoom-overlay__no-sliders {
+  font-size: 12.5px;
+  color: var(--t3);
+}
+
+.zoom-overlay__actions {
+  display: flex;
+  gap: 9px;
+  margin-top: 8px;
+}
+
+.zoom-overlay__reset,
+.zoom-overlay__apply,
+.zoom-overlay__confirm {
+  flex: 1;
+  text-align: center;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  border: 1px solid var(--bd);
+}
+
+.zoom-overlay__reset {
+  background: transparent;
+  color: var(--t2);
+}
+
+.zoom-overlay__reset:hover {
+  border-color: var(--bdh);
+  color: var(--t1);
+}
+
+/* "Appliquer" -- previews the current in-progress edit (a full-resolution re-render, potentially
+several seconds) WITHOUT closing the overlay like Valider does, for addons whose transform is too
+slow to preview live on every drag (see GeometryCanvas.tsx). Outlined in amber to read as a
+distinct, non-terminal primary action between the neutral Réinitialiser and the solid-fill
+Valider. */
+.zoom-overlay__apply {
+  background: transparent;
+  border-color: var(--amber);
+  color: var(--amber);
+  font-weight: 600;
+}
+
+.zoom-overlay__apply:hover {
+  background: rgba(var(--amber-rgb), 0.12);
+}
+
+.zoom-overlay__apply:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.zoom-overlay__confirm {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.zoom-overlay__confirm:hover {
+  background: var(--amber2);
+}
+
+/* Optical zoom toolbar (display-only magnification, feature 038 in the old Qt UI, reintegrated
+2026-07-24) -- bottom bar under .zoom-overlay__compare, scoped to the plain compare view only
+(see ZoomOverlay.tsx's constants block for why Geometry/Cadrage's own stages don't get it). */
+.zoom-overlay__optical-zoom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--bd);
+  background: var(--panel);
+  flex: 0 0 auto;
+}
+
+.zoom-overlay__optical-zoom-label {
+  font-size: 12.5px;
+  color: var(--t2);
+}
+
+.zoom-overlay__optical-zoom-button {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: 1px solid var(--bd);
+  background: transparent;
+  color: var(--t2);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.zoom-overlay__optical-zoom-button:hover {
+  border-color: var(--bdh);
+  color: var(--t1);
+}
+
+/* Same custom thumb/track look as .zoom-overlay__slider-row input[type="range"] -- kept as a
+separate rule (not a shared class) since this slider's flex sizing differs (grows within the
+toolbar row instead of spanning a fixed sidebar column). */
+.zoom-overlay__optical-zoom-slider {
+  flex: 1;
+  min-width: 60px;
+  max-width: 220px;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 13px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.zoom-overlay__optical-zoom-slider::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--bdh);
+}
+
+.zoom-overlay__optical-zoom-slider::-moz-range-track {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--bdh);
+}
+
+.zoom-overlay__optical-zoom-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--amber);
+  border: none;
+  margin-top: -5.5px;
+  cursor: pointer;
+}
+
+.zoom-overlay__optical-zoom-slider::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--amber);
+  border: none;
+  cursor: pointer;
+}
+
+.zoom-overlay__optical-zoom-input {
+  flex: 0 0 auto;
+  width: 42px;
+  text-align: center;
+  padding: 4px 0;
+  border-radius: 6px;
+  border: 1px solid var(--bd);
+  background: transparent;
+  color: var(--t1);
+  font-size: 12.5px;
+  font-family: var(--font-ui);
+}
+
+.zoom-overlay__optical-zoom-input:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+
+.zoom-overlay__optical-zoom-percent-sign {
+  font-size: 12.5px;
+  color: var(--t2);
+}
+
+.zoom-overlay__optical-zoom-fit {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--bd);
+  background: transparent;
+  color: var(--t2);
+  font-size: 12.5px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+}
+
+.zoom-overlay__optical-zoom-fit:hover {
+  border-color: var(--bdh);
+  color: var(--t1);
+}

@@ -1,0 +1,30 @@
+[project]
+name = "lumaflow"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.24",
+    "Pillow>=10.0",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "platformdirs>=4.0",
+    "rawpy>=0.19",  # confirmed installable: 0.27.0 (cp313, win_amd64 precompiled wheel)
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27"]
+
+[project.scripts]
+lumaflow = "lumaflow.launcher:main"
+lumaflow-api = "lumaflow.api.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lumaflow*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "raw_fixture: requires a real decodable RAW file in tests/fixtures/raw/",
+    "perf: performance-regression guard, timed against a generous ceiling (see PERF-ZOOM-RENDER-PLAN.md)",
+]

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Color Splash — LumaFlow</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="../index.html">LumaFlow</a>
+    <nav>
+      <ul class="nav-main">
+        <li><a href="../index.html">Présentation</a></li>
+        <li><a href="../installation.html">Installation</a></li>
+        <li><a href="../fonctionnalites.html">Fonctionnalités</a></li>
+        <li><a href="../workflow/index.html">Workflow</a></li>
+      </ul>
+      <div class="nav-section-label">Étapes du workflow</div>
+      <ul class="nav-workflow">
+        <li><a href="../workflow/film.html">Film</a></li>
+        <li><a href="../workflow/bleach-bypass.html">Bleach Bypass</a></li>
+        <li><a href="../workflow/color-splash.html" class="active">Color Splash</a></li>
+        <li><a href="../workflow/monochrome.html">Monochrome</a></li>
+        <li><a href="../workflow/bw.html">B&W</a></li>
+        <li><a href="../workflow/light.html">Light</a></li>
+        <li><a href="../workflow/vignettage.html">Vignettage</a></li>
+      </ul>
+    </nav>
+  </aside>
+  <main class="content">
+    <article>
+<h1 id="4-3-color-splash">4.3 Color Splash</h1>
+<p><strong>Moteur</strong> : désature l'image entière, à l'exception d'au plus 3 plages de teinte actives simultanément. Une plage est définie par une teinte centrale et un « adoucissement » (demi-largeur en degrés) : le poids de conservation vaut 1 au centre, décroît en cosinus jusqu'à 0 à la limite de l'adoucissement. Les 3 plages se combinent par un maximum (union), jamais une somme, pour qu'un recouvrement entre deux plages ne sursature jamais. Un pixel n'est éligible à la couleur que si sa saturation <em>d'origine</em> dépasse un seuil réglable (évite qu'un pixel presque gris ne bascule en couleur au moindre effleurement d'une plage active).</p>
+<h2 id="vignettes">Vignettes</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Vignette</th><th>Effet</th></tr></thead>
+<tbody>
+<tr><td><strong>Neutre</strong></td><td>Aucune transformation.</td></tr>
+<tr><td><strong>Rouge</strong></td><td>Conserve les teintes autour de 0° (rouge), ±30° d'adoucissement ; désature tout le reste à 100 %.</td></tr>
+<tr><td><strong>Orange</strong></td><td>Même mécanisme, centré sur 30° (orange).</td></tr>
+<tr><td><strong>Jaune</strong></td><td>Même mécanisme, centré sur 60° (jaune).</td></tr>
+<tr><td><strong>Vert</strong></td><td>Même mécanisme, centré sur 120° (vert).</td></tr>
+<tr><td><strong>Bleu</strong></td><td>Même mécanisme, centré sur 240° (bleu).</td></tr>
+<tr><td><strong>Violet</strong></td><td>Même mécanisme, centré sur 285° (violet).</td></tr>
+</tbody></table></div>
+<p>Les 6 presets ne diffèrent que par la teinte centrale conservée — l'adoucissement (30°), l'intensité de la couleur conservée (100 %) et le seuil de saturation (15 %) restent partout à leur valeur générique.</p>
+<h2 id="r-glages-manuels">Réglages manuels</h2>
+<p>Un seul groupe, affiché sous forme d'un <strong>sélecteur en anneau</strong> (jusqu'à 3 curseurs simultanés, puisqu'une teinte est cyclique — un curseur linéaire couperait artificiellement le rouge à la jointure 0°/360°) plus des curseurs classiques :</p>
+<ul>
+<li><strong>Intervalle 1/2/3</strong> (<code>range_N</code>, anneau, 0..360°) — position de la teinte centrale conservée pour chacune des 3 plages actives au plus. Illustré ici sur l'intervalle 1, rouge (0°) puis bleu (240°).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/color_splash/range_hue_center.png" alt="Intervalle — teinte centrale" loading="lazy"></p>
+<ul>
+<li><strong>Intervalle N actif</strong> (<code>range_N_enabled</code>) — active/désactive cette plage (bouton +/×). C'est ce qui permet jusqu'à 3 plages simultanées, chacune avec son propre interrupteur.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/color_splash/range_enabled.png" alt="Intervalle actif" loading="lazy"></p>
+<ul>
+<li><strong>Adoucissement</strong> (<code>range_N_feather</code>, 5..90°) — largeur de la transition en cosinus autour de la teinte centrale : étroit = coupure nette vers le gris, large = transition beaucoup plus progressive (davantage de teintes voisines restent partiellement colorées).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/color_splash/range_feather.png" alt="Adoucissement" loading="lazy"></p>
+<ul>
+<li><strong>Intensité couleur N</strong> (<code>range_N_saturation_boost</code>, 0..200 %) — multiplie la saturation d'origine des pixels conservés par cette plage : en dessous de 100 %, la couleur conservée est atténuée ; au-dessus, elle est intensifiée/sursaturée.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/color_splash/range_saturation_boost.png" alt="Intensité couleur" loading="lazy"></p>
+<ul>
+<li><strong>Désaturation du fond</strong> (<code>background_desaturation</code>, 0..100 %) — force de désaturation appliquée en dehors des plages conservées : à 100 %, le fond devient entièrement gris (l'effet « splash » classique) ; en dessous, une partie de la couleur d'origine reste visible dans le fond.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/color_splash/background_desaturation.png" alt="Désaturation du fond" loading="lazy"></p>
+<ul>
+<li><strong>Seuil de saturation</strong> (<code>saturation_threshold</code>, 0..100 %) — saturation minimale, dans l'image d'origine, qu'un pixel doit avoir pour rester éligible à la couleur même si sa teinte correspond à une plage active : plus il est élevé, plus les pixels marginaux/déjà peu saturés sont exclus de la couleur conservée.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/color_splash/saturation_threshold.png" alt="Seuil de saturation" loading="lazy"></p>
+    </article>
+  </main>
+</div>
+</body>
+</html>

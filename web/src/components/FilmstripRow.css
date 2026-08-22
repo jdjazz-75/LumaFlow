@@ -1,0 +1,82 @@
+/* LumaFlow v1.0 (2026-08-07)
+ * Styles d'une ligne de la pellicule (FilmstripRow) : panneau de ligne, assombrissement des
+ * lignes inactives, colonne de libellé et bandeau défilant des vignettes.
+ */
+
+/* Ported from lumaflow/ui/filmstrip_view.py's StepRowView/StepLabelColumn
+(current Qt constants): row bg #13181B (--card), border BORDER_HOVER
+(--bdh, not --bd -- the row panel always uses the hover-tier border even at
+rest), radius 10px, MIN_ROW_HEIGHT=40, equal flex weight for every visible
+row (2026-07-13 ergonomics correction removed the old active/inactive
+height ratio). Dim overlay: an absolute rgba(0,0,0,alpha) layer, alpha
+derived from attenuated_opacity_percent -- ported faithfully including the
+"blend toward pure black, not toward the row's own near-identical dark bg"
+fix documented in the Qt source (blending toward a near-identical tone was
+found to be imperceptible). */
+
+.filmstrip-row {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 40px;
+  display: flex;
+  align-items: stretch;
+  background: var(--card);
+  border: 1px solid var(--bdh);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.filmstrip-row__dim {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.filmstrip-row__label {
+  flex: 0 0 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 8px 8px 16px;
+  min-width: 0;
+}
+
+.filmstrip-row__name {
+  font-size: var(--fs-18);
+  color: var(--t2);
+  font-weight: 500;
+  /* Previous behavior: strict 1-line truncation -- kept commented per project convention
+  ("commenter l'ancien, ne jamais le supprimer"). Replaced because "Color Splash" (13 chars) was
+  the first label long enough to overflow the fixed 160px column and got clipped to "Color Sp..."
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.2;
+}
+
+.filmstrip-row__label--active .filmstrip-row__name {
+  font-size: var(--fs-28);
+  color: var(--t1);
+}
+
+.filmstrip-row__hint {
+  font-size: var(--fs-12);
+  color: var(--t3);
+}
+
+.filmstrip-row__strip {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+}

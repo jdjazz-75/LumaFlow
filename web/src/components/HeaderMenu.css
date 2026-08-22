@@ -1,0 +1,101 @@
+/* LumaFlow v1.0 (2026-08-07)
+ * Styles du menu déroulant hiérarchique de l'en-tête (HeaderMenu) : bouton hamburger, panneau,
+ * items et groupes en accordéon (Photo/Presets).
+ */
+
+.header-menu-root {
+  position: relative;
+}
+
+/* .header-menu itself: unchanged from the pre-existing standalone hamburger button
+(HeaderBar.css's old rule, moved here since the button now lives in this component). */
+.header-menu {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--t2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.header-menu-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 50;
+  min-width: 220px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--panel);
+  border: 1px solid var(--bd);
+  border-radius: var(--radius-md);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.header-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--t2);
+  font-size: var(--fs-14);
+  font-family: var(--font-ui);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.header-menu-item:hover,
+.header-menu-item:focus-visible {
+  color: var(--t1);
+  border-color: rgba(var(--amber-rgb), 0.4);
+  outline: none;
+}
+
+.header-menu-item:hover svg,
+.header-menu-item:focus-visible svg {
+  stroke: var(--amber);
+}
+
+.header-menu-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.header-menu-item:disabled:hover,
+.header-menu-item:disabled:focus-visible {
+  color: var(--t2);
+  border-color: transparent;
+}
+
+.header-menu-item:disabled:hover svg,
+.header-menu-item:disabled:focus-visible svg {
+  stroke: currentColor;
+}
+
+/* ACCORDION option (current, 2026-07-29 reverted back from a side-flyout trial) -- children
+rendered in place, indented, right below the parent row. */
+.header-menu-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.header-menu-item--child {
+  padding-left: 30px;
+}
+
+/* .header-menu-row-wrap needs no positioning of its own in accordion mode, but the wrapper
+div stays in the markup either way. */
+.header-menu-row-wrap {
+  position: relative;
+}
+

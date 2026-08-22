@@ -1,0 +1,114 @@
+/* LumaFlow v1.0 (2026-08-07)
+ * Styles d'une vignette (VignetteCard) : carte carrée, légende, bouton loupe (Zoom) et badge de
+ * sélection.
+ */
+
+/* Ported from lumaflow/ui/filmstrip_view.py's VignetteCard (current Qt
+constants, not the original mockup's, per the note in Filmstrip.tsx):
+_CARD_BORDER_PX=1, Radii.PANEL=10px, _CAPTION_BAND_HEIGHT_PX=30,
+_VIGNETTE_CAPTION_FONT_PX=14, _SELECTION_BADGE_SIZE=20,
+_CAPTION_LEFT_INSET_PX=11. Square via aspect-ratio + flex stretch instead of
+Qt's manual "available = viewport height - 2*margin" pixel math -- the
+browser derives width from the flex-stretched height on its own. */
+
+.vignette-card {
+  position: relative;
+  flex: 0 0 auto;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--bd);
+  background: var(--surface);
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  font-family: var(--font-ui);
+  text-align: left;
+}
+
+.vignette-card--selected,
+.vignette-card--error {
+  border-color: var(--amber);
+}
+
+/* Halo (--halo token) exclusively for a genuine selection -- never shared with --error:
+before this rule, a selected AND errored card
+(possible simultaneously -- selected && !isError is what hides the badge, not the --selected
+class itself) was visually identical to a merely selected one but for the small "Error" caption
+text, an ambiguity two distinct states must never present. :not(.vignette-card--error)
+keeps the two states distinguishable in that overlap case. */
+.vignette-card--selected:not(.vignette-card--error) {
+  box-shadow: 0 0 0 3px var(--halo);
+}
+
+.vignette-card__image {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+}
+
+.vignette-card__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.vignette-card__error {
+  color: var(--amber);
+  font-size: var(--fs-12);
+  font-weight: 600;
+}
+
+.vignette-card__caption {
+  flex: 0 0 30px;
+  height: 30px;
+  border-top: 1px solid var(--bd);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  padding: 0 7px 0 11px;
+  font-size: var(--fs-14);
+  color: var(--t1);
+}
+
+.vignette-card__caption-text {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* "Agrandir" (loupe) button -- one of the three equivalent Zoom triggers (FR-005), copied from
+the decoded mockup's vig.showZoomFooter styling (see icons.tsx's ZoomIcon comment). */
+.vignette-card__zoom {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-round);
+  border: 1px solid rgba(var(--amber-rgb), 0.5);
+  background: rgba(var(--amber-rgb), 0.08);
+  color: var(--amber);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.vignette-card__badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-round);
+  background: var(--amber);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

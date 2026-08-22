@@ -1,0 +1,159 @@
+/* LumaFlow v1.0 (2026-08-07)
+ * Styles du sélecteur de couleur des Préférences (PreferenceColorPicker) : disque teinte/
+ * saturation, curseur de luminosité et ligne hex.
+ */
+
+/* Companion to PreferenceColorPicker.tsx (2026-08-06) -- same disc/swatch/hex-input visual
+language as ColorWheel.css, extended with a lightness slider row. */
+
+.pref-color-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0;
+}
+
+.pref-color-picker__label {
+  font-size: var(--fs-14);
+  color: var(--t1);
+}
+
+.pref-color-picker__body {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pref-color-picker__wheel {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #fff 0%, rgba(255, 255, 255, 0) 70%),
+    conic-gradient(
+      from 0deg,
+      hsl(0, 100%, 50%),
+      hsl(60, 100%, 50%),
+      hsl(120, 100%, 50%),
+      hsl(180, 100%, 50%),
+      hsl(240, 100%, 50%),
+      hsl(300, 100%, 50%),
+      hsl(360, 100%, 50%)
+    );
+  border: 1px solid var(--bd);
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+
+.pref-color-picker__knob {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--t1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+
+.pref-color-picker__knob--dragging {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px var(--halo);
+}
+
+.pref-color-picker__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.pref-color-picker__lightness-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-12);
+  color: var(--t2);
+}
+
+/* Same custom thin-track/circular-thumb look as ZoomOverlay.css's .zoom-overlay__slider-row
+input[type="range"] (native accent-color alone renders thick on Chrome/Windows -- already
+rejected by user feedback there, see that file's "ancien look natif" comment) -- kept as a
+separate rule (not a shared class) since this component isn't inside ZoomOverlay's DOM tree. */
+.pref-color-picker__lightness-row input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 13px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.pref-color-picker__lightness-row input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--bdh);
+}
+
+.pref-color-picker__lightness-row input[type="range"]::-moz-range-track {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--bdh);
+}
+
+.pref-color-picker__lightness-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--amber);
+  border: none;
+  margin-top: -5.5px;
+  cursor: pointer;
+}
+
+.pref-color-picker__lightness-row input[type="range"]::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--amber);
+  border: none;
+  cursor: pointer;
+}
+
+.pref-color-picker__hex-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pref-color-picker__hex-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--bd);
+  flex-shrink: 0;
+}
+
+.pref-color-picker__hex-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--card-inner);
+  border: 1px solid var(--bd);
+  border-radius: var(--radius-sm);
+  color: var(--t1);
+  font-family: var(--font-ui);
+  font-size: var(--fs-12);
+  padding: 4px 8px;
+}
+
+.pref-color-picker__hex-input:focus {
+  outline: none;
+  border-color: var(--amber2);
+  box-shadow: 0 0 0 2px var(--halo);
+}

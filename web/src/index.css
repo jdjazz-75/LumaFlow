@@ -1,0 +1,27 @@
+/* LumaFlow v1.0 (2026-08-07)
+ * Styles globaux de base : import des tokens, box-sizing, plein-écran sans marge et
+ * masquage des scrollbars natives (l'app gère son propre défilement visuel).
+ */
+@import "./styles/tokens.css";
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-ui);
+  background: var(--app);
+  color: var(--t1);
+  overflow: hidden;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}

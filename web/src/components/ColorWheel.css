@@ -1,0 +1,104 @@
+/* LumaFlow v1.0 (2026-08-07)
+ * Styles du sélecteur teinte+saturation en disque (ColorWheel) : dégradés conique/radial,
+ * curseur (knob), voile de plume angulaire et ligne hex.
+ */
+
+/* Companion to ColorWheel.tsx (feature 2026-07-27) -- same token palette as HueRing.css
+(var(--amber)/var(--bd)/var(--t1)). No mockup precedent for a filled hue+saturation disc
+(only a reference image supplied by the user, not part of the mockup itself). */
+
+.color-wheel-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 0 auto 12px;
+}
+
+.color-wheel {
+  position: relative;
+  width: 100%;
+  max-width: 180px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #fff 0%, rgba(255, 255, 255, 0) 70%),
+    conic-gradient(
+      from 0deg,
+      hsl(0, 100%, 50%),
+      hsl(60, 100%, 50%),
+      hsl(120, 100%, 50%),
+      hsl(180, 100%, 50%),
+      hsl(240, 100%, 50%),
+      hsl(300, 100%, 50%),
+      hsl(360, 100%, 50%)
+    );
+  border: 1px solid var(--bd);
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+
+.color-wheel__feather-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.color-wheel__feather-overlay path {
+  fill: rgba(255, 255, 255, 0.5);
+  stroke: rgba(5, 8, 10, 0.4);
+  stroke-width: 0.5;
+}
+
+.color-wheel__knob {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 2.5px solid var(--t1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+
+.color-wheel__knob--dragging {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 4px var(--halo);
+}
+
+.color-wheel__hex-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 180px;
+}
+
+.color-wheel__hex-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--bd);
+  flex-shrink: 0;
+}
+
+.color-wheel__hex-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--card-inner);
+  border: 1px solid var(--bd);
+  border-radius: var(--radius-sm);
+  color: var(--t1);
+  font-family: var(--font-ui);
+  font-size: var(--fs-12);
+  padding: 4px 8px;
+}
+
+.color-wheel__hex-input:focus {
+  outline: none;
+  border-color: var(--amber2);
+  box-shadow: 0 0 0 2px var(--halo);
+}
