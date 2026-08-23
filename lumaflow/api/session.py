@@ -336,6 +336,75 @@ def _row_ancestry_signatures(
     return signatures
 
 
+def _compute_applied_pipeline_cached(
+    pipeline: Pipeline,
+    source: numpy.ndarray,
+    selections: dict[str, str],
+    cache: dict[int, tuple[tuple, numpy.ndarray]],
+    lock: threading.Lock,
+    *,
+    render_vignette: RenderVignette = _default_render_vignette,
+    upto_exclusive: int | None = None,
+) -> tuple[dict[str, numpy.ndarray], StepError | None]:
+    """`_compute_applied_pipeline` with a per-step-POSITION result cache: scans forward while each
+    position's cached ancestry signature still matches, then replays only the smallest invalid
+    suffix from there (`start_index`), and returns EVERY position's output -- cached ones included
+    -- keyed by step identifier, exactly like the uncached function it wraps.
+
+    Generalized (2026-08-23) out of `_render_pipeline_prefix`, which was full-resolution-only and
+    returned just the final array. Returning the whole outputs dict is what lets the interactive
+    working-resolution path use it too: `_compute_vignette_states` needs each row's output as its
+    own vignettes' input, not only the pipeline's last one.
+
+    `cache` and `lock` are passed in rather than read off a Session so the same logic backs two
+    independent caches over two different sources -- `step_render_cache` over
+    `image_session.original` (export/Zoom) and `working_render_cache` over `working_image` (clicks).
+    Mixing them up would serve full-resolution pixels to the filmstrip; they must stay distinct
+    dicts. Only field access is locked, never the render itself.
+
+    Errors are RETURNED, not raised, matching `_compute_applied_pipeline`: the interactive path
+    renders a per-row error state instead of failing the whole request. Nothing at or after a
+    failed position is cached, so the next call retries it.
+    """
+    steps = pipeline._steps
+    total = len(steps)
+    limit = total if upto_exclusive is None else min(upto_exclusive, total)
+    if limit <= 0:
+        return {}, None
+
+    fresh_signatures = _row_ancestry_signatures(pipeline, selections, limit)
+
+    with lock:
+        start = 0
+        while start < limit:
+            cached = cache.get(start)
+            if cached is None or cached[0] != fresh_signatures[start]:
+                break
+            start += 1
+        outputs = {steps[position].identifier: cache[position][1] for position in range(start)}
+        seed = source if start == 0 else cache[start - 1][1]
+
+    if start >= limit:
+        return outputs, None
+
+    replayed, error = _compute_applied_pipeline(
+        pipeline, seed, selections,
+        render_vignette=render_vignette, upto_exclusive=limit, start_index=start,
+    )
+    outputs.update(replayed)
+
+    with lock:
+        for position in range(start, limit):
+            identifier = steps[position].identifier
+            if identifier not in replayed:
+                # A StepError stopped the replay here -- this position and everything after it has
+                # no valid output to memoize.
+                break
+            cache[position] = (fresh_signatures[position], replayed[identifier])
+
+    return outputs, error
+
+
 def _render_pipeline_prefix(session: "Session", upto_exclusive: int) -> numpy.ndarray:
     """Full-resolution render of the pipeline's first `upto_exclusive` steps, reusing
     session.step_render_cache wherever a position's cached ancestry signature still matches the
@@ -344,7 +413,8 @@ def _render_pipeline_prefix(session: "Session", upto_exclusive: int) -> numpy.nd
     single-slot "before" cache (one opaque result per boundary) into one cached entry per step
     POSITION, so switching between different zoomed rows reuses shared upstream steps instead of
     recomputing them from scratch every time (étape 5). Sole reader/writer of step_render_cache;
-    render_full_resolution is currently its only caller."""
+    render_full_resolution is currently its only caller. The cache/replay logic itself now lives in
+    `_compute_applied_pipeline_cached`, shared with the working-resolution path."""
     if session.pipeline is None or session.image_session is None:
         raise ValueError("No image loaded in this session")
     total_steps = len(session.pipeline._steps)
@@ -352,32 +422,15 @@ def _render_pipeline_prefix(session: "Session", upto_exclusive: int) -> numpy.nd
     if upto_exclusive <= 0:
         return session.image_session.original
 
-    fresh_signatures = _row_ancestry_signatures(session.pipeline, session.thumbnail_selections, upto_exclusive)
-
-    with session._row_before_lock:
-        start = 0
-        while start < upto_exclusive:
-            cached = session.step_render_cache.get(start)
-            if cached is None or cached[0] != fresh_signatures[start]:
-                break
-            start += 1
-        if start >= upto_exclusive:
-            return session.step_render_cache[upto_exclusive - 1][1]
-        seed = session.image_session.original if start == 0 else session.step_render_cache[start - 1][1]
-
-    steps = session.pipeline._steps[:upto_exclusive]
-    outputs, error = _compute_applied_pipeline(
-        session.pipeline, seed, session.thumbnail_selections,
-        render_vignette=_render_vignette, upto_exclusive=upto_exclusive, start_index=start,
+    outputs, error = _compute_applied_pipeline_cached(
+        session.pipeline, session.image_session.original, session.thumbnail_selections,
+        session.step_render_cache, session._row_before_lock,
+        render_vignette=_render_vignette, upto_exclusive=upto_exclusive,
     )
     if error is not None:
         raise ValueError(f"Step '{error.step_identifier}' failed: {error.detail}")
 
-    with session._row_before_lock:
-        for position in range(start, upto_exclusive):
-            session.step_render_cache[position] = (fresh_signatures[position], outputs[steps[position].identifier])
-
-    return outputs[steps[upto_exclusive - 1].identifier]
+    return outputs[session.pipeline._steps[upto_exclusive - 1].identifier]
 
 
 def _compute_vignette_states(
@@ -389,12 +442,21 @@ def _compute_vignette_states(
     *,
     render_vignette: RenderVignette = _default_render_vignette,
     cache: dict[int, tuple[tuple, dict[str, VignetteState]]] | None = None,
+    precomputed: tuple[dict[str, numpy.ndarray], StepError | None] | None = None,
 ) -> dict[int, dict[str, VignetteState]]:
+    """`precomputed` (perf, 2026-08-23) lets `refresh_workflow` hand over the applied-pipeline pass
+    it has ALREADY run for the main preview, instead of this function replaying the identical call
+    (same pipeline, same source, same selections, same render_vignette) a second time. Optional so
+    every existing direct caller in tests/ keeps working unchanged; passing it is bit-identical by
+    definition -- it is literally the same arrays."""
     if cache is None:
         cache = {}
-    outputs, error = _compute_applied_pipeline(
-        pipeline, source, selections, render_vignette=render_vignette
-    )
+    if precomputed is not None:
+        outputs, error = precomputed
+    else:
+        outputs, error = _compute_applied_pipeline(
+            pipeline, source, selections, render_vignette=render_vignette
+        )
     total = len(row_labels)
     failed_step_index = error.step_index if error is not None else None
     # Windowed over the WEB-visible rows only (Geometry/Framing excluded, see
@@ -475,15 +537,30 @@ def _working_row_input(session: "Session", step_index: int) -> numpy.ndarray | N
     exact same ratio as the full-resolution original would -- see
     render_full_resolution for the one place that genuinely needs full
     resolution). Renamed 2026-07-21 from _full_resolution_row_input, which
-    it no longer is."""
+    it no longer is.
+
+    `upto_exclusive=step_index` (perf, 2026-08-23): only `outputs[steps[step_index - 1]]` is ever
+    read, so replaying the rows AFTER the clicked one was pure waste -- a click on the Film row was
+    still rendering Bleach Bypass, B&W, Light and Vignette. Truncating a purely sequential fold
+    cannot change any earlier output, so this is bit-identical by construction.
+
+    Deliberately NOT "optimized" further into `session.working_image.shape`: geometry and framing
+    crop, so the shape reaching a later row genuinely differs from the working copy's own.
+
+    Shares `working_render_cache` with refresh_workflow, so on a click the rows above the clicked
+    one are typically already memoized and cost nothing. Safe despite running mid-selection (
+    select_vignette has written thumbnail_selections but not yet step.parameters.values): only
+    positions STRICTLY BELOW step_index are requested, and those rows' signatures are fully settled
+    -- the one row still in flux is step_index itself, which `upto_exclusive` excludes."""
     if session.pipeline is None or session.working_image is None:
         return None
-    outputs, _ = _compute_applied_pipeline(
-        session.pipeline, session.working_image, session.thumbnail_selections,
-        render_vignette=_render_vignette,
-    )
     if step_index == 0:
         return session.working_image
+    outputs, _ = _compute_applied_pipeline_cached(
+        session.pipeline, session.working_image, session.thumbnail_selections,
+        session.working_render_cache, session._row_before_lock,
+        render_vignette=_render_vignette, upto_exclusive=step_index,
+    )
     return outputs.get(session.pipeline._steps[step_index - 1].identifier)
 
 
@@ -575,6 +652,14 @@ class Session:
     # Populated/consulted exclusively by _render_pipeline_prefix. Guarded by _row_before_lock -- only
     # field assignments are locked, never the render itself.
     step_render_cache: dict[int, tuple[tuple, numpy.ndarray]] = field(default_factory=dict)
+    # The same per-step-POSITION scheme as step_render_cache above, but over `working_image` instead
+    # of `image_session.original` -- i.e. the INTERACTIVE path (perf, 2026-08-23). Selecting a
+    # Bleach Bypass vignette used to re-render the unchanged Film row above it on every single
+    # click; with this, an unchanged upstream row costs nothing at all. Deliberately a separate dict
+    # from step_render_cache: both are keyed by pipeline position, but they hold pixels at two
+    # different resolutions and must never be served to each other's caller. Populated/consulted
+    # exclusively through _compute_applied_pipeline_cached, under the same _row_before_lock.
+    working_render_cache: dict[int, tuple[tuple, numpy.ndarray]] = field(default_factory=dict)
     _active_row_before_pending: _PendingRowBefore | None = None
     _row_before_lock: threading.Lock = field(default_factory=threading.Lock)
 
@@ -600,11 +685,14 @@ def open_image(session: Session, path: Path) -> ImageSession:
     session.vignette_state_cache = {}
     # A Zoom session tied to the PREVIOUS image's steps is meaningless once a new one loads.
     session.zoom = None
-    # step_render_cache is keyed by (position -> (signature, pixels)) -- a stale entry from the
-    # PREVIOUS image must never be served just because its signature happens to coincide with the
-    # freshly-opened one (e.g. position 0, often signature ()).
+    # step_render_cache/working_render_cache are keyed by (position -> (signature, pixels)) -- a
+    # stale entry from the PREVIOUS image must never be served just because its signature happens to
+    # coincide with the freshly-opened one (e.g. position 0, often signature ()). This is the whole
+    # reason both caches must be cleared HERE and not left to signature mismatch: a fresh image with
+    # no selections yet produces exactly the signatures the previous image ended on.
     with session._row_before_lock:
         session.step_render_cache = {}
+        session.working_render_cache = {}
         session._active_row_before_pending = None
     refresh_workflow(session)
     return image_session
@@ -651,8 +739,15 @@ def refresh_workflow(session: Session) -> list[RowSpec]:
         # real root cause was a frontend race condition (AppShell.tsx firing
         # export before a pending select_vignette request resolved) -- fixed
         # there instead. See the encapsulated-crunching-hennessy plan.
-        outputs, error = _compute_applied_pipeline(
+        #
+        # Per-step-position memoized since 2026-08-23 (see Session.working_render_cache): rows whose
+        # ancestry signature is unchanged are served from cache instead of re-rendered, so selecting
+        # a Bleach Bypass vignette no longer re-runs the Film row above it. Bit-identical -- the
+        # cached array IS the array the uncached replay produced, under the same
+        # _row_ancestry_signatures key the full-resolution cache has always used.
+        outputs, error = _compute_applied_pipeline_cached(
             session.pipeline, session.working_image, session.thumbnail_selections,
+            session.working_render_cache, session._row_before_lock,
             render_vignette=_render_vignette,
         )
         if error is None and session.pipeline._steps:
@@ -662,6 +757,9 @@ def refresh_workflow(session: Session) -> list[RowSpec]:
             session.pipeline, session.working_image, row_labels, session.active_step_index,
             session.thumbnail_selections, render_vignette=_render_vignette,
             cache=session.vignette_state_cache,
+            # Hand over the pass just run above rather than letting _compute_vignette_states replay
+            # the identical one (perf, 2026-08-23).
+            precomputed=(outputs, error),
         )
         session.vignette_states = vignette_states
         rows = [
@@ -700,6 +798,12 @@ def reset_session(session: Session) -> list[RowSpec]:
     session.thumbnail_selections = {}
     session.active_step_index = 0
     session.vignette_state_cache = {}
+    # Clearing every selection already changes each position's ancestry signature, so the render
+    # caches would self-invalidate -- dropped explicitly anyway, to keep "what a reset clears"
+    # readable in one place rather than resting on that indirection.
+    with session._row_before_lock:
+        session.step_render_cache = {}
+        session.working_render_cache = {}
     return refresh_workflow(session)
 
 

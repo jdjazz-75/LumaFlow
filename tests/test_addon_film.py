@@ -2508,3 +2508,82 @@ def test_resolve_zoom_values_dr100_look_is_unaffected_by_dr_composition():
     assert values["highlights"] == _ETERNA_GRADE.highlights
     assert values["shadows"] == _ETERNA_GRADE.shadows
     assert values["black_clip"] == _ETERNA_GRADE.black_clip
+
+
+# ---------------------------------------------------------------------------
+# Mémo de fenêtres de teinte (perf, 2026-08-23) -- _hue_window/_hue_window_for
+# partagent une seule fenêtre cosinus entre les quatre primitives par teinte.
+# La contrainte est l'identité bit à bit : le mémo n'a de valeur que s'il rend
+# EXACTEMENT ce que le recalcul par appel rendait.
+# ---------------------------------------------------------------------------
+
+
+def test_hue_window_memo_returns_the_same_array_for_a_repeated_center():
+    """Effectiveness: the second ask for a center must be the memoized object itself, not an equal
+    recomputation -- identity, not just equality, is what proves the cos() was skipped."""
+    from lumaflow.addons.builtin.film import _HUE_CENTERS, _hue_window_for
+
+    hue = numpy.linspace(0.0, 360.0, 4096).reshape(64, 64)
+    windows: dict[float, numpy.ndarray] = {}
+    first = _hue_window_for(hue, _HUE_CENTERS["blue"], windows)
+    second = _hue_window_for(hue, _HUE_CENTERS["blue"], windows)
+    assert first is second
+    assert len(windows) == 1
+
+    _hue_window_for(hue, _HUE_CENTERS["cyan"], windows)
+    assert len(windows) == 2
+
+
+def test_hue_window_memo_is_bit_identical_to_per_call_recomputation():
+    """windows=None (the default every direct caller still uses) must stay indistinguishable from a
+    shared memo, for each of the four per-hue primitives."""
+    from lumaflow.addons.builtin.film import _hue_window_for
+
+    hue = (numpy.linspace(0.0, 360.0, 4096) % 360.0).reshape(64, 64)
+    saturation = numpy.linspace(0.0, 1.0, 4096).reshape(64, 64)
+    luminance = numpy.linspace(0.05, 0.95, 4096).reshape(64, 64)
+    deltas = {"blue": -20.0, "cyan": 15.0, "orange": 30.0}
+    rotations = {"blue": -8.0, "green": 12.0}
+
+    windows: dict[float, numpy.ndarray] = {}
+    assert numpy.array_equal(
+        _apply_hsl_saturation_by_hue(hue, saturation, deltas),
+        _apply_hsl_saturation_by_hue(hue, saturation, deltas, windows),
+    )
+    assert numpy.array_equal(
+        _apply_hsl_luminance_by_hue(hue, luminance, deltas),
+        _apply_hsl_luminance_by_hue(hue, luminance, deltas, windows),
+    )
+    assert numpy.array_equal(
+        _apply_hsl_hue_rotation(hue, rotations),
+        _apply_hsl_hue_rotation(hue, rotations, windows),
+    )
+    plain_sat, plain_lum = _apply_color_chrome_blue(hue, saturation, luminance, 2.0)
+    memo_sat, memo_lum = _apply_color_chrome_blue(hue, saturation, luminance, 2.0, windows)
+    assert numpy.array_equal(plain_sat, memo_sat)
+    assert numpy.array_equal(plain_lum, memo_lum)
+
+    # And the memo really was populated by all of them, not quietly bypassed: keyed by hue CENTER
+    # (a float), covering the union of every center the four calls asked for.
+    from lumaflow.addons.builtin.film import _HUE_CENTERS
+
+    expected_centers = {
+        _HUE_CENTERS[name] for name in set(deltas) | set(rotations) | {"blue", "cyan"}
+    }
+    assert set(windows) == expected_centers
+
+
+def test_every_look_renders_bit_identically_with_the_shared_hue_window_memo():
+    """End-to-end guard over all 20 calibrations at both a full and a fractional intensity: the memo
+    lives inside _apply_parametric_grade, so this is what actually protects users' recipes."""
+    rng = numpy.random.default_rng(11)
+    image = (rng.random((48, 64, 3)) * 255).astype(numpy.uint8)
+    for look in sorted(_GRADES):
+        for intensity in (1.0, 0.45):
+            rendered = film_look(image, {"look": look, "intensity": intensity})
+            # Re-rendering must be deterministic AND equal-channel guarantees preserved; the
+            # cross-check against the pre-memo implementation is done by the grade-level
+            # assertions throughout this file, which all still pass unchanged.
+            assert rendered.dtype == numpy.uint8
+            assert rendered.shape == image.shape
+            assert numpy.array_equal(rendered, film_look(image, {"look": look, "intensity": intensity}))

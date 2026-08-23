@@ -432,30 +432,76 @@ def _apply_global_saturation(saturation: numpy.ndarray, factor: float) -> numpy.
     return numpy.clip(saturation * factor, 0.0, 1.0)
 
 
+def _hue_window(hue: numpy.ndarray, center: float) -> numpy.ndarray:
+    """The cosine-weighted hue window (half-width 40 deg) shared by every per-hue primitive:
+    1 at `center`, falling to 0 at 40 deg away, exactly 0 beyond.
+
+    Extracted 2026-08-23 from the four call sites that each carried an identical copy
+    (`_apply_hsl_saturation_by_hue`, `_apply_hsl_luminance_by_hue`, `_apply_hsl_hue_rotation`,
+    `_apply_color_chrome_blue`), so the formula lives once and -- more to the point -- so its
+    RESULT can be memoized across them by `_hue_window_for`. One window costs about as much as a
+    third of a full RGB->HSL conversion at 2 MP (the `numpy.cos` over every pixel dominates), and
+    a single look routinely asks for the same hue two or three times: Titanium computed the blue
+    and cyan windows twice each (once for saturation, once for Color Chrome Blue), Velvia computed
+    blue and green twice (saturation, then hue rotation)."""
+    angular_distance = numpy.abs(((hue - center + 180.0) % 360.0) - 180.0)
+    return numpy.where(
+        angular_distance <= 40.0,
+        0.5 * (1.0 + numpy.cos(angular_distance / 40.0 * numpy.pi)),
+        0.0,
+    )
+
+
+def _hue_window_for(
+    hue: numpy.ndarray, center: float, windows: dict[float, numpy.ndarray] | None
+) -> numpy.ndarray:
+    """`_hue_window` behind an optional per-grade memo, keyed by hue CENTER (not name, so the
+    name-driven HSL loops and `_apply_color_chrome_blue`'s direct `_HUE_CENTERS[...]` lookups share
+    the same entries automatically).
+
+    THE MEMO IS VALID FOR EXACTLY ONE `hue` ARRAY. `_apply_parametric_grade` builds a fresh one per
+    call and hands it only to primitives that read the SAME pre-rotation `hue`
+    (`_apply_hsl_hue_rotation` deliberately weights from `original_hue`, and is the last of the four
+    to run). Reordering the grade so a consumer sees post-rotation hue, or reusing a memo across two
+    images, would silently return windows computed for the wrong array -- pass `windows=None` in any
+    such case, which restores the original per-call computation."""
+    if windows is None:
+        return _hue_window(hue, center)
+    cached = windows.get(center)
+    if cached is None:
+        cached = _hue_window(hue, center)
+        windows[center] = cached
+    return cached
+
+
 def _apply_hsl_saturation_by_hue(
-    hue: numpy.ndarray, saturation: numpy.ndarray, deltas: dict[str, float]
+    hue: numpy.ndarray,
+    saturation: numpy.ndarray,
+    deltas: dict[str, float],
+    windows: dict[float, numpy.ndarray] | None = None,
 ) -> numpy.ndarray:
     """For each named hue in `deltas` (-50..50 %), scales saturation within a
     cosine-weighted window (half-width 40 deg) centered on that hue's
     standard angle -- pixels far from every named hue are unaffected.
+
+    `windows`: optional shared memo, see `_hue_window_for`. Default None keeps the original
+    per-call computation, so direct callers (tests) need no change.
     """
     result = saturation
     for name, delta_pct in deltas.items():
         center = _HUE_CENTERS.get(name)
         if center is None:
             continue
-        angular_distance = numpy.abs(((hue - center + 180.0) % 360.0) - 180.0)
-        weight = numpy.where(
-            angular_distance <= 40.0,
-            0.5 * (1.0 + numpy.cos(angular_distance / 40.0 * numpy.pi)),
-            0.0,
-        )
+        weight = _hue_window_for(hue, center, windows)
         result = numpy.clip(result * (1.0 + weight * (delta_pct / 100.0)), 0.0, 1.0)
     return result
 
 
 def _apply_hsl_luminance_by_hue(
-    hue: numpy.ndarray, luminance: numpy.ndarray, deltas: dict[str, float]
+    hue: numpy.ndarray,
+    luminance: numpy.ndarray,
+    deltas: dict[str, float],
+    windows: dict[float, numpy.ndarray] | None = None,
 ) -> numpy.ndarray:
     """For each named hue in `deltas` (-30..30, the "Luminance HSL" row of
     the shared parameter scale), shifts luminance within the same
@@ -463,18 +509,15 @@ def _apply_hsl_luminance_by_hue(
     skin tones ("orange/peau") without touching the rest of the tone curve.
     Scale (0.15) deliberately modest: this is meant as a subtle per-hue
     lightness nudge, not a second tone curve.
+
+    `windows`: optional shared memo, see `_hue_window_for`.
     """
     result = luminance
     for name, delta in deltas.items():
         center = _HUE_CENTERS.get(name)
         if center is None:
             continue
-        angular_distance = numpy.abs(((hue - center + 180.0) % 360.0) - 180.0)
-        weight = numpy.where(
-            angular_distance <= 40.0,
-            0.5 * (1.0 + numpy.cos(angular_distance / 40.0 * numpy.pi)),
-            0.0,
-        )
+        weight = _hue_window_for(hue, center, windows)
         result = numpy.clip(result + weight * (delta / 30.0) * 0.15, 0.0, 1.0)
     return result
 
@@ -547,7 +590,11 @@ def _apply_color_chrome_effect(
 
 
 def _apply_color_chrome_blue(
-    hue: numpy.ndarray, saturation: numpy.ndarray, luminance: numpy.ndarray, level: float
+    hue: numpy.ndarray,
+    saturation: numpy.ndarray,
+    luminance: numpy.ndarray,
+    level: float,
+    windows: dict[float, numpy.ndarray] | None = None,
 ) -> tuple[numpy.ndarray, numpy.ndarray]:
     """Same mechanism as `_apply_color_chrome_effect`, but hue-restricted to
     blue/cyan (the same cosine-weighted-window pattern used by
@@ -555,20 +602,19 @@ def _apply_color_chrome_blue(
     dial, which only deepens blue skies/water, not the whole image. Takes the
     max of the two hue windows rather than summing them, so a pixel exactly
     between blue and cyan isn't double-weighted.
+
+    `windows`: optional shared memo, see `_hue_window_for`. This is the primitive that gains most
+    from it -- every look whose `hsl_saturation` names blue or cyan (Titanium, Eterna Bleach Bypass,
+    Inky Depths...) has already built the very same window earlier in the grade.
     """
     strength = _color_chrome_strength(level)
     if strength <= 0.0:
         return saturation, luminance
 
-    def _hue_window(center: float) -> numpy.ndarray:
-        angular_distance = numpy.abs(((hue - center + 180.0) % 360.0) - 180.0)
-        return numpy.where(
-            angular_distance <= 40.0,
-            0.5 * (1.0 + numpy.cos(angular_distance / 40.0 * numpy.pi)),
-            0.0,
-        )
-
-    hue_weight = numpy.maximum(_hue_window(_HUE_CENTERS["blue"]), _hue_window(_HUE_CENTERS["cyan"]))
+    hue_weight = numpy.maximum(
+        _hue_window_for(hue, _HUE_CENTERS["blue"], windows),
+        _hue_window_for(hue, _HUE_CENTERS["cyan"], windows),
+    )
     trigger = _color_chrome_trigger(saturation, luminance) * strength * hue_weight
     saturation = numpy.clip(saturation - trigger * 0.20, 0.0, 1.0)
     luminance = numpy.clip(luminance - trigger * 0.06, 0.0, 1.0)
@@ -597,13 +643,21 @@ def _resolve_dynamic_range(grade: "_GradeParams") -> "_GradeParams":
     )
 
 
-def _apply_hsl_hue_rotation(hue: numpy.ndarray, rotations: dict[str, float]) -> numpy.ndarray:
+def _apply_hsl_hue_rotation(
+    hue: numpy.ndarray,
+    rotations: dict[str, float],
+    windows: dict[float, numpy.ndarray] | None = None,
+) -> numpy.ndarray:
     """For each named hue in `rotations` (-30..30 deg), rotates hue within the
     same cosine-weighted window used by saturation. Weight is computed from
     the ORIGINAL `hue` for every named entry (not the progressively-rotated
     result), so multiple rotations in the same call don't feed into each
     other's windows. A no-op for already-desaturated pixels since chroma is
     what actually reads `hue` downstream in `_hsl_to_rgb`.
+
+    `windows`: optional shared memo, see `_hue_window_for`. Weighting from `original_hue` -- the
+    array every other per-hue primitive in the grade also saw -- is precisely what makes sharing
+    the memo with them legitimate here.
     """
     original_hue = hue
     result = hue
@@ -611,12 +665,7 @@ def _apply_hsl_hue_rotation(hue: numpy.ndarray, rotations: dict[str, float]) -> 
         center = _HUE_CENTERS.get(name)
         if center is None:
             continue
-        angular_distance = numpy.abs(((original_hue - center + 180.0) % 360.0) - 180.0)
-        weight = numpy.where(
-            angular_distance <= 40.0,
-            0.5 * (1.0 + numpy.cos(angular_distance / 40.0 * numpy.pi)),
-            0.0,
-        )
+        weight = _hue_window_for(original_hue, center, windows)
         result = (result + weight * degrees) % 360.0
     return result
 
@@ -818,13 +867,21 @@ def _apply_parametric_grade(image: numpy.ndarray, grade: "_GradeParams") -> nump
     # calls that function directly, bypassing this one entirely.
     grade = _resolve_dynamic_range(grade)
     hue, saturation, luminance = _rgb_to_hsl(image)
+    # One memo of cosine hue windows for this grade, shared by the four per-hue primitives below
+    # (perf, 2026-08-23 -- see `_hue_window_for`). Every one of them weights from THIS `hue` array:
+    # `_apply_hsl_hue_rotation` is the only one that changes hue, it runs last, and it weights from
+    # the original anyway. Keep it that way, or the memo silently goes stale -- the four calls must
+    # stay above the reassignment of `hue`.
+    hue_windows: dict[float, numpy.ndarray] = {}
     luminance = _apply_tone_curve(luminance, grade.contrast, grade.highlights, grade.shadows)
     saturation = _apply_global_saturation(saturation, grade.global_saturation)
-    saturation = _apply_hsl_saturation_by_hue(hue, saturation, grade.hsl_saturation)
-    luminance = _apply_hsl_luminance_by_hue(hue, luminance, grade.hsl_luminance)
+    saturation = _apply_hsl_saturation_by_hue(hue, saturation, grade.hsl_saturation, hue_windows)
+    luminance = _apply_hsl_luminance_by_hue(hue, luminance, grade.hsl_luminance, hue_windows)
     saturation, luminance = _apply_color_chrome_effect(saturation, luminance, grade.color_chrome_effect)
-    saturation, luminance = _apply_color_chrome_blue(hue, saturation, luminance, grade.color_chrome_blue)
-    hue = _apply_hsl_hue_rotation(hue, grade.hsl_hue_rotation)
+    saturation, luminance = _apply_color_chrome_blue(
+        hue, saturation, luminance, grade.color_chrome_blue, hue_windows
+    )
+    hue = _apply_hsl_hue_rotation(hue, grade.hsl_hue_rotation, hue_windows)
     rgb = _hsl_to_rgb(hue, saturation, luminance)
     rgb = _apply_temperature_tint(rgb, grade.temperature, grade.tint)
     rgb = _apply_split_tone(rgb, luminance, grade)
