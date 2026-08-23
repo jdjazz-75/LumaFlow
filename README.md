@@ -1,5 +1,7 @@
 # LumaFlow
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **Votre table lumineuse, réinventée.** La retouche redevient un terrain de jeu.
 
 > 📖 **Documentation complète** : **[jdjazz-75.github.io/LumaFlow](https://jdjazz-75.github.io/LumaFlow/)**
@@ -139,5 +141,13 @@ avant/après illustrant isolément la contribution de chaque curseur — n'est p
 il vit dans la documentation HTML, dont c'est le format naturel.
 
 → [Détail des étapes du workflow](https://jdjazz-75.github.io/LumaFlow/workflow/index.html)
+
+---
+
+## Licence
+
+Ce projet est distribué sous licence **MIT** — voir le fichier [LICENSE](LICENSE). En résumé :
+usage, modification, distribution et intégration dans un projet propriétaire sont libres, à
+condition de conserver la mention de copyright et la licence.
 
 
