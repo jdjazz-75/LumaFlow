@@ -232,17 +232,6 @@ export function saveRecipe(sessionId: string, destPath: string, force = false): 
   });
 }
 
-export type DimensionWarningStep = {
-  step_identifier: string;
-  status: "applied_as_is" | "adapted";
-};
-
-export type DimensionWarning = {
-  incompatible: boolean;
-  step_identifiers: string[];
-  steps: DimensionWarningStep[];
-};
-
 export type ParameterCorrection = {
   step_identifier: string;
   parameter: string;
@@ -260,7 +249,6 @@ export type DisabledVignetteCorrection = {
 
 export type LoadRecipeResult = {
   rows: RowSpec[];
-  dimension_warning: DimensionWarning | null;
   parameter_corrections: ParameterCorrection[];
   disabled_vignette_corrections: DisabledVignetteCorrection[];
 };

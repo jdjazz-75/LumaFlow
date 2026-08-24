@@ -12,21 +12,15 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Collection, Optional
 
-# Initial v1 recipe schema version, seeding SUPPORTED_SCHEMA_VERSIONS below.
-SCHEMA_VERSION = "1"
+# Current recipe schema version. 1.1 dropped the `source` file-reference block (a preset is no
+# longer tied to the image it was authored on) and stopped writing Geometry/Framing step entries
+# (image-specific corrections almost never portable to a different photo, see CLAUDE.md).
+SCHEMA_VERSION = "1.1"
 
-# The single authoritative set of schema versions load_recipe accepts.
-# Seeded from SCHEMA_VERSION so the version written and the version
-# accepted can never silently diverge.
-SUPPORTED_SCHEMA_VERSIONS: frozenset[str] = frozenset({SCHEMA_VERSION})
-
-
-@dataclass(frozen=True)
-class SourceReference:
-    filename: str
-    width: Optional[int] = None
-    height: Optional[int] = None
-    checksum: Optional[str] = None
+# Every schema version load_recipe still accepts, past and present -- "1" (the original shape,
+# with `source` and every row including Geometry/Framing) must keep loading silently, with its
+# now-obsolete fields simply ignored rather than erroring or warning (recipe_from_dict below).
+SUPPORTED_SCHEMA_VERSIONS: frozenset[str] = frozenset({SCHEMA_VERSION, "1"})
 
 
 @dataclass(frozen=True)
@@ -39,7 +33,6 @@ class StepEntry:
 @dataclass(frozen=True)
 class Recipe:
     schema_version: str
-    source: SourceReference
     steps: list[StepEntry] = field(default_factory=list)
 
 
@@ -69,12 +62,6 @@ class RecipeIOError(Exception):
 def recipe_to_dict(recipe: Recipe) -> dict[str, Any]:
     return {
         "schema_version": recipe.schema_version,
-        "source": {
-            "filename": recipe.source.filename,
-            "width": recipe.source.width,
-            "height": recipe.source.height,
-            "checksum": recipe.source.checksum,
-        },
         "steps": [
             {
                 "step_identifier": step.step_identifier,
@@ -93,12 +80,8 @@ def validate_recipe_dict(data: dict[str, Any]) -> None:
     if not isinstance(schema_version, str) or not schema_version.strip():
         raise RecipeValidationError(reason="empty_schema_version", detail="schema_version")
 
-    if "source" not in data or not isinstance(data["source"], dict):
-        raise RecipeValidationError(reason="missing_field", detail="source")
-    source = data["source"]
-    filename = source.get("filename")
-    if not isinstance(filename, str) or not filename.strip():
-        raise RecipeValidationError(reason="missing_field", detail="source.filename")
+    # `source` is no longer part of the schema (1.1) -- a v1 file that still carries it is
+    # simply left unread below, never validated or rejected.
 
     if "steps" not in data or not isinstance(data["steps"], list):
         raise RecipeValidationError(reason="invalid_type", detail="steps")
@@ -116,15 +99,16 @@ def validate_recipe_dict(data: dict[str, Any]) -> None:
             raise RecipeValidationError(reason="invalid_type", detail=f"steps[{index}].parameters")
 
 
+# Row identifiers a recipe never carries, regardless of the file's own schema version --
+# image-specific corrections (geometry.py::_resolve_corners/_resolve_angle,
+# framing.py::_resolve_box) that almost never apply to a different photo. build_recipe (session.py)
+# never emits them; a v1 file that still has one (authored before this exclusion existed) simply
+# has that entry dropped here, silently, same as a v1.1 file that never mentioned it.
+EXCLUDED_STEP_IDENTIFIERS: frozenset[str] = frozenset({"geometry", "framing"})
+
+
 def recipe_from_dict(data: dict[str, Any]) -> Recipe:
     validate_recipe_dict(data)
-    source_data = data["source"]
-    source = SourceReference(
-        filename=source_data["filename"],
-        width=source_data.get("width"),
-        height=source_data.get("height"),
-        checksum=source_data.get("checksum"),
-    )
     steps = [
         StepEntry(
             step_identifier=step["step_identifier"],
@@ -132,8 +116,9 @@ def recipe_from_dict(data: dict[str, Any]) -> Recipe:
             parameters=dict(step["parameters"]),
         )
         for step in data["steps"]
+        if step["step_identifier"] not in EXCLUDED_STEP_IDENTIFIERS
     ]
-    return Recipe(schema_version=data["schema_version"], source=source, steps=steps)
+    return Recipe(schema_version=data["schema_version"], steps=steps)
 
 
 def validate_session_completeness(steps: list[StepEntry]) -> None:
@@ -221,7 +206,7 @@ def check_schema_version(
         raise RecipeValidationError(
             reason="unrecognized_schema_version",
             # Raw value, not a formatted sentence -- consistent with every other reason's `detail`
-            # in this module (a field name/raw value, e.g. "source.filename"), so the API boundary
+            # in this module (a field name/raw value, e.g. "schema_version"), so the API boundary
             # (lumaflow/api/app.py) can expose the actual version in a structured `details` field
             # instead of parsing it back out of a sentence.
             detail=recipe.schema_version,
@@ -231,7 +216,6 @@ def check_schema_version(
 def example_recipe() -> Recipe:
     return Recipe(
         schema_version=SCHEMA_VERSION,
-        source=SourceReference(filename="sunset.jpg", width=4032, height=3024),
         steps=[
             StepEntry("crop", "crop_neutral", {}),
             StepEntry("exposure", "exposure_plus1", {"ev": 1.0}),

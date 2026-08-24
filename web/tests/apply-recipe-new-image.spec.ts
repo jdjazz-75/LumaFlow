@@ -1,7 +1,6 @@
 // LumaFlow v1.0 (2026-08-07)
-// Scénario e2e : sauvegarder une recette depuis une image, l'appliquer à une autre image (même
-// ratio ou ratio différent) et vérifier l'application des réglages, l'export, et l'avertissement
-// de compatibilité de dimensions.
+// Scénario e2e : sauvegarder une recette depuis une image, l'appliquer à une autre image et
+// vérifier l'application des réglages et l'export.
 import { test, expect, type Page, type Response } from "@playwright/test";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
@@ -13,8 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * End-to-end verification of feature 047: loading a recipe saved from one image onto a different
- * image (US1), and the non-blocking dimension-compatibility warning when that new image's aspect
- * ratio differs from the one the recipe was authored on (US2).
+ * image (US1).
  *
  * Reuses the same fixture/selector conventions as tests/mvp-flow.spec.ts (dialog routes mocked via
  * page.route, navigate 127.0.0.1:8000 not localhost -- api.ts's BASE_URL hardcodes 127.0.0.1, so
@@ -25,8 +23,6 @@ const FIXTURE_IMAGE_A = path.resolve(__dirname, "fixtures/zoom-overlay-large.png
 // Same aspect ratio as FIXTURE_IMAGE_A but different absolute dimensions (ratio, not absolute
 // pixel size, is the compatibility criterion).
 const FIXTURE_IMAGE_B_SAME_RATIO = path.resolve(__dirname, "fixtures/apply-recipe-same-ratio.png");
-// Portrait (transposed), a genuinely different aspect ratio -- must trigger the US2 warning.
-const FIXTURE_IMAGE_B_DIFFERENT_RATIO = path.resolve(__dirname, "fixtures/apply-recipe-different-ratio.png");
 
 function tmpPath(name: string): string {
   return path.join(os.tmpdir(), `lumaflow-apply-recipe-${Date.now()}-${Math.random().toString(36).slice(2)}-${name}`);
@@ -192,54 +188,5 @@ test.describe("Recipe load -- US1: appliquer une recette sauvegardée à une nou
     expect(sha256File(recipeDest)).not.toBe(sha256File(neutralDest));
     // ...and B's own source file on disk was never modified, at any point (FR-006).
     expect(sha256File(FIXTURE_IMAGE_B_SAME_RATIO)).toBe(sourceBHashBefore);
-  });
-});
-
-test.describe("Recipe load -- US2: avertissement d'incompatibilité de dimensions", () => {
-  test("charger une recette de ratio incompatible affiche un avertissement nommant l'étape concernée, sans bloquer l'édition ni l'export", async ({ page }) => {
-    await page.goto("/");
-
-    await openTestImage(page, FIXTURE_IMAGE_A);
-    const recipePath = tmpPath("recipe-ratio.json");
-    await saveRecipeViaDialog(page, recipePath);
-
-    // A portrait image -- a genuinely different aspect ratio from FIXTURE_IMAGE_A (landscape).
-    await openTestImage(page, FIXTURE_IMAGE_B_DIFFERENT_RATIO);
-    await expect(page.locator(".central-work-area__warning")).toHaveCount(0);
-
-    await loadRecipeViaDialog(page, recipePath);
-
-    const warning = page.locator(".central-work-area__warning");
-    await expect(warning).toBeVisible();
-    // FR-004: names the concrete affected step(s), not a vague generic message.
-    const warningText = await warning.innerText();
-    expect(warningText).toMatch(/Geometry|Framing/);
-
-    // Edge Case: the warning MUST NOT block continued editing...
-    const filmRow = await navigateToRow(page, "Film");
-    await filmRow.locator(".vignette-card").nth(1).click();
-    await expect(filmRow.locator(".vignette-card").nth(1)).toHaveClass(/vignette-card--selected/);
-
-    // ...nor export.
-    const dest = tmpPath("ratio-warning-export.png");
-    await exportViaDialog(page, dest);
-    expect(fs.existsSync(dest)).toBe(true);
-
-    // The warning is still visible after all of the above -- resolving it was never required.
-    await expect(page.locator(".central-work-area__warning")).toBeVisible();
-  });
-
-  test("charger une recette sur une image de même ratio n'affiche aucun avertissement", async ({ page }) => {
-    await page.goto("/");
-
-    await openTestImage(page, FIXTURE_IMAGE_A);
-    const recipePath = tmpPath("recipe-same-ratio.json");
-    await saveRecipeViaDialog(page, recipePath);
-
-    // Same ratio as FIXTURE_IMAGE_A, different absolute dimensions.
-    await openTestImage(page, FIXTURE_IMAGE_B_SAME_RATIO);
-    await loadRecipeViaDialog(page, recipePath);
-
-    await expect(page.locator(".central-work-area__warning")).toHaveCount(0);
   });
 });

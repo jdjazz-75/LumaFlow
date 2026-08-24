@@ -1467,10 +1467,26 @@ def test_save_recipe_writes_a_real_file_reflecting_current_selections(client, tm
     assert response.status_code == 200, response.text
     assert dest.exists()
     saved = json.loads(dest.read_text(encoding="utf-8"))
-    assert saved["schema_version"] == "1"
-    assert saved["source"]["filename"] == FIXTURE_IMAGE.name
+    assert saved["schema_version"] == SCHEMA_VERSION
+    # A preset no longer references the file it was authored on (2026-08-24).
+    assert "source" not in saved
     steps_by_id = {step["step_identifier"]: step for step in saved["steps"]}
-    assert steps_by_id["framing"]["thumbnail_identifier"] == "16:9"
+    assert "film" in steps_by_id
+
+
+def test_save_recipe_never_includes_geometry_or_framing(client, tmp_path):
+    # Geometry/Framing corrections are image-specific and near-never portable to a different
+    # photo -- excluded from every saved preset regardless of the row's current selection
+    # (2026-08-24). `_open_and_select` deliberately selects framing's "16:9" first, so this test
+    # fails loudly if that exclusion regresses.
+    session_id = _open_and_select(client)
+    dest = tmp_path / "recipe.json"
+    response = client.post(f"/sessions/{session_id}/recipe/save", json={"dest_path": str(dest)})
+    assert response.status_code == 200, response.text
+    saved = json.loads(dest.read_text(encoding="utf-8"))
+    step_identifiers = {step["step_identifier"] for step in saved["steps"]}
+    assert "geometry" not in step_identifiers
+    assert "framing" not in step_identifiers
 
 
 def test_save_recipe_without_image_loaded_returns_400(client, tmp_path):
@@ -1496,7 +1512,11 @@ def test_save_recipe_onto_existing_file_requires_force(client, tmp_path):
 
 
 def test_load_recipe_applies_saved_selections_onto_a_fresh_session(client, tmp_path):
-    session_a = _open_and_select(client)
+    # Film (index 2), not Geometry/Framing (indices 0/1) -- those two are excluded from presets
+    # entirely (2026-08-24), so a selection made there would never round-trip through save/load.
+    session_a = _open(client)
+    select_response = client.post(f"/sessions/{session_a}/steps/2/select", json={"identifier": "Velvia"})
+    assert select_response.status_code == 200, select_response.text
     dest = tmp_path / "recipe.json"
     save_response = client.post(f"/sessions/{session_a}/recipe/save", json={"dest_path": str(dest)})
     assert save_response.status_code == 200
@@ -1505,7 +1525,7 @@ def test_load_recipe_applies_saved_selections_onto_a_fresh_session(client, tmp_p
     load_response = client.post(f"/sessions/{session_b}/recipe/load", json={"path": str(dest)})
     assert load_response.status_code == 200, load_response.text
     rows = load_response.json()["rows"]
-    assert rows[1]["selected_vignette_identifier"] == "16:9"
+    assert rows[2]["selected_vignette_identifier"] == "Velvia"
 
 
 def test_load_recipe_missing_file_returns_400_not_500(client, tmp_path):
@@ -1621,8 +1641,7 @@ def test_blocking_recipe_load_categories_all_have_distinct_messages(client, tmp_
     # blocking categories reachable through the real endpoint (a fourth, application_error, only
     # fires when a step's processor raises during execution; not independently reproducible here
     # without reaching into engine internals, so it's covered structurally instead in
-    # test_dimension_warning_and_parameter_corrections_are_structurally_distinct_from_error_categories
-    # below).
+    # test_load_recipe_out_of_bounds_parameter_is_corrected_and_signaled_without_blocking below).
     session_id = _open(client)
 
     missing_addon_payload = _full_recipe_payload(client, session_id)
@@ -1679,45 +1698,18 @@ def test_blocking_recipe_load_failure_leaves_active_session_strictly_unchanged(c
         assert client.get(f"/sessions/{session_id}/workflow").json() == baseline_workflow
 
 
-def test_dimension_warning_and_parameter_corrections_are_structurally_distinct_from_error_categories(
-    client, tmp_path
-):
-    # US2/US3 (FR-004/FR-005): dimension_warning and parameter_corrections are non-blocking
-    # signals carried on a 200 success response -- structurally distinct from the four 400
-    # error `category` strings (SC-001 extended, T011): a request that produces either signal
-    # MUST NOT come back as a 400 with any error category, and the two signals occupy separate,
-    # independently-empty-by-default fields (never conflated with each other).
-    session_a = _open(client)
-    payload = _full_recipe_payload(
-        client,
-        session_a,
-        step_overrides={"framing": {"parameters": {"crop_x": 0.0, "crop_y": 0.0, "crop_width": 5.0, "crop_height": 1.0}}},
-    )
-    # A genuinely different ratio (portrait) from the 8x8 square fixture, to also trigger
-    # dimension_warning in the same response as the parameter correction below.
-    payload["source"]["width"] = 1067
-    payload["source"]["height"] = 1600
-    recipe_path = tmp_path / "dimension_and_correction.json"
-    recipe_path.write_text(json.dumps(payload), encoding="utf-8")
-
-    session_b = _open(client)
-    response = client.post(f"/sessions/{session_b}/recipe/load", json={"path": str(recipe_path)})
-
-    assert response.status_code == 200, response.text
-    body = response.json()
-    assert body["dimension_warning"]["incompatible"] is True
-    assert any(correction["step_identifier"] == "framing" for correction in body["parameter_corrections"])
-
-
 def test_load_recipe_out_of_bounds_parameter_is_corrected_and_signaled_without_blocking(client, tmp_path):
     # US3/FR-004: an out-of-bounds parameter is corrected (not blocked), the correction is
     # signaled, and the recipe's other steps are unaffected (Acceptance Scenarios 1-2).
+    # "light"/intensity is bounded [0, 1] (light.py::resolve_zoom_values) -- stands in for the old
+    # "framing"/crop_width case, which no longer applies now that Geometry/Framing are excluded
+    # from presets entirely (2026-08-24, CLAUDE.md).
     session_a = _open(client)
     payload = _full_recipe_payload(
         client,
         session_a,
         step_overrides={
-            "framing": {"parameters": {"crop_x": 0.0, "crop_y": 0.0, "crop_width": 5.0, "crop_height": 1.0}},
+            "light": {"parameters": {"intensity": 5.0}},
             "vignette": {"thumbnail_identifier": "Round Central"},
         },
     )
@@ -1732,16 +1724,43 @@ def test_load_recipe_out_of_bounds_parameter_is_corrected_and_signaled_without_b
     corrections = body["parameter_corrections"]
     assert len(corrections) == 1
     assert corrections[0] == {
-        "step_identifier": "framing",
-        "parameter": "crop_width",
+        "step_identifier": "light",
+        "parameter": "intensity",
         "requested": 5.0,
         "applied": 1.0,
     }
     # The unrelated correction ("vignette") and every other step remain exactly as the recipe
-    # specified -- no side effect from the framing correction.
+    # specified -- no side effect from the light correction.
     row_identifiers = [row.identifier for row in WORKFLOW_CONFIG.rows]
     vignette_row = body["rows"][row_identifiers.index("vignette")]
     assert vignette_row["selected_vignette_identifier"] == "Round Central"
+
+
+def test_load_recipe_v1_file_with_source_and_geometry_framing_is_ignored_without_error(client, tmp_path):
+    # Requirement (2026-08-24): a v1 preset file -- the shape written before `source` and
+    # Geometry/Framing step entries were dropped from the schema -- must keep loading with no
+    # error and no warning; the now-obsolete elements are simply disregarded.
+    session_a = _open(client)
+    row_identifiers = [row.identifier for row in WORKFLOW_CONFIG.rows]
+    payload = {
+        "schema_version": "1",
+        "source": {"filename": "old-photo.jpg", "width": 4032, "height": 3024, "checksum": None},
+        "steps": [
+            {
+                "step_identifier": identifier,
+                "thumbnail_identifier": "neutral",
+                "parameters": {"angle": 12.0} if identifier == "geometry" else {},
+            }
+            for identifier in row_identifiers
+        ],
+    }
+    recipe_path = tmp_path / "legacy_v1.json"
+    recipe_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    response = client.post(f"/sessions/{session_a}/recipe/load", json={"path": str(recipe_path)})
+
+    assert response.status_code == 200, response.text
+    assert response.json()["parameter_corrections"] == []
 
 
 # --- Correctif de performance (2026-07-21): working_image vs full resolution ---

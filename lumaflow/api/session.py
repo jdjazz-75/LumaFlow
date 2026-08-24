@@ -44,11 +44,11 @@ from lumaflow.engine.image_io import load_image
 from lumaflow.engine.image_session import ImageSession
 from lumaflow.engine.pipeline import Pipeline, PipelineStep, StepParameters
 from lumaflow.persistence.preferences import default_preferences_path, load_preferences
+from lumaflow.persistence.recipe import EXCLUDED_STEP_IDENTIFIERS as RECIPE_EXCLUDED_STEP_IDENTIFIERS
 from lumaflow.persistence.recipe import SCHEMA_VERSION as RECIPE_SCHEMA_VERSION
 from lumaflow.persistence.recipe import (
     MissingAddonReport,
     Recipe,
-    SourceReference,
     StepEntry,
     check_addon_availability,
     load_recipe,
@@ -1262,7 +1262,6 @@ def cancel_zoom(session: Session) -> list[RowSpec]:
 def build_recipe(session: Session) -> Recipe:
     if session.pipeline is None or session.image_session is None:
         raise ValueError("No image loaded in this session")
-    source = session.image_session.source
     steps = [
         StepEntry(
             step_identifier=step.identifier,
@@ -1272,83 +1271,16 @@ def build_recipe(session: Session) -> Recipe:
             parameters=dict(step.parameters.values),
         )
         for step in session.pipeline._steps
+        if step.identifier not in RECIPE_EXCLUDED_STEP_IDENTIFIERS
     ]
-    return Recipe(
-        schema_version=RECIPE_SCHEMA_VERSION,
-        source=SourceReference(filename=source.name, width=source.width, height=source.height),
-        steps=steps,
-    )
-
-
-# Row identifiers whose addon parameters are normalized fractions relative to the image's own
-# width/height (framing.py::_resolve_box, geometry.py::_resolve_corners/_resolve_angle) -- the only
-# steps a differing aspect ratio can visually shear. Color/tone addons (Film,
-# Light, Vignette, ...) don't consume dimension-relative parameters, so they're deliberately never
-# flagged, even at a wildly different ratio.
-DIMENSION_DEPENDENT_STEP_IDENTIFIERS = {"geometry", "framing"}
-
-# Relative tolerance on the width/height ratio comparison, not absolute dimensions
-# -- accommodates a recipe re-applied to a resized (same-ratio) copy of its original image
-# without a false positive, while still catching a genuine aspect-ratio change (e.g. portrait vs.
-# paysage).
-DIMENSION_RATIO_TOLERANCE = 0.02
-
-
-@dataclass
-class DimensionWarningStep:
-    step_identifier: str
-    # "applied_as_is" | "adapted" (feature 048, US2 AC2) -- always "applied_as_is" today: no addon
-    # currently re-normalizes its geometry/framing parameters for a differing target ratio, it just
-    # applies the same fractional box/corners unchanged (the very reason this warning exists). The
-    # field exists so a future ratio-aware adaptation can report "adapted" for a given step without
-    # another contract change.
-    status: str
-
-
-@dataclass
-class DimensionWarning:
-    incompatible: bool
-    step_identifiers: list[str]
-    steps: list[DimensionWarningStep]
+    return Recipe(schema_version=RECIPE_SCHEMA_VERSION, steps=steps)
 
 
 @dataclass
 class RecipeApplicationOutcome:
     rows: list[RowSpec]
-    dimension_warning: DimensionWarning | None
     parameter_corrections: list["ParameterCorrection"]
     disabled_vignette_corrections: list["DisabledVignetteCorrection"]
-
-
-def _detect_dimension_warning(recipe: Recipe, image_session: ImageSession) -> DimensionWarning | None:
-    """Non-blocking signal, deliberately separate from check_compatibility/apply_recipe_pipeline's
-    all-or-nothing CompatibilityReport path -- that path is reserved for the hard
-    failures feature 048 owns (missing addon, bad schema version); this one must never prevent the
-    recipe from being applied (FR-004's Edge Case: export MUST remain possible regardless)."""
-    source = recipe.source
-    if not source.width or not source.height:
-        return None
-    active = image_session.source
-    if not active.width or not active.height:
-        return None
-
-    recipe_ratio = source.width / source.height
-    active_ratio = active.width / active.height
-    if abs(active_ratio - recipe_ratio) / recipe_ratio <= DIMENSION_RATIO_TOLERANCE:
-        return None
-
-    affected = [
-        step.step_identifier
-        for step in recipe.steps
-        if step.step_identifier in DIMENSION_DEPENDENT_STEP_IDENTIFIERS
-    ]
-    if not affected:
-        return None
-    return DimensionWarning(
-        incompatible=True,
-        step_identifiers=affected,
-        steps=[DimensionWarningStep(step_identifier=identifier, status="applied_as_is") for identifier in affected],
-    )
 
 
 @dataclass
@@ -1364,7 +1296,7 @@ class DisabledVignetteCorrection:
     """A recipe step whose chosen vignette (`requested_identifier`) is no longer enabled for its
     row (Préférences > Workflow, 2026-08-06) -- apply_recipe substitutes that row's neutral
     vignette instead of ever applying a disabled vignette's rendering (see _is_vignette_enabled).
-    Non-blocking, same family as ParameterCorrection/DimensionWarning -- surfaced to the user
+    Non-blocking, same family as ParameterCorrection -- surfaced to the user
     rather than silently swapped."""
 
     step_identifier: str
@@ -1406,7 +1338,7 @@ def apply_recipe(session: Session, recipe: Recipe) -> RecipeApplicationOutcome:
         raise ValueError("No image loaded in this session")
     rows_by_identifier = {row.identifier: row for row in WORKFLOW_CONFIG.rows}
     # FR-001 (feature 048): a recipe's step_identifier is a WORKFLOW ROW identifier (e.g.
-    # "geometry", "framing"), not an addon's own identifier -- "missing" means the row no longer
+    # "film", "vignette"), not an addon's own identifier -- "missing" means the row no longer
     # exists in the CURRENT WORKFLOW_CONFIG at all (e.g. a recipe authored against an older/
     # renamed config). Previously this always passed available_addon_ids=None, which
     # check_addon_availability treats as "permissive" (never reports anything missing) --
@@ -1418,19 +1350,24 @@ def apply_recipe(session: Session, recipe: Recipe) -> RecipeApplicationOutcome:
     if missing is not None:
         raise RecipeAddonsMissing(missing)
 
+    # recipe.steps never mentions Geometry/Framing (recipe_from_dict already drops them, whatever
+    # the file's schema version) and may not cover every CURRENT row either (an older/mismatched
+    # config) -- build the pipeline from WORKFLOW_CONFIG.rows itself, same shape as open_image, so
+    # every row still gets a real step; one with no matching recipe entry just gets this row's
+    # neutral default instead of being missing from the pipeline outright.
+    steps_by_identifier = {step.step_identifier: step for step in recipe.steps}
+
     pipeline = Pipeline()
     thumbnail_selections: dict[str, str] = {}
     parameter_corrections: list[ParameterCorrection] = []
     disabled_vignette_corrections: list[DisabledVignetteCorrection] = []
-    for step in recipe.steps:
-        row = rows_by_identifier.get(step.step_identifier)
-        processor = None
-        thumbnail_identifier = step.thumbnail_identifier
-        parameters = dict(step.parameters)
-        if row is not None:
-            descriptor = _resolve_addon_for_row(row, ADDON_INDEX)
-            if descriptor is not None:
-                processor = descriptor.processing_function
+    for row in WORKFLOW_CONFIG.rows:
+        step = steps_by_identifier.get(row.identifier)
+        descriptor = _resolve_addon_for_row(row, ADDON_INDEX)
+        processor = descriptor.processing_function if descriptor is not None else None
+        thumbnail_identifier = step.thumbnail_identifier if step is not None else NEUTRAL_PRESET_IDENTIFIER
+        parameters = dict(step.parameters) if step is not None else {}
+        if step is not None:
             if not _is_vignette_enabled(row, descriptor, thumbnail_identifier):
                 # Préférences > Workflow (2026-08-06): a since-disabled vignette must never have
                 # its rendering applied -- fall back to this row's neutral vignette (empty
@@ -1438,7 +1375,7 @@ def apply_recipe(session: Session, recipe: Recipe) -> RecipeApplicationOutcome:
                 # non-blockingly rather than silently.
                 disabled_vignette_corrections.append(
                     DisabledVignetteCorrection(
-                        step_identifier=step.step_identifier, requested_identifier=thumbnail_identifier
+                        step_identifier=row.identifier, requested_identifier=thumbnail_identifier
                     )
                 )
                 thumbnail_identifier = NEUTRAL_PRESET_IDENTIFIER
@@ -1451,18 +1388,16 @@ def apply_recipe(session: Session, recipe: Recipe) -> RecipeApplicationOutcome:
                 parameter_corrections.extend(_parameter_corrections_for_step(step, resolved))
         pipeline.add_step(
             PipelineStep(
-                identifier=step.step_identifier,
+                identifier=row.identifier,
                 parameters=StepParameters(values=parameters),
                 processor=processor,
             )
         )
-        thumbnail_selections[step.step_identifier] = thumbnail_identifier
+        thumbnail_selections[row.identifier] = thumbnail_identifier
 
     result = apply_recipe_pipeline(pipeline, session.image_session)
     if not result.succeeded:
         raise RecipeApplicationFailed(result)
-
-    dimension_warning = _detect_dimension_warning(recipe, session.image_session)
 
     session.pipeline = pipeline
     session.thumbnail_selections = thumbnail_selections
@@ -1470,7 +1405,6 @@ def apply_recipe(session: Session, recipe: Recipe) -> RecipeApplicationOutcome:
     session.vignette_state_cache = {}
     return RecipeApplicationOutcome(
         rows=refresh_workflow(session),
-        dimension_warning=dimension_warning,
         parameter_corrections=parameter_corrections,
         disabled_vignette_corrections=disabled_vignette_corrections,
     )

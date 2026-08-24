@@ -950,17 +950,6 @@ class LoadRecipeIn(BaseModel):
     path: str
 
 
-class DimensionWarningStepOut(BaseModel):
-    step_identifier: str
-    status: str
-
-
-class DimensionWarningOut(BaseModel):
-    incompatible: bool
-    step_identifiers: list[str]
-    steps: list[DimensionWarningStepOut]
-
-
 class ParameterCorrectionOut(BaseModel):
     step_identifier: str
     parameter: str
@@ -975,7 +964,6 @@ class DisabledVignetteCorrectionOut(BaseModel):
 
 class LoadRecipeOut(BaseModel):
     rows: list[RowSpecOut]
-    dimension_warning: DimensionWarningOut | None
     # Always present, empty by default -- so the frontend
     # never has to distinguish "field absent" from "no correction happened".
     parameter_corrections: list[ParameterCorrectionOut]
@@ -1039,21 +1027,8 @@ def load_recipe_endpoint(session_id: str, body: LoadRecipeIn) -> LoadRecipeOut:
         ) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    dimension_warning = (
-        DimensionWarningOut(
-            incompatible=outcome.dimension_warning.incompatible,
-            step_identifiers=outcome.dimension_warning.step_identifiers,
-            steps=[
-                DimensionWarningStepOut(step_identifier=step.step_identifier, status=step.status)
-                for step in outcome.dimension_warning.steps
-            ],
-        )
-        if outcome.dimension_warning is not None
-        else None
-    )
     return LoadRecipeOut(
         rows=[_row_spec_out(row, index) for index, row in enumerate(outcome.rows)],
-        dimension_warning=dimension_warning,
         parameter_corrections=[
             ParameterCorrectionOut(
                 step_identifier=correction.step_identifier,

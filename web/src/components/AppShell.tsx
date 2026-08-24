@@ -21,13 +21,12 @@ import { ZoomOverlay } from "./ZoomOverlay";
 // only until the real GET /preferences resolves, so the filmstrip has a
 // sane layout on first paint instead of collapsing to 0px gaps.
 // RowSpec only carries `label` (display text), not the backend's row `identifier` -- needed here
-// to name a step in a dimension_warning (only geometry/framing are dimension-sensitive) or a
-// parameter_corrections entry (any addon, feature 048) -- a small fixed map (mirroring
-// lumaflow/config/config_workflow.json's identifier/label pairs) is simpler than plumbing
-// identifiers through RowSpec just for this.
+// to name a step in a parameter_corrections or disabled_vignette_corrections entry (any addon,
+// feature 048) -- a small fixed map (mirroring lumaflow/config/config_workflow.json's identifier/
+// label pairs) is simpler than plumbing identifiers through RowSpec just for this. Geometry/
+// Framing are never in this map -- presets never carry those two rows (CLAUDE.md), so neither
+// correction list can ever name them.
 const STEP_IDENTIFIER_LABELS: Record<string, string> = {
-  geometry: "Geometry",
-  framing: "Framing",
   film: "Film",
   bleach_bypass: "Bleach Bypass",
   color_splash: "Color Splash",
@@ -77,7 +76,6 @@ export function AppShell() {
   const [previewNonce, setPreviewNonce] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [zoomTarget, setZoomTarget] = useState<{ stepIndex: number; identifier: string } | null>(null);
-  const [dimensionWarning, setDimensionWarning] = useState<api.DimensionWarning | null>(null);
   const [parameterCorrections, setParameterCorrections] = useState<api.ParameterCorrection[]>([]);
   // Préférences > Workflow (2026-08-06): a loaded recipe's vignette selection was disabled since
   // it was saved -- the backend already fell back to that row's neutral vignette (never applies a
@@ -162,7 +160,6 @@ export function AppShell() {
 
   async function handleOpen() {
     setError(null);
-    setDimensionWarning(null);
     setParameterCorrections([]);
     setDisabledVignetteCorrections([]);
     let path: string | null;
@@ -222,14 +219,12 @@ export function AppShell() {
   async function applyRecipeAtPath(path: string) {
     if (!sessionId) return;
     setError(null);
-    setDimensionWarning(null);
     setParameterCorrections([]);
     setDisabledVignetteCorrections([]);
     try {
       await withBusy("Chargement de la recette…", async () => {
         const {
           rows: updatedRows,
-          dimension_warning,
           parameter_corrections,
           disabled_vignette_corrections,
         } = await api.loadRecipe(sessionId, path);
@@ -239,9 +234,8 @@ export function AppShell() {
         const firstVisible = updatedRows.findIndex((row) => !HIDDEN_ROW_LABELS.has(row.label));
         setActiveStepIndex(firstVisible === -1 ? 0 : firstVisible);
         setPreviewNonce((n) => n + 1);
-        // Non-blocking (FR-004's Edge Case): never prevents the recipe from being applied above, or
+        // Non-blocking (FR-005): never prevents the recipe from being applied above, or
         // subsequent editing/export -- purely informational.
-        setDimensionWarning(dimension_warning);
         setParameterCorrections(parameter_corrections);
         setDisabledVignetteCorrections(disabled_vignette_corrections);
         setActivePresetPath(path);
@@ -286,7 +280,6 @@ export function AppShell() {
         const firstVisible = updatedRows.findIndex((row) => !HIDDEN_ROW_LABELS.has(row.label));
         setActiveStepIndex(firstVisible === -1 ? 0 : firstVisible);
         setPreviewNonce((n) => n + 1);
-        setDimensionWarning(null);
         setParameterCorrections([]);
         setDisabledVignetteCorrections([]);
       });
@@ -403,20 +396,6 @@ export function AppShell() {
         <div id="centralWorkArea" className="central-work-area">
           {busy && <div className="central-work-area__busy">{busy}</div>}
           {error && <div className="central-work-area__error">{error}</div>}
-          {dimensionWarning?.incompatible && (
-            <div className="central-work-area__warning">
-              Cette recette a été créée pour des proportions d'image différentes. Réglages
-              potentiellement affectés :{" "}
-              {dimensionWarning.steps
-                .map((step) => {
-                  const label = STEP_IDENTIFIER_LABELS[step.step_identifier] ?? step.step_identifier;
-                  const statusLabel = step.status === "adapted" ? "adapté" : "appliqué tel quel";
-                  return `${label} (${statusLabel})`;
-                })
-                .join(", ")}
-              .
-            </div>
-          )}
           {parameterCorrections.length > 0 && (
             <div className="central-work-area__warning">
               Certains réglages hors bornes ont été automatiquement corrigés :{" "}

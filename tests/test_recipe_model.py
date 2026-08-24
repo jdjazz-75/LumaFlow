@@ -1,7 +1,9 @@
 # LumaFlow v1.0 (2026-08-07)
 # Teste le modèle de recette (persistence/recipe.py) : sérialisation/désérialisation fidèle, version
-# de schéma, usage sans fichier source présent, sauvegarde/chargement atomiques, détection d'addons
-# manquants, rejet de version de schéma non reconnue, et absence d'import moteur/Qt dans le module.
+# de schéma (1.1 -- plus de bloc `source`, Geometry/Framing exclus), sauvegarde/chargement
+# atomiques, détection d'addons manquants, rejet de version de schéma non reconnue, compatibilité
+# ascendante silencieuse avec un fichier v1 (bloc `source` + steps Geometry/Framing), et absence
+# d'import moteur/Qt dans le module.
 
 import json
 import os
@@ -10,6 +12,7 @@ from pathlib import Path
 import pytest
 
 from lumaflow.persistence.recipe import (
+    EXCLUDED_STEP_IDENTIFIERS,
     SCHEMA_VERSION,
     SUPPORTED_SCHEMA_VERSIONS,
     MissingAddonReport,
@@ -17,7 +20,6 @@ from lumaflow.persistence.recipe import (
     RecipeIOError,
     RecipeIOErrorCategory,
     RecipeValidationError,
-    SourceReference,
     StepEntry,
     check_addon_availability,
     check_schema_version,
@@ -35,7 +37,6 @@ FIXTURES_DIR = Path(__file__).parent / "fixtures"
 def _build_recipe() -> Recipe:
     return Recipe(
         schema_version=SCHEMA_VERSION,
-        source=SourceReference(filename="beach.jpg", width=100, height=200, checksum="abc123"),
         steps=[
             StepEntry("crop", "crop_neutral", {}),
             StepEntry("exposure", "exposure_plus1", {"ev": 1.0}),
@@ -86,6 +87,12 @@ def test_recipe_to_dict_only_json_compatible_types():
     _walk(data)
 
 
+def test_recipe_to_dict_never_carries_a_source_block():
+    # The preset no longer references the file it was authored on (CLAUDE.md, 2026-08-24).
+    data = recipe_to_dict(_build_recipe())
+    assert "source" not in data
+
+
 # --- US2: Recipe Identified by Schema Version ---
 
 
@@ -93,6 +100,10 @@ def test_schema_version_present_and_nonempty():
     recipe = _build_recipe()
     assert recipe.schema_version == SCHEMA_VERSION
     assert recipe.schema_version
+
+
+def test_schema_version_is_1_1():
+    assert SCHEMA_VERSION == "1.1"
 
 
 def test_missing_schema_version_rejected():
@@ -115,44 +126,48 @@ def test_empty_schema_version_rejected():
         assert exc.reason == "empty_schema_version"
 
 
-# --- US3: Recipe Usable Without the Original Source File ---
+# --- Geometry/Framing excluded from every recipe (2026-08-24) ---
 
 
-def test_recipe_valid_without_source_file_present():
-    recipe = Recipe(
-        schema_version=SCHEMA_VERSION,
-        source=SourceReference(filename="does_not_exist_on_this_machine.jpg"),
-        steps=[],
-    )
-    restored = recipe_from_dict(recipe_to_dict(recipe))
-    assert restored.source.filename == "does_not_exist_on_this_machine.jpg"
+def test_geometry_and_framing_step_entries_are_dropped_on_load():
+    # A recipe file that still lists Geometry/Framing (hand-crafted, or a v1 file authored before
+    # this exclusion existed) must load without error or warning -- those two entries are simply
+    # absent from the resulting Recipe.steps, same as if the file never mentioned them.
+    data = {
+        "schema_version": SCHEMA_VERSION,
+        "steps": [
+            {"step_identifier": "geometry", "thumbnail_identifier": "neutral", "parameters": {"angle": 12.0}},
+            {"step_identifier": "framing", "thumbnail_identifier": "neutral", "parameters": {"crop_x": 0.1}},
+            {"step_identifier": "film", "thumbnail_identifier": "neutral", "parameters": {}},
+        ],
+    }
+    recipe = recipe_from_dict(data)
+    assert [s.step_identifier for s in recipe.steps] == ["film"]
 
 
-def test_minimal_source_reference_valid():
-    recipe = Recipe(schema_version=SCHEMA_VERSION, source=SourceReference(filename="x.jpg"), steps=[])
-    restored = recipe_from_dict(recipe_to_dict(recipe))
-    assert restored.source.filename == "x.jpg"
-    assert restored.source.width is None
-    assert restored.source.height is None
-    assert restored.source.checksum is None
+def test_excluded_step_identifiers_is_geometry_and_framing():
+    assert EXCLUDED_STEP_IDENTIFIERS == frozenset({"geometry", "framing"})
 
 
-def test_two_recipes_same_filename_independently_valid():
-    recipe_a = Recipe(schema_version=SCHEMA_VERSION, source=SourceReference(filename="shared.jpg"), steps=[])
-    recipe_b = Recipe(schema_version=SCHEMA_VERSION, source=SourceReference(filename="shared.jpg"), steps=[])
-    recipe_from_dict(recipe_to_dict(recipe_a))
-    recipe_from_dict(recipe_to_dict(recipe_b))
+# --- US3 (legacy): backward compatibility with a v1 file (source block + no exclusion) ---
 
 
-def test_committed_fixture_round_trips():
+def test_load_recipe_v1_fixture_drops_source_and_keeps_its_steps(tmp_path):
+    # tests/fixtures/recipe_example_v1.json is a genuine pre-1.1 file: it still carries the
+    # `source` block. Loading it must not error or warn -- the block is simply never read.
+    loaded = load_recipe(FIXTURES_DIR / "recipe_example_v1.json")
+    assert [s.step_identifier for s in loaded.steps] == ["crop", "exposure"]
+    assert not hasattr(loaded, "source")
+
+
+def test_load_recipe_v1_fixture_with_unrelated_source_still_loads(tmp_path):
     original = json.loads((FIXTURES_DIR / "recipe_example_v1.json").read_text(encoding="utf-8"))
-    recipe = recipe_from_dict(original)
-    assert recipe_to_dict(recipe) == original
+    assert original["schema_version"] == "1"
+    assert "source" in original  # sanity: this fixture predates 1.1's schema
 
-    neutral_steps = [s for s in recipe.steps if s.parameters == {}]
-    enriched_steps = [s for s in recipe.steps if s.parameters != {}]
-    assert len(neutral_steps) == 1
-    assert len(enriched_steps) == 1
+    recipe = recipe_from_dict(original)
+    # Re-serializing never reintroduces the now-obsolete `source` block.
+    assert recipe_to_dict(recipe) == {"schema_version": "1", "steps": original["steps"]}
 
 
 # --- F-015 US1: Save Current Editing Choices to a Recipe File ---
@@ -206,7 +221,6 @@ def test_load_recipe_round_trips_neutral_thumbnail_identifier(tmp_path):
     # value to this layer -- no special-casing required in recipe.py.
     recipe = Recipe(
         schema_version=SCHEMA_VERSION,
-        source=SourceReference(filename="beach.jpg"),
         steps=[StepEntry("crop", "neutral", {})],
     )
     dest = tmp_path / "recipe.json"
@@ -220,18 +234,6 @@ def test_load_recipe_round_trips_neutral_thumbnail_identifier(tmp_path):
 def test_load_recipe_accepts_committed_f014_fixture():
     loaded = load_recipe(FIXTURES_DIR / "recipe_example_v1.json")
     assert [s.step_identifier for s in loaded.steps] == ["crop", "exposure"]
-
-
-def test_load_recipe_machine_independent(tmp_path):
-    recipe = Recipe(
-        schema_version=SCHEMA_VERSION,
-        source=SourceReference(filename="does_not_exist_anywhere.jpg"),
-        steps=[StepEntry("crop", "crop_neutral", {})],
-    )
-    dest = tmp_path / "recipe.json"
-    save_recipe(recipe, dest)
-    loaded = load_recipe(dest)
-    assert loaded.source.filename == "does_not_exist_anywhere.jpg"
 
 
 # --- F-016 US2: Reject Invalid or Malformed Recipe Files Clearly ---
@@ -253,7 +255,7 @@ def test_load_recipe_malformed_json(tmp_path):
 
 def test_load_recipe_missing_required_field(tmp_path):
     incomplete = tmp_path / "incomplete.json"
-    incomplete.write_text(json.dumps({"source": {"filename": "x.jpg"}, "steps": []}), encoding="utf-8")
+    incomplete.write_text(json.dumps({"steps": []}), encoding="utf-8")
     with pytest.raises(RecipeValidationError) as exc_info:
         load_recipe(incomplete)
     assert exc_info.value.reason == "missing_field"
@@ -269,7 +271,7 @@ def test_three_failure_reasons_are_distinguishable(tmp_path):
         load_recipe(bad)
 
     incomplete = tmp_path / "incomplete.json"
-    incomplete.write_text(json.dumps({"source": {"filename": "x.jpg"}, "steps": []}), encoding="utf-8")
+    incomplete.write_text(json.dumps({"steps": []}), encoding="utf-8")
     with pytest.raises(RecipeValidationError) as field_exc:
         load_recipe(incomplete)
 
@@ -313,16 +315,24 @@ def test_check_schema_version_accepts_current_version():
     assert check_schema_version(recipe) is None
 
 
+def test_legacy_v1_version_is_still_supported():
+    assert "1" in SUPPORTED_SCHEMA_VERSIONS
+    recipe = Recipe(schema_version="1", steps=[StepEntry("crop", "crop_neutral", {})])
+    assert check_schema_version(recipe) is None
+
+
 def test_load_recipe_still_accepts_f014_fixture():
+    # The fixture's own on-disk schema_version ("1") is preserved as-is -- loading an old file
+    # does not silently rewrite it to the current version.
     loaded = load_recipe(FIXTURES_DIR / "recipe_example_v1.json")
-    assert loaded.schema_version == SCHEMA_VERSION
+    assert loaded.schema_version == "1"
 
 
 # --- F-018 US2: Reject a Recipe with an Unknown Schema Version Clearly ---
 
 
 def test_check_schema_version_rejects_unrecognized_version():
-    recipe = Recipe(schema_version="99", source=SourceReference(filename="x.jpg"), steps=[])
+    recipe = Recipe(schema_version="99", steps=[])
     with pytest.raises(RecipeValidationError) as exc_info:
         check_schema_version(recipe, supported_versions={"1"})
     assert exc_info.value.reason == "unrecognized_schema_version"
@@ -377,7 +387,6 @@ def test_two_saved_recipes_share_identical_version(tmp_path):
     recipe_a = _build_recipe()
     recipe_b = Recipe(
         schema_version=SCHEMA_VERSION,
-        source=SourceReference(filename="other.jpg"),
         steps=[StepEntry("crop", "crop_neutral", {})],
     )
     dest_a = tmp_path / "a.json"

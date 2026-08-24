@@ -1,7 +1,6 @@
 // LumaFlow v1.0 (2026-08-07)
-// Scénario e2e des diagnostics de chargement de recette : échec bloquant sans perte d'état,
-// avertissement de dimensions par étape (appliqué tel quel / adapté), et correction silencieuse
-// d'un paramètre hors bornes signalée à l'utilisateur.
+// Scénario e2e des diagnostics de chargement de recette : échec bloquant sans perte d'état, et
+// correction silencieuse d'un paramètre hors bornes signalée à l'utilisateur.
 import { test, expect, type Page, type Response } from "@playwright/test";
 import fs from "node:fs";
 import os from "node:os";
@@ -20,9 +19,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  */
 
 const FIXTURE_IMAGE_A = path.resolve(__dirname, "fixtures/zoom-overlay-large.png");
-// A genuinely different aspect ratio from FIXTURE_IMAGE_A (portrait vs. landscape) -- reused from
-// feature 047 to trigger the same dimension_warning this feature extends with per-step status.
-const FIXTURE_IMAGE_DIFFERENT_RATIO = path.resolve(__dirname, "fixtures/apply-recipe-different-ratio.png");
 
 function tmpPath(name: string): string {
   return path.join(os.tmpdir(), `lumaflow-recipe-diagnostics-${Date.now()}-${Math.random().toString(36).slice(2)}-${name}`);
@@ -148,27 +144,6 @@ test.describe("Recipe diagnostics -- US1: échec bloquant, reprise du travail sa
   });
 });
 
-test.describe("Recipe diagnostics -- US2: distinction appliqué tel quel / adapté par étape", () => {
-  test("l'avertissement de dimensions nomme chaque étape concernée avec son statut appliqué tel quel / adapté", async ({ page }) => {
-    await page.goto("/");
-
-    await openTestImage(page, FIXTURE_IMAGE_A);
-    const recipePath = tmpPath("recipe-ratio.json");
-    await saveRecipeViaDialog(page, recipePath);
-
-    await openTestImage(page, FIXTURE_IMAGE_DIFFERENT_RATIO);
-    await loadRecipeViaDialog(page, recipePath);
-
-    const warning = page.locator(".central-work-area__warning").first();
-    await expect(warning).toBeVisible();
-    const warningText = await warning.innerText();
-    // Both dimension-dependent rows are present in any UI-saved recipe (build_recipe always
-    // includes every workflow row) -- each must name its own status, not just the step.
-    expect(warningText).toMatch(/Geometry \(appliqué tel quel\)/);
-    expect(warningText).toMatch(/Framing \(appliqué tel quel\)/);
-  });
-});
-
 test.describe("Recipe diagnostics -- US3: paramètre hors bornes corrigé et signalé", () => {
   test("un paramètre hors bornes est corrigé silencieusement et la correction est signalée, sans bloquer le reste de la recette", async ({ page }) => {
     await page.goto("/");
@@ -177,20 +152,22 @@ test.describe("Recipe diagnostics -- US3: paramètre hors bornes corrigé et sig
     const recipePath = tmpPath("recipe-out-of-bounds.json");
     const recipe = await saveRecipeJson(page, recipePath);
 
-    const framingStep = recipe.steps.find((step: any) => step.step_identifier === "framing");
-    expect(framingStep).toBeTruthy();
-    framingStep.parameters = { crop_x: 0.0, crop_y: 0.0, crop_width: 5.0, crop_height: 1.0 };
+    // "light"/intensity is bounded [0, 1] (light.py::resolve_zoom_values) -- a stand-in for the
+    // old "framing"/crop_width case, which no longer applies now that Geometry/Framing are
+    // excluded from presets entirely (CLAUDE.md).
+    const lightStep = recipe.steps.find((step: any) => step.step_identifier === "light");
+    expect(lightStep).toBeTruthy();
+    lightStep.parameters = { ...lightStep.parameters, intensity: 5.0 };
     writeRecipeJson(recipePath, recipe);
 
-    // Same image, so no dimension_warning conflates with the correction signal below.
     const response = await loadRecipeViaDialog(page, recipePath);
     expect(response.ok()).toBeTruthy();
 
     const correctionBanner = page.locator(".central-work-area__warning", { hasText: "corrigés" });
     await expect(correctionBanner).toBeVisible();
     const correctionText = await correctionBanner.innerText();
-    expect(correctionText).toMatch(/Framing/);
-    expect(correctionText).toMatch(/crop_width/);
+    expect(correctionText).toMatch(/Light/);
+    expect(correctionText).toMatch(/intensity/);
 
     // US3 Acceptance Scenario 2: the rest of the recipe is unaffected -- editing further, and
     // exporting, both still work normally.
