@@ -17,6 +17,7 @@ from lumaflow.addons.builtin.color_splash import (
     _GENERIC_DEFAULTS,
     _hue_window_weight,
     _read_float,
+    _read_mask,
     _read_range,
     _rgb_to_hsl,
     _hsl_to_rgb,
@@ -264,6 +265,142 @@ def test_resolve_zoom_values_surfaces_preset_override_and_fills_generic_defaults
     assert values["range_1_hue_center"] == 30.0
     assert values["saturation_threshold"] == _GENERIC_DEFAULTS["saturation_threshold"]
     assert values["range_2_enabled"] == _GENERIC_DEFAULTS["range_2_enabled"]
+
+
+# --- Per-range application zones (2026-08-24) ---
+
+
+def _with_zone(
+    params: dict, index: int, points: tuple[tuple[float, float], ...], **extra: float
+) -> dict:
+    """Adds one range's zone polygon to a params dict, in the addon's own flat scalar keys."""
+    zoned = dict(params)
+    zoned[f"range_{index}_mask_point_count"] = float(len(points))
+    for i, (x, y) in enumerate(points):
+        zoned[f"range_{index}_mask_point_{i:02d}_x"] = x
+        zoned[f"range_{index}_mask_point_{i:02d}_y"] = y
+    for key, value in extra.items():
+        zoned[f"range_{index}_{key}"] = value
+    return zoned
+
+
+# The left/right halves of the image, as polygons -- a zone covering exactly one half lets a test
+# assert on a patch that is inside it and another that is outside, on the same render.
+_LEFT_HALF = ((0.0, 0.0), (0.5, 0.0), (0.5, 1.0), (0.0, 1.0))
+
+
+def test_no_zone_keeps_the_pre_zones_whole_image_behavior():
+    image, regions = _standard_image()
+    params = {"range_1_enabled": 1.0, "range_1_hue_center": 0.0}
+    assert numpy.array_equal(color_splash(image, params), color_splash(image, dict(params)))
+    # A vertex count below 3 is "no zone", never an error -- identical output to omitting the keys.
+    degenerate = _with_zone(params, 1, ((0.2, 0.2), (0.8, 0.8)))
+    assert numpy.array_equal(color_splash(image, degenerate), color_splash(image, params))
+
+
+def test_full_frame_zone_is_bit_identical_to_no_zone():
+    """The default a freshly opened editor seeds (SubjectMaskStage's FULL_FRAME_POINTS + the 0%
+    default feather) must not alter the render -- this is what makes "activate the zone" a
+    non-destructive gesture."""
+    image, _ = _standard_image()
+    params = {"range_1_enabled": 1.0, "range_1_hue_center": 0.0}
+    full_frame = _with_zone(params, 1, ((0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)))
+    assert numpy.array_equal(color_splash(image, full_frame), color_splash(image, params))
+
+
+def test_matching_hue_outside_the_zone_is_desaturated_like_the_background():
+    """The headline behavior: the same red survives inside the zone and goes black and white
+    outside it."""
+    left = _solid_patch(0.0, saturation=0.8, lightness=0.5)
+    right = _solid_patch(0.0, saturation=0.8, lightness=0.5)
+    image = numpy.concatenate([left, right], axis=1)
+    params = _with_zone({"range_1_enabled": 1.0, "range_1_hue_center": 0.0}, 1, _LEFT_HALF)
+    result = color_splash(image, params)
+    assert _mean_saturation(result[:, :_PATCH_SIZE]) > 0.7
+    assert _mean_saturation(result[:, _PATCH_SIZE:]) < 0.05
+
+
+def test_zone_inversion_swaps_which_side_keeps_its_color():
+    left = _solid_patch(0.0, saturation=0.8, lightness=0.5)
+    image = numpy.concatenate([left, left.copy()], axis=1)
+    params = _with_zone(
+        {"range_1_enabled": 1.0, "range_1_hue_center": 0.0}, 1, _LEFT_HALF, mask_invert=1.0
+    )
+    result = color_splash(image, params)
+    assert _mean_saturation(result[:, :_PATCH_SIZE]) < 0.05
+    assert _mean_saturation(result[:, _PATCH_SIZE:]) > 0.7
+
+
+def test_each_range_carries_its_own_independent_zone():
+    """A zone confines only the range that declares it: range 2 stays global while range 1 is
+    restricted to the left half."""
+    red = _solid_patch(0.0, saturation=0.8, lightness=0.5)
+    blue = _solid_patch(240.0, saturation=0.8, lightness=0.5)
+    # Left half: red then blue. Right half: the same pair again.
+    image = numpy.concatenate([red, blue, red.copy(), blue.copy()], axis=1)
+    params = _with_zone(
+        {
+            "range_1_enabled": 1.0, "range_1_hue_center": 0.0,
+            "range_2_enabled": 1.0, "range_2_hue_center": 240.0,
+        },
+        1,
+        _LEFT_HALF,
+    )
+    result = color_splash(image, params)
+    columns = [slice(i * _PATCH_SIZE, (i + 1) * _PATCH_SIZE) for i in range(4)]
+    assert _mean_saturation(result[:, columns[0]]) > 0.7  # red, inside range 1's zone
+    assert _mean_saturation(result[:, columns[1]]) > 0.7  # blue, range 2 has no zone
+    assert _mean_saturation(result[:, columns[2]]) < 0.05  # red, outside range 1's zone
+    assert _mean_saturation(result[:, columns[3]]) > 0.7  # blue, still global
+
+
+def test_zone_feather_produces_a_smooth_ramp_across_the_boundary():
+    image = numpy.concatenate([_solid_patch(0.0, saturation=0.8, lightness=0.5)] * 4, axis=1)
+    params = _with_zone(
+        {"range_1_enabled": 1.0, "range_1_hue_center": 0.0}, 1, _LEFT_HALF, mask_feather=10.0
+    )
+    result = color_splash(image, params)
+    row = [_mean_saturation(result[:, x : x + 1]) for x in range(image.shape[1])]
+    # Monotonically non-increasing left to right, with both extremes actually reached.
+    assert all(row[i] >= row[i + 1] - 1e-3 for i in range(len(row) - 1))
+    assert row[0] > 0.7 and row[-1] < 0.05
+
+
+def test_zone_survives_a_degenerate_or_self_intersecting_polygon_without_raising():
+    image, _ = _standard_image()
+    params = {"range_1_enabled": 1.0, "range_1_hue_center": 0.0}
+    bowtie = _with_zone(params, 1, ((0.0, 0.0), (1.0, 1.0), (1.0, 0.0), (0.0, 1.0)))
+    assert color_splash(image, bowtie).shape == image.shape
+    collapsed = _with_zone(params, 1, ((0.5, 0.5), (0.5, 0.5), (0.5, 0.5)))
+    assert color_splash(image, collapsed).shape == image.shape
+
+
+def test_zone_vertex_falls_back_per_key_to_its_own_full_frame_corner():
+    """One corrupted coordinate reverts alone, never invalidating the rest of the polygon
+    (FR-017's per-key convention)."""
+    params = _with_zone(
+        {"range_1_enabled": 1.0, "range_1_hue_center": 0.0}, 1,
+        ((0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)),
+    )
+    params["range_1_mask_point_02_x"] = "not a number"
+    mask = _read_mask(params, "range_1_")
+    assert mask is not None
+    assert mask.points[2] == (_GENERIC_DEFAULTS["range_1_mask_point_02_x"], 1.0)
+    assert mask.points[1] == (1.0, 0.0)
+
+
+def test_zone_parameters_are_declared_transient_and_resolved_with_defaults():
+    zone_parameters = [
+        p for p in ADDON_DESCRIPTION.parameter_descriptions if "mask_" in (p.identifier or "")
+    ]
+    assert len(zone_parameters) == 3 * (3 + 2 * 32)
+    assert all(p.transient for p in zone_parameters)
+    # Completeness: every declared zone parameter is resolvable, so the editor always seeds with
+    # the polygon actually in effect (the regression guard light.py documents for its own mask).
+    values = resolve_zoom_values({})
+    assert all(p.identifier in values for p in zone_parameters)
+    assert values["range_1_mask_point_count"] == 0.0
+    assert values["range_2_mask_feather"] == 0.0
 
 
 # --- Round-trip sanity for the addon's own HSL utilities ---

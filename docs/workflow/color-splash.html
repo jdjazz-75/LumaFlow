@@ -65,6 +65,11 @@
 </ul>
 <p class="figure"><img src="../screenshots/reglages/color_splash/range_saturation_boost.png" alt="Intensité couleur" loading="lazy"></p>
 <ul>
+<li><strong>Zone d'application</strong> (bouton +/×, par intervalle) — ouvre l'éditeur de contour et limite <em>spatialement</em> cette plage à la zone tracée : tout ce qui est en dehors bascule en noir et blanc selon la <em>Désaturation du fond</em>, même si la teinte correspond. Le tracé fonctionne exactement comme le <a href="light.html">Masque du sujet</a> de la ligne Light (sommets déplaçables, double-clic pour supprimer un sommet, « + » sur une arête pour en insérer un, <em>Adoucissement</em> du contour et <em>Inverser</em>). Chaque intervalle a sa propre zone, indépendante des deux autres.
+<br>Par défaut aucune zone n'est tracée : la plage s'applique à l'image entière. Le bouton <strong>Toute l'image</strong> de la barre flottante y revient à tout moment ; fermer l'éditeur avec « × » referme seulement l'outil et conserve la zone.
+<br><strong>Les zones ne sont pas enregistrées dans les presets</strong> — comme le recadrage ou la correction de perspective, un contour tracé autour d'un sujet n'a pas de sens sur une autre photo. Un preset rechargé applique donc toujours la configuration Color Splash à l'image entière.</li>
+</ul>
+<ul>
 <li><strong>Désaturation du fond</strong> (<code>background_desaturation</code>, 0..100 %) — force de désaturation appliquée en dehors des plages conservées : à 100 %, le fond devient entièrement gris (l'effet « splash » classique) ; en dessous, une partie de la couleur d'origine reste visible dans le fond.</li>
 </ul>
 <p class="figure"><img src="../screenshots/reglages/color_splash/background_desaturation.png" alt="Désaturation du fond" loading="lazy"></p>

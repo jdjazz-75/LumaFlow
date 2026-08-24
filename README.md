@@ -16,6 +16,8 @@ Vignettage — et regardez chaque style prendre vie sous vos yeux. Ce qui vous p
 qui ne vous plaît pas, oubliez-le : l'original repose intact, juste en dessous, prêt à recommencer
 à l'infini.
 
+![LumaFlow — la table lumineuse, avec ses pellicules Film, Bleach Bypass et Color Splash](docs/screenshots/00-lumaflow.png)
+
 **L'esprit de la table lumineuse**
 
 - **Zéro risque, liberté totale** — votre photo d'origine est intouchable. Testez, annulez,

@@ -1259,20 +1259,44 @@ def cancel_zoom(session: Session) -> list[RowSpec]:
 # ---------------------------------------------------------------------------
 
 
+def _transient_parameter_identifiers(step_identifier: str) -> frozenset[str]:
+    """The parameters this step's addon declares as `transient=True` -- session-local values a
+    recipe must never carry, at a granularity RECIPE_EXCLUDED_STEP_IDENTIFIERS (whole steps only)
+    cannot express. Today: Color Splash's 3 per-range application zones, which are as
+    image-specific as a crop box while the rest of the row's configuration is fully portable.
+    Empty for a row with no addon or no such declaration -- every other addon is unaffected."""
+    row_index = _row_index_by_identifier(step_identifier)
+    if row_index is None:
+        return frozenset()
+    descriptor = _resolve_addon_for_row(WORKFLOW_CONFIG.rows[row_index], ADDON_INDEX)
+    if descriptor is None or not descriptor.zoom_parameters:
+        return frozenset()
+    return frozenset(
+        declaration.identifier for declaration in descriptor.zoom_parameters if declaration.transient
+    )
+
+
 def build_recipe(session: Session) -> Recipe:
     if session.pipeline is None or session.image_session is None:
         raise ValueError("No image loaded in this session")
-    steps = [
-        StepEntry(
-            step_identifier=step.identifier,
-            thumbnail_identifier=session.thumbnail_selections.get(
-                step.identifier, NEUTRAL_PRESET_IDENTIFIER
-            ),
-            parameters=dict(step.parameters.values),
+    steps = []
+    for step in session.pipeline._steps:
+        if step.identifier in RECIPE_EXCLUDED_STEP_IDENTIFIERS:
+            continue
+        transient = _transient_parameter_identifiers(step.identifier)
+        steps.append(
+            StepEntry(
+                step_identifier=step.identifier,
+                thumbnail_identifier=session.thumbnail_selections.get(
+                    step.identifier, NEUTRAL_PRESET_IDENTIFIER
+                ),
+                parameters={
+                    key: value
+                    for key, value in step.parameters.values.items()
+                    if key not in transient
+                },
+            )
         )
-        for step in session.pipeline._steps
-        if step.identifier not in RECIPE_EXCLUDED_STEP_IDENTIFIERS
-    ]
     return Recipe(schema_version=RECIPE_SCHEMA_VERSION, steps=steps)
 
 

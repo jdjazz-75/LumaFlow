@@ -242,6 +242,49 @@ test.describe("Zoom overlay corrections -- Geometry/Cadrage/Masque Sujet", () =>
     await expect(page.locator(".subject-mask-stage__controls")).toBeVisible();
     await expect(page.locator(".zoom-overlay__optical-zoom")).toBeVisible();
   });
+
+  test("Color Splash: la zone d'application d'un intervalle réutilise le même éditeur que Masque Sujet, sans casser ses invariants", async ({
+    page,
+  }) => {
+    await openTestImage(page);
+    const colorSplashRow = await navigateToRow(page, "Color Splash");
+    // First non-neutral vignette ("Rouge") -- range_1 is enabled by its preset, which is what
+    // surfaces the per-range "Zone d'application" toggle in the accordion below.
+    await colorSplashRow.locator(".vignette-card").nth(1).dblclick();
+    await waitForPaneImagesLoaded(page);
+
+    // The 201 zone parameters must never leak into the flat "Réglages globaux" slider list --
+    // Color Splash has no SLIDER_GROUPS allow-list, so isMaskParameter is the only thing keeping
+    // them out (ZoomOverlay.tsx's ungroupedSliders).
+    await page.getByRole("button", { name: /Réglages globaux/i }).click();
+    await expect(page.locator(".zoom-overlay__slider-label", { hasText: /sommet/i })).toHaveCount(0);
+
+    await page.getByRole("button", { name: /Intervalle 1/i }).first().click();
+    await zoomIn(page, 8);
+    const zoomedContentBox = await page.locator(".zoom-overlay__compare-content").boundingBox();
+    await expect(page.locator(".zoom-overlay__pan-zone").first()).toBeVisible();
+
+    await page.getByRole("button", { name: /Modifier la zone de Intervalle 1/i }).click();
+    await page.waitForTimeout(500);
+
+    // Same re-fit-on-activation guarantee as Masque Sujet (bug 2026-07-31).
+    const maskContentBox = await page.locator(".zoom-overlay__compare-content").boundingBox();
+    const viewportBox = await page.locator(".zoom-overlay__compare").boundingBox();
+    expect(zoomedContentBox!.width).toBeGreaterThan(viewportBox!.width);
+    expect(maskContentBox!.width).toBeLessThanOrEqual(viewportBox!.width + 1);
+    expect(maskContentBox!.height).toBeLessThanOrEqual(viewportBox!.height + 1);
+
+    expectBoxesEqual(
+      await box(page.locator(".crop-canvas__photo-bounds")),
+      await box(page.locator(".crop-canvas__photo")),
+    );
+
+    // Seeded full frame: 4 vertices, and the "Toute l'image" control this row has (Light does not).
+    await expect(page.locator(".subject-mask-stage__vertex")).toHaveCount(4);
+    await expect(page.locator(".subject-mask-stage__controls")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Toute l'image" })).toBeVisible();
+    await expect(page.locator(".zoom-overlay__optical-zoom")).toBeVisible();
+  });
 });
 
 /**
