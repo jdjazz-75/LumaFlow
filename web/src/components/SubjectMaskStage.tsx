@@ -21,33 +21,74 @@ import "./SubjectMaskStage.css";
 export const MAX_MASK_VERTICES = 32; // mirrors light.py's _MAX_MASK_VERTICES (Decision 5's scalar-wire cap)
 export const MIN_MASK_VERTICES = 3;
 
+/** The polygon a freshly opened editor is seeded with when no zone exists yet -- mirrors
+color_splash.py's `_FULL_FRAME_POINTS`. With a 0% feather it is exactly equivalent to "no zone",
+so opening the editor never alters the render on its own. */
+export const FULL_FRAME_POINTS: MaskPoint[] = [
+  { x: 0, y: 0 },
+  { x: 1, y: 0 },
+  { x: 1, y: 1 },
+  { x: 0, y: 1 },
+];
+
 export type MaskPoint = { x: number; y: number };
 export type MaskValues = { points: MaskPoint[]; feather: number; invert: boolean };
 
+/** Every addon parameter belonging to a polygon mask, whatever its `prefix` -- light.py's
+unprefixed `mask_*` keys as well as color_splash.py's per-range `range_N_mask_*` ones. These are
+edited through the polygon overlay, never as plain sliders, so the "Réglages manuels" accordion
+filters them out with this predicate. Light additionally escapes them via LIGHT_SLIDER_GROUPS'
+allow-list; Color Splash has no such allow-list (it renders every ungrouped slider), which makes
+this filter the ONLY thing keeping its 201 zone parameters out of "Réglages globaux". */
+export function isMaskParameter(identifier: string): boolean {
+  return /(^|_)mask_(point_count|point_\d{2}_[xy]|feather|invert)$/.test(identifier);
+}
+
 /** Builds a MaskValues record from a flat {identifier: value} map (zoomState.sliders reduced to
-an id->value dict) -- mirrors CropToolStage.tsx's cropValuesFromById. */
-export function maskValuesFromById(byId: Record<string, number>): MaskValues {
-  const count = Math.max(0, Math.min(MAX_MASK_VERTICES, Math.round(byId.mask_point_count ?? 4)));
+an id->value dict) -- mirrors CropToolStage.tsx's cropValuesFromById. `prefix` selects WHICH mask
+when an addon declares several (Color Splash's "range_1_"/"range_2_"/"range_3_"); Light's single
+mask uses the default empty prefix. Note the per-addon default divergence carried by the fallbacks
+below: absent keys mean "Light's default rectangle" for the unprefixed mask, and "no zone at all"
+for a prefixed one -- which is why those fallbacks are only ever reached for Light in practice
+(Color Splash always ships an explicit value for every key via resolve_zoom_values). */
+export function maskValuesFromById(byId: Record<string, number>, prefix = ""): MaskValues {
+  const isPrefixed = prefix !== "";
+  const count = Math.max(
+    0,
+    Math.min(MAX_MASK_VERTICES, Math.round(byId[`${prefix}mask_point_count`] ?? (isPrefixed ? 0 : 4))),
+  );
   const points: MaskPoint[] = [];
   for (let i = 0; i < count; i++) {
     const idx = String(i).padStart(2, "0");
-    points.push({ x: byId[`mask_point_${idx}_x`] ?? 0.5, y: byId[`mask_point_${idx}_y`] ?? 0.5 });
+    points.push({
+      x: byId[`${prefix}mask_point_${idx}_x`] ?? 0.5,
+      y: byId[`${prefix}mask_point_${idx}_y`] ?? 0.5,
+    });
   }
-  return { points, feather: byId.mask_feather ?? 2.0, invert: (byId.mask_invert ?? 0) >= 0.5 };
+  return {
+    points,
+    feather: byId[`${prefix}mask_feather`] ?? (isPrefixed ? 0 : 2.0),
+    invert: (byId[`${prefix}mask_invert`] ?? 0) >= 0.5,
+  };
 }
 
 /** Flattens a MaskValues back into the addon's own flat scalar keys -- the inverse of
-maskValuesFromById, used to build the batched commit payload. */
-export function maskValuesToUpdates(values: MaskValues): Array<{ identifier: string; value: number }> {
+maskValuesFromById, used to build the batched commit payload. Only emits coordinates for the
+CURRENT vertex count: stale `mask_point_NN_*` keys of removed vertices stay in the session dict,
+harmlessly, since the backend reads exactly `count` of them. */
+export function maskValuesToUpdates(
+  values: MaskValues,
+  prefix = "",
+): Array<{ identifier: string; value: number }> {
   const updates: Array<{ identifier: string; value: number }> = [
-    { identifier: "mask_point_count", value: values.points.length },
-    { identifier: "mask_feather", value: values.feather },
-    { identifier: "mask_invert", value: values.invert ? 1 : 0 },
+    { identifier: `${prefix}mask_point_count`, value: values.points.length },
+    { identifier: `${prefix}mask_feather`, value: values.feather },
+    { identifier: `${prefix}mask_invert`, value: values.invert ? 1 : 0 },
   ];
   values.points.forEach((point, i) => {
     const idx = String(i).padStart(2, "0");
-    updates.push({ identifier: `mask_point_${idx}_x`, value: point.x });
-    updates.push({ identifier: `mask_point_${idx}_y`, value: point.y });
+    updates.push({ identifier: `${prefix}mask_point_${idx}_x`, value: point.x });
+    updates.push({ identifier: `${prefix}mask_point_${idx}_y`, value: point.y });
   });
   return updates;
 }
@@ -151,6 +192,10 @@ type SubjectMaskControlsProps = {
   invert: boolean;
   onFeatherChange: (value: number) => void;
   onInvertToggle: () => void;
+  /** Color Splash only: clears the zone (vertex count back to 0), returning that range to the
+  whole image. Light has no equivalent -- its mask has no "no mask" resting state to go back to,
+  and vertices can only be removed one by one down to MIN_MASK_VERTICES. Omitted => no button. */
+  onClearZone?: () => void;
 };
 
 /** Floating control bar (Adoucissement/Inverser) -- rendered as a sibling of the zoomable compare
@@ -159,7 +204,13 @@ pan-zone ticks it sits alongside. Exiting mask-edit mode is handled by the share
 "Appliquer" button (ZoomOverlay.tsx's handleCorrectionApply), not by a button here -- every
 point/feather/invert edit is already committed to the server as it happens via onCommit, so there
 is nothing left to save on exit either way. */
-export function SubjectMaskControls({ feather, invert, onFeatherChange, onInvertToggle }: SubjectMaskControlsProps) {
+export function SubjectMaskControls({
+  feather,
+  invert,
+  onFeatherChange,
+  onInvertToggle,
+  onClearZone,
+}: SubjectMaskControlsProps) {
   return (
     <div className="subject-mask-stage__controls">
       <div className="subject-mask-stage__control-row">
@@ -181,6 +232,11 @@ export function SubjectMaskControls({ feather, invert, onFeatherChange, onInvert
       >
         Inverser
       </button>
+      {onClearZone && (
+        <button type="button" className="subject-mask-stage__invert-button" onClick={onClearZone}>
+          Toute l'image
+        </button>
+      )}
     </div>
   );
 }

@@ -28,6 +28,8 @@ import {
   maskValuesFromById,
   maskValuesToUpdates,
   clampMaskFraction,
+  isMaskParameter,
+  FULL_FRAME_POINTS,
   MAX_MASK_VERTICES,
   MIN_MASK_VERTICES,
   type MaskPoint,
@@ -381,21 +383,27 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
   const geometryStageRef = useRef<GeometryToolStageHandle>(null);
   const cropStageRef = useRef<CropToolStageHandle>(null);
 
-  // Subject/background boundary editor (feature 047, User Stories 3/4) -- Light row only. Unlike
-  // Geometry/Cadrage above, this is NOT an auxiliary row (the mask lives on Light's own step), so
-  // it needs no separate aux fetch: the "before" photo already loaded for the plain compare view
-  // (beforeSrc, below) doubles as the mask editor's background. `regionTab` selects which of the 3
-  // slider sets (Global · Sujet · Fond) the accordion below shows -- independent of whether the
-  // mask editor itself is currently active, so a user can adjust Sujet/Fond sliders without the
-  // mask overlay covering the compare view.
-  const [maskActive, setMaskActive] = useState(false);
+  // Polygon-mask editor. Two rows use it, through the SAME state and handlers, distinguished only
+  // by which parameter prefix they address (see maskValuesFromById's own `prefix` argument):
+  //   - Light (feature 047, User Stories 3/4): its single subject/background boundary, prefix "".
+  //   - Color Splash (2026-08-24): one application zone PER hue range, prefix "range_N_" -- the
+  //     zone restricting where that range colorizes, everything outside going black and white.
+  // Neither is an auxiliary row (both masks live on the row's own step), so no separate aux fetch
+  // is needed: the "before" photo already loaded for the plain compare view (beforeSrc, below)
+  // doubles as the editor's background. `activeMask` holds which mask is being edited, or null;
+  // only ever one at a time, since they all share the single drawing layer below.
+  const [activeMask, setActiveMask] = useState<{ prefix: string; label: string } | null>(null);
+  // Light only: which of the 3 slider sets (Global · Sujet · Fond) the accordion below shows --
+  // independent of whether the mask editor itself is currently active, so a user can adjust
+  // Sujet/Fond sliders without the mask overlay covering the compare view.
   const [regionTab, setRegionTab] = useState<"global" | "subject" | "background">("global");
   // Lifted out of the (now purely presentational) SubjectMaskLayer/SubjectMaskControls so the same
   // state can drive two JSX render sites at once -- the drawing layer inside the zoomable compare
   // viewport, and the floating control bar as a sibling of it (see ZoomOverlay.tsx's mask render
-  // block below). Seeded once from zoomState in the effect below, same convention as sliderValues/
-  // hueRangeValues; persists across maskActive toggles (nothing to resync -- every edit is already
-  // committed to the server as it happens via handleMaskCommit).
+  // block below). This is the working copy of the CURRENTLY ACTIVE mask only, (re)loaded from
+  // sliderValues on every activation rather than kept per-prefix -- sliderValues is already the
+  // synced record of all of them (handleMaskCommit writes both), so one copy is enough regardless
+  // of how many masks the row declares.
   const [maskPoints, setMaskPoints] = useState<MaskPoint[]>([]);
   const [maskFeather, setMaskFeather] = useState(2.0);
   const [maskInvert, setMaskInvert] = useState(false);
@@ -541,17 +549,42 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
     if (naturalSize && viewportSize) setZoomPercent(computeFitPercent(naturalSize, viewportSize, zoomBounds));
   }
 
-  /** zoomPercent is shared with the plain compare view and is never reset on its own -- entering
+  /** Opens (or closes) the polygon editor on ONE mask, identified by its parameter prefix.
+  Turning it off closes the editor only -- the polygon stays in effect, exactly as it always has
+  for Light's "Masque sujet"; Color Splash's own "Toute l'image" control is what actually clears a
+  zone.
+
+  zoomPercent is shared with the plain compare view and is never reset on its own -- entering
   mask-edit mode while already zoomed in there (e.g. 250%) would otherwise silently carry that
   magnification into the mask editor, showing only a fragment of the photo with no indication why
   (bug report 2026-07-31: "la photo est agrandie" for Masque Sujet). Always re-fit on activation so
   mask editing starts from a fully visible frame, matching the "Ajuster" button's own computation. */
-  function handleToggleMask() {
-    setMaskActive((active) => {
-      const next = !active;
-      if (next && naturalSize && viewportSize) setZoomPercent(computeFitPercent(naturalSize, viewportSize, zoomBounds));
-      return next;
-    });
+  function handleToggleMask(prefix: string, label: string) {
+    if (activeMask?.prefix === prefix) {
+      setActiveMask(null);
+      return;
+    }
+    if (naturalSize && viewportSize) setZoomPercent(computeFitPercent(naturalSize, viewportSize, zoomBounds));
+    // Load THIS mask's working copy; switching straight from another range's zone therefore shows
+    // the right polygon instead of the previous one's.
+    const values = maskValuesFromById(sliderValues, prefix);
+    if (values.points.length < MIN_MASK_VERTICES) {
+      // No zone drawn yet: seed the full frame so there is something to drag, and commit it. With
+      // the 0% default feather this polygon is bit-identical to "no zone", so merely opening the
+      // editor never changes the render (color_splash.py's _FULL_FRAME_POINTS carries the same
+      // note on the backend side).
+      const seeded = { points: FULL_FRAME_POINTS, feather: values.feather, invert: values.invert };
+      setMaskPoints(seeded.points);
+      setMaskFeather(seeded.feather);
+      setMaskInvert(seeded.invert);
+      handleMaskCommit(maskValuesToUpdates(seeded, prefix));
+    } else {
+      setMaskPoints(values.points);
+      setMaskFeather(values.feather);
+      setMaskInvert(values.invert);
+    }
+    setActiveCorrection(null);
+    setActiveMask({ prefix, label });
   }
 
   function handleZoomSliderChange(value: number) {
@@ -777,13 +810,13 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
   `useDefaults=true` now (handleReset's mask branch) -- the initial seed on Zoom-open reads
   straight from the API response instead (the effect above), since maskPoints/maskFeather/
   maskInvert are lifted state now, not a mounted component's own initial props. */
-  function maskValuesFromZoomState(useDefaults: boolean): MaskValues {
+  function maskValuesFromZoomState(useDefaults: boolean, prefix = ""): MaskValues {
     if (!zoomState) return { points: [], feather: 2, invert: false };
     const byId: Record<string, number> = {};
     zoomState.sliders.forEach((s) => {
       byId[s.identifier] = useDefaults ? s.default : sliderValues[s.identifier] ?? s.value;
     });
-    return maskValuesFromById(byId);
+    return maskValuesFromById(byId, prefix);
   }
 
   /** A single batched write (up to 65 scalar keys: mask_point_count + every coordinate +
@@ -802,9 +835,13 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
   }
 
   /** Commits the given shape/feather/invert via the batched write above -- called at the end of
-  every mask gesture (vertex drag release, midpoint insert, vertex removal, feather/invert change). */
+  every mask gesture (vertex drag release, midpoint insert, vertex removal, feather/invert change).
+  Always addressed to the mask currently open in the editor, never to another one. */
   function maskCommit(nextPoints: MaskPoint[], nextFeather: number, nextInvert: boolean) {
-    handleMaskCommit(maskValuesToUpdates({ points: nextPoints, feather: nextFeather, invert: nextInvert }));
+    if (!activeMask) return;
+    handleMaskCommit(
+      maskValuesToUpdates({ points: nextPoints, feather: nextFeather, invert: nextInvert }, activeMask.prefix),
+    );
   }
 
   function maskFractionFromPointer(event: ReactPointerEvent): MaskPoint | null {
@@ -870,12 +907,21 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
     maskCommit(maskPoints, maskFeather, next);
   }
 
-  /** Invoked by the shared bottom-panel "Appliquer" button when maskActive (see
+  /** Color Splash only: clears the active range's zone, returning it to the whole image. Writing
+  a vertex count of 0 is what the backend reads as "no zone" (color_splash.py's `_read_mask`);
+  the editor then re-seeds a full-frame polygon so there is still something to drag. */
+  function handleMaskClearZone() {
+    if (!activeMask) return;
+    handleMaskCommit([{ identifier: `${activeMask.prefix}mask_point_count`, value: 0 }]);
+    setMaskPoints(FULL_FRAME_POINTS);
+  }
+
+  /** Invoked by the shared bottom-panel "Appliquer" button while a mask editor is open (see
   handleCorrectionApply) -- every edit is already committed as it happens (maskCommit above), so
   there is nothing left to save here; this just exits mask-edit mode, revealing the compare pane
   again (already showing the up-to-date afterSrc). */
   function handleMaskValidate() {
-    setMaskActive(false);
+    setActiveMask(null);
   }
 
   // --- Vignetting's interactive shape editor (dynamic-aids pass) ----------------------------
@@ -1012,7 +1058,7 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
   }
 
   function handleCorrectionApply() {
-    if (maskActive) {
+    if (activeMask) {
       handleMaskValidate();
       return;
     }
@@ -1172,12 +1218,15 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
       cropStageRef.current?.reset();
       return;
     }
-    if (maskActive) {
-      const defaults = maskValuesFromZoomState(true);
-      setMaskPoints(defaults.points);
+    if (activeMask) {
+      // Targets the open mask only, at its own prefix -- for Color Splash that means a vertex
+      // count back to 0 (zone cleared, range applies to the whole image), so re-seed the editor's
+      // visible polygon with the full frame rather than leaving it with nothing to drag.
+      const defaults = maskValuesFromZoomState(true, activeMask.prefix);
+      setMaskPoints(defaults.points.length >= MIN_MASK_VERTICES ? defaults.points : FULL_FRAME_POINTS);
       setMaskFeather(defaults.feather);
       setMaskInvert(defaults.invert);
-      handleMaskCommit(maskValuesToUpdates(defaults));
+      handleMaskCommit(maskValuesToUpdates(defaults, activeMask.prefix));
       return;
     }
     if (!zoomState) return;
@@ -1259,9 +1308,15 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
   );
   // The 7 geometry fields Vignetage's shape editor drives directly (everything but feather_width)
   // are hidden from the flat slider list -- they're edited via the interactive overlay instead,
-  // not shown a second time as plain drag sliders.
+  // not shown a second time as plain drag sliders. Polygon-mask parameters are hidden for the very
+  // same reason, and here it is load-bearing rather than cosmetic: Color Splash has no
+  // SLIDER_GROUPS allow-list (see FILM_SLIDER_GROUPS' own note), so it renders EVERY ungrouped
+  // slider in "Réglages globaux" -- without this filter its 201 zone parameters (3 ranges x
+  // count/feather/invert/32 vertex pairs) would all show up there as raw sliders. Light is already
+  // shielded by LIGHT_SLIDER_GROUPS being an allow-list; filtering here too just makes the rule
+  // explicit for both.
   const ungroupedSliders = (zoomState?.sliders.filter((s) => !groupedSliderIdentifiers.has(s.identifier)) ?? []).filter(
-    (s) => !(vignetteShape && VIGNETTE_SHAPE_GEOMETRY_FIELDS.has(s.identifier)),
+    (s) => !(vignetteShape && VIGNETTE_SHAPE_GEOMETRY_FIELDS.has(s.identifier)) && !isMaskParameter(s.identifier),
   );
   const ringHandles: HueRingHandle[] = rangeGroups.map(({ hueRange, enabledSlider }) => ({
     identifier: hueRange.identifier,
@@ -1306,6 +1361,29 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
             </div>
           </div>
         ))}
+      </div>
+    );
+  }
+
+  /** The `+`/`×` row opening one mask's polygon editor -- same shape and classes as Light's own
+  "Masque sujet" row and as renderCorrections' Geometry/Cadrage rows, so all three read alike.
+  `prefix` identifies which mask (Color Splash's "range_N_"); `rangeLabel` only feeds the
+  accessible name, since the enclosing section title already names the interval on screen. */
+  function renderZoneToggle(prefix: string, rangeLabel: string) {
+    const open = activeMask?.prefix === prefix;
+    return (
+      <div className="zoom-overlay__slider-row">
+        <div className="zoom-overlay__slider-header">
+          <span className="zoom-overlay__slider-label">Zone d'application</span>
+          <button
+            type="button"
+            className={`zoom-overlay__toggle${open ? " zoom-overlay__toggle--on" : ""}`}
+            onClick={() => handleToggleMask(prefix, `Zone — ${rangeLabel}`)}
+            aria-label={open ? `Fermer la zone de ${rangeLabel}` : `Modifier la zone de ${rangeLabel}`}
+          >
+            {open ? "×" : "+"}
+          </button>
+        </div>
       </div>
     );
   }
@@ -1376,6 +1454,12 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
   ) {
     const enabled = enabledSlider ? (sliderValues[enabledSlider.identifier] ?? enabledSlider.value) >= 0.5 : false;
     const feather = hueRangeValues[hueRange.identifier]?.feather ?? hueRange.feather_value;
+    // Whether this range declares its own spatial application zone (Color Splash, 2026-08-24) --
+    // detected by the presence of the polygon's own vertex-count parameter, the same
+    // convention-not-identifier approach as isBinaryToggle/groupHueRanges above, so a future addon
+    // declaring `${range}_mask_*` gets the affordance for free. Only offered for an ENABLED range:
+    // a zone restricting a range that colorizes nothing would have no observable effect.
+    const hasZone = zoomState?.sliders.some((s) => s.identifier === `${hueRange.identifier}_mask_point_count`) ?? false;
     return (
       <>
         <div className="zoom-overlay__slider-row">
@@ -1410,6 +1494,7 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
               />
             </div>
             {boostSlider && renderSlider(boostSlider)}
+            {hasZone && renderZoneToggle(`${hueRange.identifier}_`, hueRange.label)}
           </>
         )}
       </>
@@ -1470,10 +1555,10 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
               <div
                 ref={setCompareRef}
                 className="zoom-overlay__compare"
-                onPointerDown={maskActive ? undefined : handleSplitPointerDown}
-                onPointerMove={maskActive ? undefined : handleSplitPointerMove}
-                onPointerUp={maskActive ? undefined : handleSplitPointerUp}
-                onPointerLeave={maskActive ? undefined : handleSplitPointerUp}
+                onPointerDown={activeMask ? undefined : handleSplitPointerDown}
+                onPointerMove={activeMask ? undefined : handleSplitPointerMove}
+                onPointerUp={activeMask ? undefined : handleSplitPointerUp}
+                onPointerLeave={activeMask ? undefined : handleSplitPointerUp}
               >
                 <div
                   ref={contentRef}
@@ -1487,7 +1572,7 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
                       : undefined
                   }
                 >
-                  {maskActive ? (
+                  {activeMask ? (
                     <SubjectMaskLayer
                       photoSrc={beforeSrc}
                       points={maskPoints}
@@ -1553,12 +1638,15 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
                 </div>
               </div>
               {renderPanZones()}
-              {maskActive && (
+              {activeMask && (
                 <SubjectMaskControls
                   feather={maskFeather}
                   invert={maskInvert}
                   onFeatherChange={handleMaskFeatherChange}
                   onInvertToggle={handleMaskInvertToggle}
+                  // Only a per-range zone has a "no zone" resting state to return to; Light's
+                  // subject mask has none, so it gets no such button (prefix "" === Light).
+                  onClearZone={activeMask.prefix ? handleMaskClearZone : undefined}
                 />
               )}
               {vignetteShape && vignetteValues && vignetteAidsEnabled && (
@@ -1640,7 +1728,7 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
                     // Global -- closing the other context on switch avoids leaving it active with
                     // no visible toggle in the panel to turn it back off from the new tab.
                     if (tab === "global") {
-                      if (maskActive) setMaskActive(false);
+                      if (activeMask) setActiveMask(null);
                     } else if (activeCorrection) {
                       setActiveCorrection(null);
                     }
@@ -1656,11 +1744,11 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
                   <span className="zoom-overlay__slider-label">Masque sujet</span>
                   <button
                     type="button"
-                    className={`zoom-overlay__toggle${maskActive ? " zoom-overlay__toggle--on" : ""}`}
-                    onClick={handleToggleMask}
-                    aria-label={maskActive ? "Désactiver le masque sujet" : "Activer le masque sujet"}
+                    className={`zoom-overlay__toggle${activeMask ? " zoom-overlay__toggle--on" : ""}`}
+                    onClick={() => handleToggleMask("", "Masque sujet")}
+                    aria-label={activeMask ? "Désactiver le masque sujet" : "Activer le masque sujet"}
                   >
-                    {maskActive ? "×" : "+"}
+                    {activeMask ? "×" : "+"}
                   </button>
                 </div>
               </div>
@@ -1749,7 +1837,7 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
               type="button"
               className="zoom-overlay__apply"
               onClick={handleCorrectionApply}
-              disabled={(activeCorrection === null && !maskActive) || correctionApplying}
+              disabled={(activeCorrection === null && activeMask === null) || correctionApplying}
             >
               {correctionApplying ? "Application…" : "Appliquer"}
             </button>

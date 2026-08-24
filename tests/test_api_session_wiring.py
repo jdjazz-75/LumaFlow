@@ -2321,6 +2321,49 @@ def test_confirm_color_splash_multi_range_then_reload_recipe_reproduces_exact_co
     assert range_2_enabled["value"] == 1.0
 
 
+def test_color_splash_application_zones_never_reach_a_saved_recipe(client, tmp_path):
+    """A per-range zone is `transient=True`: it is edited like any other parameter but stripped by
+    build_recipe, so a reloaded preset always applies to the whole image again. The rest of the
+    row's configuration, sitting in the very same parameter dict, must still round-trip."""
+    session_id = _open(client)
+    step_index = _color_splash_step_index()
+    client.post(f"/sessions/{session_id}/steps/{step_index}/select", json={"identifier": "Rouge"})
+    client.post(f"/sessions/{session_id}/zoom/{step_index}/open", json={"identifier": "Rouge"})
+    zone_updates = [
+        {"identifier": "range_1_mask_point_count", "value": 4.0},
+        {"identifier": "range_1_mask_feather", "value": 6.0},
+        {"identifier": "range_1_mask_point_00_x", "value": 0.1},
+        {"identifier": "range_1_mask_point_00_y", "value": 0.1},
+        {"identifier": "range_1_mask_point_01_x", "value": 0.6},
+        {"identifier": "range_1_mask_point_01_y", "value": 0.1},
+        {"identifier": "range_1_mask_point_02_x", "value": 0.6},
+        {"identifier": "range_1_mask_point_02_y", "value": 0.7},
+        {"identifier": "range_1_mask_point_03_x", "value": 0.1},
+        {"identifier": "range_1_mask_point_03_y", "value": 0.7},
+        {"identifier": "range_1_saturation_boost", "value": 150.0},
+    ]
+    assert client.post(f"/sessions/{session_id}/zoom/parameters", json={"updates": zone_updates}).status_code == 200
+    assert client.post(f"/sessions/{session_id}/zoom/confirm").status_code == 200
+
+    dest = tmp_path / "color_splash_zone_recipe.json"
+    assert client.post(f"/sessions/{session_id}/recipe/save", json={"dest_path": str(dest)}).status_code == 200
+
+    saved = json.loads(dest.read_text(encoding="utf-8"))
+    color_splash_entry = next(s for s in saved["steps"] if s["step_identifier"] == "color_splash")
+    assert not [key for key in color_splash_entry["parameters"] if "mask_" in key]
+    assert color_splash_entry["parameters"]["range_1_saturation_boost"] == 150.0
+
+    session_id_2 = _open(client)
+    assert client.post(f"/sessions/{session_id_2}/recipe/load", json={"path": str(dest)}).status_code == 200
+    reopened = client.post(
+        f"/sessions/{session_id_2}/zoom/{step_index}/open", json={"identifier": "Rouge"}
+    ).json()
+    by_id = {s["identifier"]: s["value"] for s in reopened["sliders"]}
+    assert by_id["range_1_mask_point_count"] == 0.0  # no zone: back to the whole image
+    assert by_id["range_1_mask_feather"] == 0.0
+    assert by_id["range_1_saturation_boost"] == 150.0  # the portable part survived
+
+
 def test_reopening_zoom_on_the_same_selection_preserves_prior_confirmed_edits(large_fixture_image):
     """Direct session.py-level test of the exact regression open_zoom's own
     docstring calls out: re-selecting an ALREADY-selected candidate must not

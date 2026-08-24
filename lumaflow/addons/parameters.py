@@ -50,6 +50,9 @@ class ParameterDescription:
     default: Optional[float] = None
     constraints: Optional[Union[NumericSliderConstraints, HueRangeConstraints]] = None
     zoom_only: bool = False
+    # See ZoomParameterDeclaration.transient (lumaflow/addons/contract.py) -- opts this single
+    # parameter out of saved recipes without excluding its whole step.
+    transient: bool = False
 
 
 @dataclass(frozen=True)
@@ -188,6 +191,7 @@ def parameter_to_zoom_declaration(description: ParameterDescription) -> ZoomPara
         kind=description.kind,
         constraints=constraints,
         zoom_only=description.zoom_only,
+        transient=description.transient,
     )
 
 

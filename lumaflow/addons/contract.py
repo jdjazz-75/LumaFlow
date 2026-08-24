@@ -34,6 +34,14 @@ class ZoomParameterDeclaration:
     kind: str
     constraints: dict[str, Any] = field(default_factory=dict)
     zoom_only: bool = False
+    # Session-local, non-portable value: edited in Zoom like any other parameter, but
+    # deliberately NOT written into a saved recipe (build_recipe strips it, see
+    # lumaflow/api/session.py) -- reloading the recipe therefore restores this parameter's
+    # declared default. For image-specific geometry that means nothing on another photo, at a
+    # granularity the pre-existing per-STEP exclusion (persistence/recipe.py's
+    # EXCLUDED_STEP_IDENTIFIERS, all-or-nothing) cannot express: Color Splash's per-range
+    # application zones must not travel, while the rest of its configuration must.
+    transient: bool = False
 
 
 @dataclass(frozen=True)
