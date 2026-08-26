@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**Votre table lumineuse, réinventée.** La retouche redevient un terrain de jeu.
+**Votre table lumineuse, réinventée.** La retouche photo redevient un terrain de jeu.
 
 > 📖 **Documentation complète** : **[jdjazz-75.github.io/LumaFlow](https://jdjazz-75.github.io/LumaFlow/)**
 > — la version illustrée, avec captures d'écran et avant/après de chaque réglage.
