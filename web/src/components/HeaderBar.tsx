@@ -18,6 +18,7 @@ type HeaderBarProps = {
   onSave: () => void;
   onExport: () => void;
   onLoadRecipe: () => void;
+  onOpenBatch: () => void;
   onOpenPreferences: () => void;
 };
 
@@ -29,6 +30,7 @@ export function HeaderBar({
   onSave,
   onExport,
   onLoadRecipe,
+  onOpenBatch,
   onOpenPreferences,
 }: HeaderBarProps) {
   return (
@@ -53,6 +55,7 @@ export function HeaderBar({
           onExportImage={onExport}
           onSaveRecipe={onSave}
           onLoadRecipe={onLoadRecipe}
+          onOpenBatch={onOpenBatch}
           onOpenPreferences={onOpenPreferences}
         />
       </div>

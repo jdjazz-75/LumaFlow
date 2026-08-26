@@ -142,6 +142,20 @@ export function HistoryIcon({ size = 18, color = "currentColor", strokeWidth = 1
   );
 }
 
+/* Traitement par lot (2026-08-25): a stack of images, saying "many photos at once" -- the one
+idea that separates this menu entry from the single-photo Ouvrir/Exporter above it. Same 24x24
+viewBox/stroke conventions as every other icon in this file. */
+export function BatchIcon({ size = 18, color = "currentColor", strokeWidth = 1.6 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="8" y="3.5" width="12.5" height="12.5" rx="2" />
+      <path d="M11.2 8.2a1.1 1.1 0 1 0 0-.01" />
+      <path d="M20.5 13.2l-3.4-3-4.6 4.1-1.8-1.6-2.7 2.4" />
+      <path d="M16 19.2a1.3 1.3 0 0 1-1.3 1.3H5.2a1.7 1.7 0 0 1-1.7-1.7V8.6" />
+    </svg>
+  );
+}
+
 /* Lucide "settings-2" (lucide.dev, exact path data) -- replaced the "settings" gear (2026-08-05,
 user feedback: the gear's many teeth rendered "tordue"/warped at this button's 16-18px size). */
 export function PreferencesIcon({ size = 18, color = "currentColor", strokeWidth = 1.6 }: IconProps) {

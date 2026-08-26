@@ -32,17 +32,34 @@ function sha256File(filePath: string): string {
   return createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
 }
 
-async function openTestImage(page: Page, imagePath: string): Promise<void> {
+/** `expectPresetCarryover` must be set whenever a preset is already active when this runs: since
+2026-08-25 opening an image no longer ends at the /open response -- AppShell follows it with a
+/recipe/load that re-applies the active preset to the new photo. Returning before THAT settles
+leaves a caller acting on rows the carryover is about to overwrite, which is exactly how
+selectNouveau's reset ended up silently undone a moment later. Waiting for the second response is
+deterministic; waiting for network idle is not -- the /open request is issued only after the mocked
+dialog round-trip and a React render, a gap long enough for "idle" to fire before it even starts. */
+async function openTestImage(
+  page: Page,
+  imagePath: string,
+  { expectPresetCarryover = false }: { expectPresetCarryover?: boolean } = {},
+): Promise<void> {
   await page.route("**/dialogs/open-image", async (route) => {
     await route.fulfill({ json: { path: imagePath } });
   });
   await page.locator(".header-menu").click();
   await page.getByRole("button", { name: "Photo" }).click();
-  const [response] = await Promise.all([
-    page.waitForResponse((r) => r.url().includes("/sessions/") && r.url().endsWith("/open") && r.request().method() === "POST"),
-    page.getByRole("button", { name: /ouvrir/i }).first().click(),
-  ]);
+  // Armed before the click, so neither response can be missed.
+  const openResponse = page.waitForResponse(
+    (r) => r.url().includes("/sessions/") && r.url().endsWith("/open") && r.request().method() === "POST",
+  );
+  const carryoverResponse = expectPresetCarryover
+    ? page.waitForResponse((r) => r.url().includes("/recipe/load") && r.request().method() === "POST")
+    : Promise.resolve(null);
+  await page.getByRole("button", { name: /ouvrir/i }).first().click();
+  const response = await openResponse;
   expect(response.ok()).toBeTruthy();
+  await carryoverResponse;
   await page.waitForSelector(".filmstrip-row", { timeout: 15_000 });
 }
 
@@ -89,6 +106,23 @@ async function loadRecipeViaDialog(page: Page, recipePath: string, expectOk = tr
   ]);
   if (expectOk) expect(response.ok()).toBeTruthy();
   return response;
+}
+
+/** Picks "Nouveau" in the header preset combobox, resetting every row to its neutral default on
+the image currently open.
+
+Needed since 2026-08-25: opening an image now RE-APPLIES whatever preset the combobox is showing
+(bug report -- it used to keep naming a preset the freshly opened photo had never received, and
+re-picking that same entry was the only way to actually get it). Saving a recipe also makes it the
+active preset, so both tests below -- which save from image A before opening image B -- now find B
+already carrying that recipe. A test that needs a genuinely neutral baseline on a freshly opened
+image must therefore ask for one explicitly, which is what this does. */
+async function selectNouveau(page: Page): Promise<void> {
+  await page.locator(".preset-selector__trigger").click();
+  await Promise.all([
+    page.waitForResponse((r) => r.url().includes("/reset") && r.request().method() === "POST"),
+    page.getByRole("button", { name: "Nouveau", exact: true }).click(),
+  ]);
 }
 
 function rowLocator(page: Page, rowLabel: string) {
@@ -146,9 +180,11 @@ test.describe("Recipe load -- US1: appliquer une recette sauvegardée à une nou
     // ratio is the criterion, not pixel size), reusing the SAME session (Photo > Ouvrir again,
     // same as opening a second
     // image in one sitting).
-    await openTestImage(page, FIXTURE_IMAGE_B_SAME_RATIO);
-    // Fresh image starts on the default ("Neutral") selection -- confirms the assertions below
-    // are actually detecting the recipe's effect, not a leftover from image A.
+    await openTestImage(page, FIXTURE_IMAGE_B_SAME_RATIO, { expectPresetCarryover: true });
+    // Explicit neutral baseline (see selectNouveau): B now inherits the just-saved recipe on open,
+    // so it has to be reset for the assertions below to prove the recipe's effect rather than a
+    // leftover from image A -- which is the whole point of the pre-check that follows.
+    await selectNouveau(page);
     const filmRowBBefore = rowLocator(page, "Film");
     await expect(filmRowBBefore.locator(".vignette-card--selected .vignette-card__caption-text")).toHaveText("Neutral");
 
@@ -174,7 +210,11 @@ test.describe("Recipe load -- US1: appliquer une recette sauvegardée à une nou
     const recipePath = tmpPath("recipe-export.json");
     await saveRecipeViaDialog(page, recipePath);
 
-    await openTestImage(page, FIXTURE_IMAGE_B_SAME_RATIO);
+    await openTestImage(page, FIXTURE_IMAGE_B_SAME_RATIO, { expectPresetCarryover: true });
+    // Same reason as the test above: B inherits the just-saved recipe on open, so the "neutral"
+    // export this test compares against has to be made genuinely neutral first -- otherwise both
+    // exports below reflect the same recipe and the comparison proves nothing.
+    await selectNouveau(page);
     const neutralDest = tmpPath("b-neutral.png");
     await exportViaDialog(page, neutralDest);
     expect(fs.existsSync(neutralDest)).toBe(true);

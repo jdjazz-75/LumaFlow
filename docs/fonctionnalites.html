@@ -15,6 +15,7 @@
         <li><a href="index.html">Présentation</a></li>
         <li><a href="installation.html">Installation</a></li>
         <li><a href="fonctionnalites.html" class="active">Fonctionnalités</a></li>
+        <li><a href="lot.html">Traitement par lot</a></li>
         <li><a href="workflow/index.html">Workflow</a></li>
       </ul>
       <div class="nav-section-label">Étapes du workflow</div>
@@ -82,9 +83,21 @@
 <li><strong>réglages hors bornes</strong> — corrigés automatiquement à la valeur valide la plus proche ;</li>
 <li><strong>vignette désactivée depuis</strong> (via Préférences &gt; Workflow) — remplacée par le réglage neutre de sa ligne.</li>
 </ul>
-<h2 id="3-7-photos-raw">3.7 Photos RAW</h2>
+<p>Le preset affiché dans le sélecteur d'en-tête est <strong>automatiquement réappliqué à chaque nouvelle photo ouverte</strong> : enchaîner les images d'une même série les développe toutes dans le même style, sans avoir à re-sélectionner quoi que ce soit. Le sélecteur décrit donc toujours ce qui est réellement appliqué — l'entrée <strong>« Nouveau »</strong> ramène l'image à son état neutre.</p>
+<h2 id="3-7-traitement-par-lot">3.7 Traitement par lot</h2>
+<p>Le menu ☰ &gt; <strong>Lot</strong> ouvre une fenêtre dédiée qui applique une recette à des listes entières d'images, sans en ouvrir aucune. Chaque <strong>lot</strong> est un bloc à trois renseignements — une sélection multiple de fichiers (mêmes formats que l'ouverture d'une photo, RAW compris), un preset <code>.json</code>, un dossier de sortie — et l'on en ajoute autant que voulu, avec des presets et des destinations différents.</p>
+<p class="figure"><img src="screenshots/07-lot.png" alt="La fenêtre de traitement par lot : deux lots terminés, jauges de progression et journal détaillé" loading="lazy"></p>
+<ul>
+<li><strong>Progression à deux échelles</strong> — une jauge horizontale en haut de la fenêtre pour l'avancement global (tous lots confondus) et une jauge verticale à droite de chaque bloc pour celui du lot, chacune accompagnée de son pourcentage.</li>
+<li><strong>Journal</strong> — une ligne par image, avec le nom du fichier écrit en cas de succès ou une raison en clair en cas d'échec ; réussites et échecs se distinguent par le symbole autant que par la couleur. Il reste consultable après la fin du traitement.</li>
+<li><strong>Un fichier en erreur n'arrête rien</strong> — l'image fautive est abandonnée, le traitement passe immédiatement à la suivante.</li>
+<li><strong>Arrêt à la demande</strong> — pendant l'exécution, « Exécuter » devient « Arrêter » et met fin au traitement après l'image en cours.</li>
+<li><strong>Noms de sortie uniques</strong> — <code>&lt;source&gt;-&lt;preset&gt;-&lt;AA-MM-JJ-HH-MM-SS&gt;.&lt;ext&gt;</code>, si bien qu'un lot ne remplace jamais le résultat d'un lot précédent.</li>
+</ul>
+<p>→ <a href="lot.html">Page Traitement par lot — le détail complet</a></p>
+<h2 id="3-8-photos-raw">3.8 Photos RAW</h2>
 <p>En plus du JPEG/PNG, LumaFlow ouvre directement les fichiers RAW <strong>Canon (.cr2)</strong>, <strong>Nikon (.nef)</strong> et <strong>Sony (.arw)</strong> : décodage et dématriçage via <code>rawpy</code>, balance des blancs appliquée dès le décodage, développement initial sûr, et extraction de l'orientation EXIF.</p>
-<h2 id="3-8-pr-f-rences">3.8 Préférences</h2>
+<h2 id="3-9-pr-f-rences">3.9 Préférences</h2>
 <p>Le menu ☰ &gt; Préférences ouvre une boîte de dialogue à 4 onglets :</p>
 <p class="figure"><img src="screenshots/06-preferences.png" alt="Préférences — Général" loading="lazy"></p>
 <ul>
@@ -93,7 +106,7 @@
 <li><strong>Lignes</strong> : espacement et marges de la pellicule, opacité des lignes inactives.</li>
 <li><strong>Vignettes</strong> : couleurs des aides de guidage (limites/overlays affichés pendant l'édition interactive) et bornes min/max du zoom optique.</li>
 </ul>
-<h2 id="3-9-raccourcis-clavier">3.9 Raccourcis clavier</h2>
+<h2 id="3-10-raccourcis-clavier">3.10 Raccourcis clavier</h2>
 <div class="table-wrap"><table>
 <thead><tr><th>Touche</th><th>Action</th></tr></thead>
 <tbody>
