@@ -29,6 +29,9 @@ qui ne vous plaît pas, oubliez-le : l'original repose intact, juste en dessous,
   curseur.
 - **Votre style, dupliqué en un clic** — une recette, mille photos. Sauvegardez vos réglages une
   fois, réutilisez-les partout.
+- **Et pour mille photos, un seul geste** — le traitement par lot applique un preset à une liste
+  entière d'images pendant que vous faites autre chose : progression en direct, journal détaillé,
+  et un fichier en erreur n'arrête jamais les autres.
 
 **⚡ 100 % local. 0 % cloud.** Vos photos ne quittent jamais votre ordinateur. Pas d'upload, pas de
 compte, pas d'attente — tout tourne en local, dès le lancement.
@@ -86,7 +89,7 @@ npm run dev
 ## 3. Fonctionnalités
 
 - **Interface « table lumineuse »** — en haut : le logo, un sélecteur de preset et le menu ☰
-  (Ouvrir/Exporter une photo, Enregistrer/Ouvrir une recette, Préférences). Au centre : la
+  (Ouvrir/Exporter une photo, Enregistrer/Ouvrir une recette, Lot, Préférences). Au centre : la
   **pellicule**, une colonne verticale d'étapes de traitement, chacune affichant ses vignettes en
   défilement horizontal. En bas : une barre de statut (miniature et métadonnées de la source,
   pastilles de navigation, précédent/suivant) et un rappel des raccourcis clavier.
@@ -104,6 +107,13 @@ npm run dev
 - **Recettes** — sauvegardez l'intégralité des réglages appliqués dans un fichier `.json` et
   réappliquez-les à une autre photo ; les incompatibilités (proportions, valeurs hors bornes,
   vignette désactivée depuis) produisent des avertissements non bloquants, jamais un échec.
+  Le preset affiché dans le sélecteur d'en-tête est **automatiquement réappliqué à chaque nouvelle
+  photo ouverte** : enchaîner les images d'une même série les développe toutes dans le même style,
+  sans avoir à re-sélectionner quoi que ce soit. « Nouveau » revient à l'image neutre.
+- **Traitement par lot** — applique une recette à   des listes entières d'images, sans en ouvrir 
+  aucune. Chaque **lot** associe une sélection multiple de fichiers (mêmes formats que l'ouverture
+  d'une photo, RAW compris), un preset `.json` et un dossier de sortie ; on en empile autant que 
+  voulu, avec des presets et des destinations différents.
 - **Photos RAW** — en plus du JPEG/PNG, LumaFlow ouvre directement les fichiers Canon (`.cr2`),
   Nikon (`.nef`) et Sony (`.arw`) : décodage et dématriçage via `rawpy`, balance des blancs
   appliquée dès le décodage, développement initial sûr, orientation EXIF respectée.
@@ -116,6 +126,7 @@ npm run dev
 icône loupe pour ouvrir le Zoom · Échap pour fermer · clic sur une ligne assombrie pour y revenir.
 
 → [Page Fonctionnalités — captures d'écran et description complète](https://jdjazz-75.github.io/LumaFlow/fonctionnalites.html)
+→ [Page Traitement par lot — le détail complet](https://jdjazz-75.github.io/LumaFlow/lot.html)
 
 ---
 

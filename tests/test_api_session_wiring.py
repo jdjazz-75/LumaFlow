@@ -1444,6 +1444,54 @@ def test_reset_session_clears_selections_back_to_neutral(client):
     assert rows == client.get(f"/sessions/{session_id}/workflow").json()
 
 
+def test_reset_session_after_a_recipe_renders_the_true_neutral_image(client, tmp_path):
+    """Regression, 2026-08-25: "Nouveau" put every row's LABEL back to neutral while the image kept
+    rendering exactly as the recipe had left it.
+
+    reset_session cleared `thumbnail_selections` but not each step's own `parameters.values`, and
+    _effective_parameters_for_vignette returns those verbatim for whichever identifier is the
+    current selection -- so every now-"neutral" row went on applying the recipe's parameters.
+    Invisible when values only ever came from a preset click (select_vignette rewrites them
+    alongside the selection), but apply_recipe builds a pipeline that carries them.
+
+    Asserted on rendered PIXELS, not on the row labels: the labels were already correct while the
+    bug was live, which is exactly why it went unnoticed.
+    """
+    session_id = _open(client)
+    neutral_before = _export_bytes(client, session_id, tmp_path / "neutral-before.png")
+
+    # A recipe that visibly changes the image: the Film row's first non-neutral vignette.
+    film_index = next(i for i, row in enumerate(api_session.WORKFLOW_CONFIG.rows) if row.identifier == "film")
+    film_choice = next(
+        preset for preset in api_session.WORKFLOW_CONFIG.rows[film_index].thumbnail_presets if preset != "neutral"
+    )
+    assert client.post(f"/sessions/{session_id}/steps/{film_index}/select", json={"identifier": film_choice}).status_code == 200
+    recipe_path = tmp_path / "recipe.json"
+    assert client.post(
+        f"/sessions/{session_id}/recipe/save", json={"dest_path": str(recipe_path), "force": True}
+    ).status_code == 200
+
+    fresh_id = _open(client)
+    assert client.post(f"/sessions/{fresh_id}/recipe/load", json={"path": str(recipe_path)}).status_code == 200
+    with_recipe = _export_bytes(client, fresh_id, tmp_path / "with-recipe.png")
+    # Guards the guard: if the recipe changed nothing, the assertion below would pass vacuously.
+    assert with_recipe != neutral_before
+
+    assert client.post(f"/sessions/{fresh_id}/reset").status_code == 200
+    assert _export_bytes(client, fresh_id, tmp_path / "after-reset.png") == neutral_before
+
+
+def _export_bytes(client, session_id: str, dest: pathlib.Path) -> bytes:
+    """A full-resolution export's own bytes -- the only view that reflects each step's live
+    parameter values, unlike the row labels a workflow response carries."""
+    response = client.post(
+        f"/sessions/{session_id}/export",
+        json={"dest_path": str(dest), "image_format": "PNG", "force": True},
+    )
+    assert response.status_code == 200, response.text
+    return dest.read_bytes()
+
+
 def test_reset_session_without_image_returns_400(client):
     session_id = client.post("/sessions").json()["id"]
     response = client.post(f"/sessions/{session_id}/reset")

@@ -479,3 +479,78 @@ export function exportWorkflowConfig(path: string, config: WorkflowConfigData): 
     body: JSON.stringify({ path, rows: config.rows }),
   });
 }
+
+/* Traitement par lot (2026-08-25) -- mirrors lumaflow/api/app.py's /batch/* endpoints. Process-
+wide, NOT session-scoped: a run is independent of whichever photo is open in the editor, and
+outlives the request that started it (the batch window can be closed and reopened while it keeps
+going) -- which is why progress is polled through getBatchRun rather than returned by startBatchRun. */
+
+/** One batch as the backend expects it: N source files, one preset, one output directory. */
+export type BatchSpecInput = {
+  files: string[];
+  preset_path: string;
+  output_dir: string;
+};
+
+export type BatchProgress = {
+  total: number;
+  done: number;
+  percent: number;
+};
+
+/** One journal line -- always one per source file attempted, success or failure, so the journal
+accounts for every file the gauges claim to have processed. `message` is already a plain French
+sentence written by the backend (lumaflow/engine/batch.py), never raw OS/parser text, so it is
+displayed as-is rather than passed through errorMessages.ts. */
+export type BatchLogEntry = {
+  index: number;
+  total: number;
+  batch_index: number;
+  file_name: string;
+  output_name: string;
+  ok: boolean;
+  message: string;
+};
+
+export type BatchRun = {
+  run_id: string;
+  /** "running" until the run settles; "stopped" if the user asked it to end early, else "finished". */
+  state: "running" | "stopped" | "finished";
+  total: number;
+  done: number;
+  success_count: number;
+  error_count: number;
+  global_percent: number;
+  /** Positional -- batches[i] is the progress of the i-th batch submitted to startBatchRun. */
+  batches: BatchProgress[];
+  log: BatchLogEntry[];
+};
+
+/** Multi-selection native dialog, same image filters (JPEG/PNG/RAW) as opening a single photo.
+Returns an empty list if the user cancelled. */
+export async function selectBatchFilesDialog(): Promise<string[]> {
+  const result = await request<{ paths: string[] }>("/dialogs/select-batch-files");
+  return result.paths;
+}
+
+/** Native folder picker for a batch's output directory. */
+export function selectBatchOutputDirectoryDialog(): Promise<{ path: string | null }> {
+  return request("/dialogs/select-batch-output-directory");
+}
+
+/** Schedules the run and returns its initial state immediately -- the work itself happens on a
+backend thread. Rejects with ApiError 400 (a batch that cannot possibly succeed: no file, missing
+preset, missing output directory) or 409 (another run is still going). */
+export function startBatchRun(batches: BatchSpecInput[]): Promise<BatchRun> {
+  return request("/batch/runs", { method: "POST", body: JSON.stringify({ batches }) });
+}
+
+export function getBatchRun(runId: string): Promise<BatchRun> {
+  return request(`/batch/runs/${runId}`);
+}
+
+/** Asks the run to end after the image currently being processed -- so the returned state may
+still be "running"; keep polling until it settles. */
+export function stopBatchRun(runId: string): Promise<BatchRun> {
+  return request(`/batch/runs/${runId}/stop`, { method: "POST" });
+}

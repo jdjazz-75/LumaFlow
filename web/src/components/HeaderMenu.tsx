@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import "./HeaderMenu.css";
 import {
+  BatchIcon,
   DownloadIcon,
   HamburgerIcon,
   ImageIcon,
@@ -18,6 +19,7 @@ type HeaderMenuProps = {
   onExportImage: () => void;
   onSaveRecipe: () => void;
   onLoadRecipe: () => void;
+  onOpenBatch: () => void;
   onOpenPreferences: () => void;
 };
 
@@ -29,7 +31,14 @@ type ExpandedGroup = "photo" | "presets" | null;
 from a side-flyout trial) to reveal their own Ouvrir/Exporter leaf actions; Préférences is a
 direct leaf. No new business logic -- every leaf just calls the same handler AppShell already
 wired to the old buttons, then closes the menu. */
-export function HeaderMenu({ onOpenImage, onExportImage, onSaveRecipe, onLoadRecipe, onOpenPreferences }: HeaderMenuProps) {
+export function HeaderMenu({
+  onOpenImage,
+  onExportImage,
+  onSaveRecipe,
+  onLoadRecipe,
+  onOpenBatch,
+  onOpenPreferences,
+}: HeaderMenuProps) {
   const [open, setOpen] = useState(false);
   const [expandedGroup, setExpandedGroup] = useState<ExpandedGroup>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -120,6 +129,14 @@ export function HeaderMenu({ onOpenImage, onExportImage, onSaveRecipe, onLoadRec
               </div>
             )}
           </div>
+
+          {/* Direct leaf, like Préférences below it -- a batch has no sub-action to expand into,
+          and it sits before Préférences because it is a working action (like Photo/Presets above)
+          rather than a configuration one. */}
+          <button type="button" className="header-menu-item" onClick={() => runLeaf(onOpenBatch)}>
+            <BatchIcon size={16} />
+            Lot
+          </button>
 
           <button type="button" className="header-menu-item" onClick={() => runLeaf(onOpenPreferences)}>
             <PreferencesIcon size={16} />

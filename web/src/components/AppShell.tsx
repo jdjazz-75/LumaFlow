@@ -12,6 +12,7 @@ import { InfoIcon } from "./icons";
 import { contrastTextColor, hexToHsl, hexToRgbTriplet, hslToHex } from "../lib/color";
 import { describeError } from "../lib/errorMessages";
 import { HIDDEN_ROW_LABELS } from "../lib/filmstrip";
+import { BatchDialog, type BatchDraft } from "./BatchDialog";
 import { PreferencesDialog } from "./PreferencesDialog";
 // Sidebar removed from the UI 2026-07-29 -- see Sidebar.tsx's own header comment.
 import { StatusBar } from "./StatusBar";
@@ -58,6 +59,14 @@ const DEFAULT_LAYOUT_PREFS: Preferences = {
 export function AppShell() {
   const [showPreferences, setShowPreferences] = useState(false);
   const [layoutPrefs, setLayoutPrefs] = useState<Preferences>(DEFAULT_LAYOUT_PREFS);
+
+  /* Traitement par lot (2026-08-25). Held here rather than inside BatchDialog so closing the
+  window loses neither the batches being defined nor the link to a run still going on the backend
+  -- both survive until the app itself is closed, and neither is ever written to disk (only
+  explicit I/O buttons may touch the filesystem, see Préférences > Workflow's own Ouvrir/Exporter). */
+  const [showBatch, setShowBatch] = useState(false);
+  const [batchDrafts, setBatchDrafts] = useState<BatchDraft[]>([]);
+  const [batchRunId, setBatchRunId] = useState<string | null>(null);
 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [rows, setRows] = useState<RowSpec[]>([]);
@@ -172,8 +181,10 @@ export function AppShell() {
     if (!path) return;
     const resolvedPath = path;
     try {
+      // Hoisted out of withBusy below so the freshly created id is in scope for the preset
+      // re-application that follows (a single POST, nothing worth a busy label of its own).
+      const id = await ensureSession();
       await withBusy("Ouverture de l'image…", async () => {
-        const id = await ensureSession();
         const openedRows = await api.openImage(id, resolvedPath);
         const info = await api.getSessionInfo(id);
         setRows(openedRows);
@@ -185,6 +196,21 @@ export function AppShell() {
         setSource(info.source);
         setPreviewNonce((n) => n + 1);
       });
+      // Re-apply whatever preset the header combobox is showing to the newly opened photo (bug
+      // report, 2026-08-25). open_image rebuilds the pipeline server-side and clears every row's
+      // selection back to neutral, but nothing here ever cleared or re-applied activePresetPath --
+      // so the combobox kept naming the previous photo's preset while the new photo was actually
+      // untouched, and re-picking that very same entry was the only way to get it applied.
+      // Carrying the selection over is what the combobox has always implied ("une recette, mille
+      // photos"), and it is the behavior the user expects on opening the next photo of a series.
+      if (activePresetPath) {
+        const applied = await applyRecipeAtPath(activePresetPath, id);
+        // Moved/deleted/corrupted since it was picked: rather than leave the combobox naming a look
+        // the session does not have -- the exact lie this fix exists to remove -- fall back to
+        // "Nouveau", which is what a plain open really leaves behind. applyRecipeAtPath has already
+        // surfaced the reason.
+        if (!applied) setActivePresetPath(null);
+      }
     } catch (err) {
       setError(describeError(err));
     }
@@ -215,9 +241,19 @@ export function AppShell() {
   }
 
   /** Applies the recipe at `path` onto the current session -- shared by handleLoadRecipe (path
-  from the native dialog) and handleSelectPreset (path already known, from the header combobox). */
-  async function applyRecipeAtPath(path: string) {
-    if (!sessionId) return;
+  from the native dialog), handleSelectPreset (path already known, from the header combobox) and
+  handleOpen (re-applying the already-active preset to a freshly opened photo).
+
+  Returns whether it actually applied, so a caller can keep the combobox honest when it did not --
+  handleOpen is the one that needs this: it must not go on displaying a preset name for a photo
+  that never received it.
+
+  `explicitSessionId` also exists for handleOpen: `ensureSession()` may have JUST created the
+  session, and a `setSessionId` from the same tick is not visible to this closure yet, so reading
+  `sessionId` here would still see the pre-creation `null` and silently do nothing. */
+  async function applyRecipeAtPath(path: string, explicitSessionId?: string): Promise<boolean> {
+    const targetSessionId = explicitSessionId ?? sessionId;
+    if (!targetSessionId) return false;
     setError(null);
     setParameterCorrections([]);
     setDisabledVignetteCorrections([]);
@@ -227,7 +263,7 @@ export function AppShell() {
           rows: updatedRows,
           parameter_corrections,
           disabled_vignette_corrections,
-        } = await api.loadRecipe(sessionId, path);
+        } = await api.loadRecipe(targetSessionId, path);
         setRows(updatedRows);
         // Mirrors handleOpen: land on the first VISIBLE row (Geometry/Framing are hidden), matching
         // apply_recipe's own active_step_index reset to 0 server-side.
@@ -240,12 +276,14 @@ export function AppShell() {
         setDisabledVignetteCorrections(disabled_vignette_corrections);
         setActivePresetPath(path);
       });
+      return true;
     } catch (err) {
       // A blocking failure here (missing addon, unsupported schema version, unreadable file,
       // application error -- FR-001/002/003) MUST leave the active session untouched (FR-006/
       // FR-008) -- this catch deliberately never touches rows/activeStepIndex/previewNonce, only
       // surfaces the categorized message (FR-007: the user can dismiss it and resume immediately).
       setError(describeError(err));
+      return false;
     }
   }
 
@@ -345,7 +383,21 @@ export function AppShell() {
     }
   }
 
-  function handleZoomVignette(index: number, identifier: string) {
+  async function handleZoomVignette(index: number, identifier: string) {
+    // A browser dblclick fires click, click, THEN dblclick -- so opening the Zoom always races the
+    // one or two POST /select requests the preceding clicks just sent. Firing POST /zoom/open into
+    // that window let open_zoom read a session where `thumbnail_selections` already named the
+    // clicked preset but `step.parameters.values` had not been resolved from it yet: its
+    // "already selected, nothing to promote" shortcut then skipped select_vignette entirely and
+    // built the panel from the PREVIOUS preset's values. Visible symptom (2026-08-25): opening
+    // Color Splash's "Rouge" by double-click showed Intervalle 1 as disabled -- and with it, no
+    // "Modifier la zone" button -- even though that preset enables it; closing and reopening the
+    // Zoom fixed it, since by then the selection had settled.
+    // Same guard, same reason, as handleExport/handleSave above: wait for the mutation already in
+    // flight before issuing a request that reads what it writes. Covers all three Zoom entry
+    // points (double-click, the vignette's magnifier button, and the Space key), which all funnel
+    // through this handler.
+    await pendingMutation.current;
     setZoomTarget({ stepIndex: index, identifier });
   }
 
@@ -390,6 +442,7 @@ export function AppShell() {
         onSave={handleSave}
         onExport={handleExport}
         onLoadRecipe={handleLoadRecipe}
+        onOpenBatch={() => setShowBatch(true)}
         onOpenPreferences={() => setShowPreferences(true)}
       />
       <div className="app-body">
@@ -472,6 +525,15 @@ export function AppShell() {
           ligne assombrie pour y revenir
         </span>
       </div>
+      {showBatch && (
+        <BatchDialog
+          drafts={batchDrafts}
+          onDraftsChange={setBatchDrafts}
+          runId={batchRunId}
+          onRunIdChange={setBatchRunId}
+          onClose={() => setShowBatch(false)}
+        />
+      )}
       {showPreferences && <PreferencesDialog onClose={() => setShowPreferences(false)} onSaved={handlePreferencesSaved} />}
     </div>
   );

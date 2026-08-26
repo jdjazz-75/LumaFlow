@@ -798,6 +798,19 @@ def reset_session(session: Session) -> list[RowSpec]:
     session.thumbnail_selections = {}
     session.active_step_index = 0
     session.vignette_state_cache = {}
+    # Each step's own parameter values must go too, not just the selections (bug found 2026-08-25).
+    # Clearing `thumbnail_selections` alone puts every row back on "neutral", but
+    # _effective_parameters_for_vignette hands back `step.parameters.values` verbatim for whichever
+    # identifier IS the current selection -- so a neutral row went on rendering with whatever
+    # parameters were left in its step. Harmless while those values only ever came from a preset
+    # click (select_vignette rewrites them together with the selection), but apply_recipe builds a
+    # whole pipeline carrying the recipe's values: loading a recipe then picking "Nouveau" left the
+    # image rendered exactly as the recipe had it, while claiming to be reset. Measured on the
+    # Film and Vignettage rows: reset output was bit-identical to the recipe's, not to neutral's.
+    # `{}` is precisely what open_image gives a freshly built pipeline, so this is "as if the photo
+    # had just been opened" -- which is what "Nouveau" means.
+    for step in session.pipeline._steps:
+        step.parameters.values = {}
     # Clearing every selection already changes each position's ancestry signature, so the render
     # caches would self-invalidate -- dropped explicitly anyway, to keep "what a reset clears"
     # readable in one place rather than resting on that indirection.
@@ -1353,13 +1366,32 @@ def _parameter_corrections_for_step(step: StepEntry, resolved_parameters: dict) 
     return corrections
 
 
-def apply_recipe(session: Session, recipe: Recipe) -> RecipeApplicationOutcome:
-    """Raises MissingAddonReport-wrapping ValueError-like exceptions the same
-    way app.py's action handler does (check_addon_availability then
-    apply_recipe_pipeline) -- the FastAPI layer translates those into HTTP
-    error responses."""
-    if session.image_session is None:
-        raise ValueError("No image loaded in this session")
+@dataclass
+class RecipePipelineBuild:
+    """What a recipe resolves to against the CURRENT workflow configuration, before it is applied
+    to any particular image: a ready-to-run pipeline, the per-row vignette selections it implies,
+    and the two families of non-blocking corrections that resolution produced."""
+
+    pipeline: Pipeline
+    thumbnail_selections: dict[str, str]
+    parameter_corrections: list["ParameterCorrection"]
+    disabled_vignette_corrections: list["DisabledVignetteCorrection"]
+
+
+def build_pipeline_from_recipe(recipe: Recipe) -> RecipePipelineBuild:
+    """Resolve `recipe` against WORKFLOW_CONFIG/ADDON_INDEX into a runnable pipeline.
+
+    Extracted out of apply_recipe (2026-08-25) so the headless batch path
+    (lumaflow.api.batch_runs) builds its pipeline through the exact same code the interactive
+    "Ouvrir une recette" path does. Duplicating it would mean every future addon convention
+    (transient parameters, disabled-vignette fallback, clamping corrections...) has to be
+    remembered twice, and would drift the first time only one of the two is updated.
+
+    Image-independent by construction: a recipe carries baked parameter values, so nothing here
+    needs the target photo's own shape. Raises RecipeAddonsMissing if the recipe names a row that
+    no longer exists in the current configuration -- the one blocking condition; everything else is
+    reported as a correction and applied anyway.
+    """
     rows_by_identifier = {row.identifier: row for row in WORKFLOW_CONFIG.rows}
     # FR-001 (feature 048): a recipe's step_identifier is a WORKFLOW ROW identifier (e.g.
     # "film", "vignette"), not an addon's own identifier -- "missing" means the row no longer
@@ -1419,18 +1451,36 @@ def apply_recipe(session: Session, recipe: Recipe) -> RecipeApplicationOutcome:
         )
         thumbnail_selections[row.identifier] = thumbnail_identifier
 
-    result = apply_recipe_pipeline(pipeline, session.image_session)
+    return RecipePipelineBuild(
+        pipeline=pipeline,
+        thumbnail_selections=thumbnail_selections,
+        parameter_corrections=parameter_corrections,
+        disabled_vignette_corrections=disabled_vignette_corrections,
+    )
+
+
+def apply_recipe(session: Session, recipe: Recipe) -> RecipeApplicationOutcome:
+    """Raises MissingAddonReport-wrapping ValueError-like exceptions the same
+    way app.py's action handler does (check_addon_availability then
+    apply_recipe_pipeline) -- the FastAPI layer translates those into HTTP
+    error responses."""
+    if session.image_session is None:
+        raise ValueError("No image loaded in this session")
+
+    build = build_pipeline_from_recipe(recipe)
+
+    result = apply_recipe_pipeline(build.pipeline, session.image_session)
     if not result.succeeded:
         raise RecipeApplicationFailed(result)
 
-    session.pipeline = pipeline
-    session.thumbnail_selections = thumbnail_selections
+    session.pipeline = build.pipeline
+    session.thumbnail_selections = build.thumbnail_selections
     session.active_step_index = 0
     session.vignette_state_cache = {}
     return RecipeApplicationOutcome(
         rows=refresh_workflow(session),
-        parameter_corrections=parameter_corrections,
-        disabled_vignette_corrections=disabled_vignette_corrections,
+        parameter_corrections=build.parameter_corrections,
+        disabled_vignette_corrections=build.disabled_vignette_corrections,
     )
 
 

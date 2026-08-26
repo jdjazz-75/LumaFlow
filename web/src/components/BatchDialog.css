@@ -1,0 +1,421 @@
+/* LumaFlow v1.0 (2026-08-25)
+ * Styles de la fenêtre de traitement par lot (BatchDialog) : overlay, blocs de lot,
+ * jauges (horizontale globale / verticale par lot) et journal.
+ */
+
+/* Same overlay/panel/actions vocabulary as PreferencesDialog.css -- the two windows are siblings
+in the ☰ menu and must read as one family, so the popup entrance, the dimming, the panel
+elevation and the button styles are deliberately identical rather than reinvented. Only what is
+genuinely specific to a batch (the two gauge shapes, the blocks, the journal) is new here.
+Tokens only, no hardcoded color/radius/font -- tokens.css is the source of truth. */
+@keyframes batchPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.965);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.batch-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 8, 10, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.batch-dialog {
+  width: 820px;
+  height: 640px;
+  max-width: calc(100% - 48px);
+  max-height: calc(100% - 48px);
+  background: var(--panel);
+  border: 1px solid var(--bdh);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.35);
+  animation: batchPopIn 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* --- Header: title + the GLOBAL horizontal gauge, at the top of the window --- */
+
+.batch-header {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.batch-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-18);
+  font-weight: 600;
+  color: var(--t1);
+}
+
+.batch-global {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.batch-global__label {
+  font-size: var(--fs-12);
+  color: var(--t2);
+  white-space: nowrap;
+}
+
+.batch-gauge-h {
+  flex: 1;
+  min-width: 0;
+  height: 8px;
+  border-radius: var(--radius-round);
+  background: var(--card-inner);
+  border: 1px solid var(--bd);
+  overflow: hidden;
+}
+
+.batch-gauge-h__fill {
+  height: 100%;
+  background: var(--amber);
+  border-radius: var(--radius-round);
+  transition: width 200ms linear;
+}
+
+.batch-global__percent {
+  font-size: var(--fs-14);
+  font-weight: 600;
+  color: var(--t1);
+  /* Fixed width so the layout does not jitter as the number goes 9 % -> 10 % -> 100 %. */
+  width: 48px;
+  text-align: right;
+}
+
+.batch-error {
+  flex: 0 0 auto;
+  font-size: var(--fs-12);
+  color: var(--amber);
+}
+
+/* --- Batch blocks --- */
+
+.batch-blocks {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.batch-empty {
+  font-size: var(--fs-12);
+  color: var(--t3);
+  padding: 12px;
+  border: 1px dashed var(--bd);
+  border-radius: var(--radius-md);
+}
+
+/* Content on the left, then the VERTICAL gauge, then the batch's own percentage -- both on the
+right edge of the block, per the requested layout. */
+.batch-block {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  border: 1px solid var(--bd);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.batch-block__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.batch-block__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.batch-block__name {
+  font-size: var(--fs-12);
+  color: var(--t2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.batch-block__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--t3);
+  cursor: pointer;
+}
+
+.batch-block__remove:hover:not(:disabled) {
+  color: var(--amber);
+  background: var(--card-inner);
+}
+
+.batch-block__remove:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.batch-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.batch-field__label {
+  flex: 0 0 68px;
+  font-size: var(--fs-12);
+  color: var(--t2);
+}
+
+.batch-field__value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-12);
+  color: var(--t1);
+  background: var(--card-inner);
+  border: 1px solid var(--bd);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+}
+
+.batch-field__value--empty {
+  color: var(--t3);
+}
+
+.batch-browse-btn {
+  flex: 0 0 auto;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--bd);
+  background: transparent;
+  color: var(--t2);
+  font-size: var(--fs-12);
+  font-family: var(--font-ui);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.batch-browse-btn:hover:not(:disabled) {
+  border-color: var(--bdh);
+  color: var(--t1);
+}
+
+.batch-browse-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Vertical counterpart of .batch-gauge-h: fills bottom-up, so a partially-done batch reads like a
+level in a tube rather than an ambiguous bar. */
+.batch-gauge-v {
+  flex: 0 0 auto;
+  width: 8px;
+  align-self: stretch;
+  border-radius: var(--radius-round);
+  background: var(--card-inner);
+  border: 1px solid var(--bd);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.batch-gauge-v__fill {
+  width: 100%;
+  background: var(--amber);
+  border-radius: var(--radius-round);
+  transition: height 200ms linear;
+}
+
+.batch-block__percent {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 44px;
+  text-align: right;
+  font-size: var(--fs-14);
+  font-weight: 600;
+  color: var(--t1);
+}
+
+.batch-add {
+  flex: 0 0 auto;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--bd);
+  background: transparent;
+  color: var(--t2);
+  font-size: var(--fs-12);
+  font-family: var(--font-ui);
+  cursor: pointer;
+}
+
+.batch-add:hover:not(:disabled) {
+  border-color: var(--bdh);
+  color: var(--t1);
+}
+
+.batch-add:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* --- Journal, at the bottom of the window --- */
+
+.batch-log-section {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.batch-log-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.batch-log-title {
+  font-size: var(--fs-12);
+  color: var(--t2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.batch-log-summary {
+  font-size: var(--fs-12);
+  color: var(--t2);
+}
+
+.batch-log {
+  height: 132px;
+  overflow-y: auto;
+  border: 1px solid var(--bd);
+  border-radius: var(--radius-md);
+  background: var(--card-inner);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.batch-log__idle {
+  font-size: var(--fs-12);
+  color: var(--t3);
+}
+
+.batch-log__line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: var(--fs-12);
+  color: var(--t2);
+}
+
+/* Success/failure is carried by BOTH the glyph and the color, never color alone -- the journal
+has to stay readable for a colour-blind user and in a screenshot. */
+.batch-log__mark {
+  flex: 0 0 auto;
+  width: 12px;
+}
+
+.batch-log__line--ok .batch-log__mark {
+  color: var(--t2);
+}
+
+.batch-log__line--error .batch-log__mark,
+.batch-log__line--error .batch-log__detail {
+  color: var(--amber);
+}
+
+.batch-log__counter {
+  flex: 0 0 auto;
+  color: var(--t3);
+}
+
+.batch-log__file {
+  flex: 0 0 auto;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--t1);
+}
+
+.batch-log__detail {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Actions --- */
+
+.batch-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 9px;
+}
+
+.batch-btn {
+  flex: 1;
+  text-align: center;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--bd);
+  color: var(--t2);
+  font-size: var(--fs-14);
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-ui);
+}
+
+.batch-btn:hover:not(:disabled) {
+  border-color: var(--bdh);
+  color: var(--t1);
+}
+
+.batch-btn--primary {
+  background: var(--amber);
+  color: var(--accent-text);
+  font-weight: 600;
+  border: none;
+}
+
+.batch-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

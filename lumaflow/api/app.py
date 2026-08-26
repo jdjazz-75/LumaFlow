@@ -23,6 +23,7 @@ from PIL import Image
 from pydantic import BaseModel
 
 from lumaflow.addons.contract import ZoomParameterDeclaration
+from lumaflow.api import batch_runs
 from lumaflow.api import session as session_module
 from lumaflow.api.session import (
     ADDON_INDEX,
@@ -1260,6 +1261,143 @@ def export_workflow_config_endpoint(body: WorkflowConfigExportIn) -> WorkflowCon
             status_code=400, detail={"category": exc.category.value, "detail": exc.detail}
         ) from exc
     return WorkflowConfigSaveOut(ok=True)
+
+
+# --- Traitement par lot (2026-08-25) -- a headless run over N user-defined batches, each
+# pairing a file list, a preset and an output directory. Process-wide, NOT session-scoped: a run
+# is independent of whichever photo is open in the editor, and deliberately outlives the request
+# that started it (the batch window can be closed and reopened while it keeps going), which is why
+# progress is polled through GET /batch/runs/{id} instead of being returned by the POST. ---
+
+
+class FileListDialogOut(BaseModel):
+    paths: list[str]
+
+
+@app.get("/dialogs/select-batch-files", response_model=FileListDialogOut)
+async def select_batch_files_dialog_endpoint() -> FileListDialogOut:
+    """Multi-selection sibling of /dialogs/open-image -- same IMAGE_FILE_TYPES filters (JPEG/PNG/
+    RAW), same Préférences-configured starting directory, same single-threaded executor every other
+    tkinter dialog in this file has to go through (see _DIALOG_EXECUTOR)."""
+    initial_dir = _configured_initial_dir(load_preferences(default_preferences_path()).open_image_directory)
+
+    def show() -> list[str]:
+        root = Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        try:
+            chosen = filedialog.askopenfilenames(
+                title="Choisir les images du lot", filetypes=IMAGE_FILE_TYPES, initialdir=initial_dir
+            )
+            # askopenfilenames normally returns a tuple, but some platform/Tk builds hand back a
+            # raw Tcl list string instead (one flat string with brace-quoted paths) -- only that
+            # case needs the interpreter's own splitlist to recover the individual names, and it
+            # must run before root.destroy(). A cancelled dialog gives "" or ().
+            if isinstance(chosen, str):
+                return [str(path) for path in root.tk.splitlist(chosen)] if chosen else []
+            return [str(path) for path in chosen]
+        finally:
+            root.destroy()
+
+    loop = asyncio.get_running_loop()
+    return FileListDialogOut(paths=await loop.run_in_executor(_DIALOG_EXECUTOR, show))
+
+
+@app.get("/dialogs/select-batch-output-directory", response_model=FileDialogOut)
+async def select_batch_output_directory_dialog_endpoint() -> FileDialogOut:
+    initial_dir = _configured_initial_dir(load_preferences(default_preferences_path()).export_image_directory)
+
+    def show() -> str:
+        root = Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        try:
+            return filedialog.askdirectory(title="Choisir le répertoire de sortie du lot", initialdir=initial_dir)
+        finally:
+            root.destroy()
+
+    return await _run_dialog(show)
+
+
+class BatchSpecIn(BaseModel):
+    files: list[str]
+    preset_path: str
+    output_dir: str
+
+
+class BatchRunStartIn(BaseModel):
+    batches: list[BatchSpecIn]
+
+
+class BatchProgressOut(BaseModel):
+    total: int
+    done: int
+    percent: int
+
+
+class BatchLogEntryOut(BaseModel):
+    index: int
+    total: int
+    batch_index: int
+    file_name: str
+    output_name: str
+    ok: bool
+    message: str
+
+
+class BatchRunOut(BaseModel):
+    run_id: str
+    state: str
+    total: int
+    done: int
+    success_count: int
+    error_count: int
+    global_percent: int
+    batches: list[BatchProgressOut]
+    log: list[BatchLogEntryOut]
+
+
+@app.post("/batch/runs", response_model=BatchRunOut)
+def start_batch_run_endpoint(body: BatchRunStartIn) -> BatchRunOut:
+    specs = [
+        batch_runs.BatchSpec(
+            files=tuple(Path(file) for file in spec.files),
+            preset_path=Path(spec.preset_path),
+            output_dir=Path(spec.output_dir),
+        )
+        for spec in body.batches
+    ]
+    try:
+        run = batch_runs.start_run(specs)
+    except batch_runs.BatchValidationError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={"category": "invalid_batch", "message": str(exc), "batch_index": exc.batch_index},
+        ) from exc
+    except batch_runs.BatchAlreadyRunning as exc:
+        raise HTTPException(
+            status_code=409, detail={"category": "batch_already_running", "message": str(exc)}
+        ) from exc
+    return BatchRunOut(**batch_runs.snapshot(run))
+
+
+@app.get("/batch/runs/{run_id}", response_model=BatchRunOut)
+def get_batch_run_endpoint(run_id: str) -> BatchRunOut:
+    run = batch_runs.get_run(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail=f"Unknown batch run '{run_id}'")
+    return BatchRunOut(**batch_runs.snapshot(run))
+
+
+@app.post("/batch/runs/{run_id}/stop", response_model=BatchRunOut)
+def stop_batch_run_endpoint(run_id: str) -> BatchRunOut:
+    """Requests a stop; the run ends after the image currently being processed, so this returns
+    while the state may still be "running" -- the client keeps polling until it settles."""
+    run = batch_runs.get_run(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail=f"Unknown batch run '{run_id}'")
+    batch_runs.request_stop(run_id)
+    return BatchRunOut(**batch_runs.snapshot(run))
 
 
 # Serve the built React frontend from this same process/port -- Phase 3 of the

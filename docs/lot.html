@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Traitement par lot — LumaFlow</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html">LumaFlow</a>
+    <nav>
+      <ul class="nav-main">
+        <li><a href="index.html">Présentation</a></li>
+        <li><a href="installation.html">Installation</a></li>
+        <li><a href="fonctionnalites.html">Fonctionnalités</a></li>
+        <li><a href="lot.html" class="active">Traitement par lot</a></li>
+        <li><a href="workflow/index.html">Workflow</a></li>
+      </ul>
+      <div class="nav-section-label">Étapes du workflow</div>
+      <ul class="nav-workflow">
+        <li><a href="workflow/film.html">Film</a></li>
+        <li><a href="workflow/bleach-bypass.html">Bleach Bypass</a></li>
+        <li><a href="workflow/color-splash.html">Color Splash</a></li>
+        <li><a href="workflow/monochrome.html">Monochrome</a></li>
+        <li><a href="workflow/bw.html">B&W</a></li>
+        <li><a href="workflow/light.html">Light</a></li>
+        <li><a href="workflow/vignettage.html">Vignettage</a></li>
+      </ul>
+    </nav>
+  </aside>
+  <main class="content">
+    <article>
+<h1 id="traitement-par-lot">Traitement par lot</h1>
+
+<p>Une recette, mille photos. Le <strong>traitement par lot</strong> applique un preset déjà mis au point à une liste entière d'images, sans ouvrir aucune d'elles : vous choisissez les fichiers, le preset et le dossier de destination, vous cliquez sur <strong>Exécuter</strong>, et LumaFlow développe chaque photo l'une après l'autre pendant que vous faites autre chose.</p>
+
+<p>La fenêtre s'ouvre depuis le menu ☰ de l'en-tête, entrée <strong>Lot</strong>.</p>
+
+<p class="figure"><img src="screenshots/07-lot.png" alt="La fenêtre de traitement par lot : deux lots terminés, jauges de progression et journal détaillé" loading="lazy"></p>
+
+<h2 id="1-composer-un-lot">1. Composer un lot</h2>
+
+<p>Un <strong>lot</strong> est un bloc à trois renseignements. Ajoutez-en autant que nécessaire avec <strong>+ Ajouter un lot</strong>, retirez-en un avec la croix de son bloc.</p>
+
+<div class="table-wrap"><table>
+<thead><tr><th>Champ</th><th>Ce que vous choisissez</th></tr></thead>
+<tbody>
+<tr><td><strong>Fichiers</strong></td><td>Une sélection multiple d'images, dans la boîte de dialogue Windows habituelle — avec les mêmes filtres que l'ouverture d'une photo : JPEG, PNG et les RAW Canon (<code>.cr2</code>), Nikon (<code>.nef</code>) et Sony (<code>.arw</code>).</td></tr>
+<tr><td><strong>Preset</strong></td><td>Un fichier recette <code>.json</code>, tel que produit par ☰ &gt; Presets &gt; Exporter.</td></tr>
+<tr><td><strong>Sortie</strong></td><td>Le dossier où déposer les images développées. Il n'est jamais créé automatiquement : il doit exister.</td></tr>
+</tbody></table></div>
+
+<p>Plusieurs lots peuvent parfaitement viser des presets ou des dossiers différents — c'est même tout l'intérêt : traiter d'un seul geste un mariage en noir et blanc et un reportage en Velvia.</p>
+
+<p>Le bouton <strong>Exécuter</strong> reste inactif tant qu'un lot est incomplet. Les chemins sont revérifiés au lancement : un preset ou un dossier de sortie disparu depuis la sélection est signalé avant qu'une seule image ne soit décodée.</p>
+
+<h2 id="2-le-nom-des-fichiers-produits">2. Le nom des fichiers produits</h2>
+
+<p>Chaque image développée est écrite sous un nom construit ainsi :</p>
+
+<pre><code>&lt;nom du fichier source&gt;-&lt;nom du preset&gt;-&lt;AA-MM-JJ-HH-MM-SS&gt;.&lt;extension&gt;</code></pre>
+
+<p>Par exemple, <code>IMG_0431.CR2</code> traité avec <code>velvia-doux.json</code> le 25 août 2026 à 14 h 32 min 07 s devient :</p>
+
+<pre><code>IMG_0431-velvia-doux-26-08-25-14-32-07.jpg</code></pre>
+
+<p>L'horodatage commence par l'année, si bien qu'un dossier trié par nom est aussi trié dans l'ordre chronologique. Surtout, il rend chaque nom unique : <strong>un lot ne remplace jamais le résultat d'un lot précédent</strong>, et aucune question d'écrasement ne vous est posée. Relancer le même lot après avoir retouché le preset dépose simplement une nouvelle série à côté de l'ancienne.</p>
+
+<p>L'<strong>extension</strong> suit la source : un PNG reste un PNG, tout le reste — JPEG comme RAW — ressort en JPEG, à la qualité définie dans <em>Préférences &gt; Général</em>. Un RAW ne peut évidemment pas être réécrit en RAW.</p>
+
+<h2 id="3-suivre-l-avancement">3. Suivre l'avancement</h2>
+
+<p>Deux échelles de progression, mises à jour en continu :</p>
+
+<ul>
+<li>la <strong>jauge horizontale en haut de la fenêtre</strong>, avec son pourcentage, donne l'avancement <strong>global</strong> — toutes images de tous les lots confondues ;</li>
+<li>la <strong>jauge verticale à droite de chaque bloc</strong>, avec son pourcentage, donne l'avancement <strong>de ce lot</strong>.</li>
+</ul>
+
+<p>Dans les deux cas le pourcentage vaut « images traitées / images totales ». Les échecs comptent comme traités : une jauge atteint donc bien 100 % même si certaines images n'ont pas pu être développées.</p>
+
+<h2 id="4-le-journal">4. Le journal</h2>
+
+<p>En bas de la fenêtre, le journal reçoit <strong>une ligne par image</strong>, dans l'ordre de traitement : un numéro d'ordre, le nom du fichier source, puis le nom du fichier écrit (en cas de succès) ou la raison de l'échec. Réussites et échecs se distinguent à la fois par le symbole (✔ / ✖) et par la couleur, jamais par la couleur seule.</p>
+
+<p>Les messages d'erreur sont écrits en clair — « Ce fichier image est corrompu ou illisible. », « Fichier introuvable. », « Espace disque insuffisant pour écrire le résultat. » — jamais sous forme de trace technique.</p>
+
+<p>Le résumé de droite indique en permanence où en est le traitement, puis son bilan final : <em>Terminé — 24 réussites, 2 échecs</em>.</p>
+
+<p>Le journal reste consultable après la fin du traitement, et survit à la fermeture puis à la réouverture de la fenêtre.</p>
+
+<h2 id="5-un-fichier-en-erreur-n-arrete-rien">5. Un fichier en erreur n'arrête rien</h2>
+
+<p>C'est la règle centrale : <strong>un problème sur une image coûte une ligne de journal, jamais le traitement</strong>. LumaFlow abandonne le fichier fautif et passe immédiatement au suivant — qu'il s'agisse d'un fichier absent, corrompu, d'un format non pris en charge, d'un RAW illisible ou d'une erreur d'écriture.</p>
+
+<p>Si c'est le <em>preset</em> d'un lot qui est illisible, ou s'il fait référence à des étapes absentes de la configuration de workflow actuelle, c'est ce lot entier qui échoue — mais les lots suivants sont exécutés normalement.</p>
+
+<h2 id="6-arreter-en-cours-de-route">6. Arrêter en cours de route</h2>
+
+<p>Pendant l'exécution, <strong>Exécuter</strong> devient <strong>Arrêter</strong> et les champs des lots sont verrouillés. Un clic sur <strong>Arrêter</strong> met fin au traitement <strong>après l'image en cours</strong> — jamais au milieu de l'écriture d'un fichier. Les images déjà produites sont conservées, les jauges et le journal restent affichés, et le résumé indique où le traitement s'est arrêté.</p>
+
+<h2 id="7-bon-a-savoir">7. Bon à savoir</h2>
+
+<ul>
+<li><strong>Vos originaux ne sont jamais modifiés</strong>, exactement comme en retouche interactive : le lot lit les fichiers sources et n'écrit que dans le dossier de sortie.</li>
+<li><strong>Le traitement est indépendant de la photo ouverte</strong> dans la table lumineuse. Vous pouvez continuer à travailler sur une image pendant qu'un lot tourne, et même fermer la fenêtre de lot : le traitement continue, et la rouvrir affiche la progression en cours.</li>
+<li><strong>Les images sont développées en pleine résolution</strong>, comme un export manuel — pas à la résolution réduite des vignettes.</li>
+<li><strong>Un seul traitement à la fois.</strong> Tant qu'un lot tourne, un nouveau lancement est refusé plutôt que mis en file d'attente.</li>
+<li><strong>Le recadrage et la correction de perspective ne sont pas appliqués</strong> : une recette n'emporte jamais les étapes Geometry et Cadrage, qui sont propres à une photo donnée et n'auraient aucun sens répliquées telles quelles sur des centaines d'autres.</li>
+<li><strong>Les lots ne sont pas enregistrés sur le disque.</strong> Ils vivent le temps de la session : fermer l'application les oublie.</li>
+</ul>
+    </article>
+  </main>
+</div>
+</body>
+</html>
