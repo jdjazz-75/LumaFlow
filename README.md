@@ -143,7 +143,7 @@ suivantes sont directement visibles et navigables :
 | — | **Cadrage (Framing)** | Recadrage libre avec guides de composition |
 | 1 | **[Film](https://jdjazz-75.github.io/LumaFlow/workflow/film.html)** | Rendu et grain argentique — moteur de gradation paramétrique partagé par les looks Fujifilm |
 | 2 | **[Bleach Bypass](https://jdjazz-75.github.io/LumaFlow/workflow/bleach-bypass.html)** | Même moteur, presets de négatifs désaturés type bleach-bypass |
-| 3 | **[Color Splash](https://jdjazz-75.github.io/LumaFlow/workflow/color-splash.html)** | Désature l'image sauf jusqu'à 3 plages de teinte conservées |
+| 3 | **[Color Splash](https://jdjazz-75.github.io/LumaFlow/workflow/color-splash.html)** | Désature l'image sauf jusqu'à 3 plages de teinte conservées — ou **substitue** ces plages par d'autres couleurs |
 | 4 | **[Monochrome](https://jdjazz-75.github.io/LumaFlow/workflow/monochrome.html)** | Duotone : supprime la couleur puis colorise la luminance avec une teinte unique |
 | 5 | **[B&W](https://jdjazz-75.github.io/LumaFlow/workflow/bw.html)** | Simulations noir et blanc alternatives (filtres colorés, émulations Kodak/Ilford) |
 | 6 | **[Light](https://jdjazz-75.github.io/LumaFlow/workflow/light.html)** | Exposition et contraste, courbe de tons, halo, texture, split sujet/fond par masque |

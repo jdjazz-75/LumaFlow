@@ -24,6 +24,21 @@ wire encoding and its rasterizer are the ones already validated by light.py's su
 recopied here (never imported -- see the loader note above). Zones are `transient=True`: they
 are edited in Zoom like any other parameter but never written into a saved recipe, so a
 reloaded preset always applies to the whole image.
+
+Color substitution (2026-08-31): each range additionally carries an optional REPLACEMENT color
+(`range_N_target_*`) -- same three affordances as the source selection (teinte + adoucissement +
+intensite), so the very same `hue_range` control renders both without a single frontend change.
+When a range's substitution is active, the pixels it selects have their HUE remapped instead of
+merely keeping their saturation: the position of a pixel INSIDE the source window is reprojected
+proportionally into the target window,
+
+    hue_finale = C2 + (hue - C1) * (F2 / F1)
+
+so the target's own "adoucissement" F2 controls how much of the original hue variety survives
+(F2 = 0 collapses the whole range onto one flat tone, F2 == F1 preserves the nuances exactly,
+F2 > F1 amplifies them). Luminance is never touched -- that is what keeps a substitution looking
+photographic rather than painted. Unlike the zones above, a substitution IS portable across
+photos, so these parameters are ordinary (non-transient) ones that travel in a saved recipe.
 """
 
 from __future__ import annotations
@@ -61,6 +76,13 @@ for _i in range(1, _RANGE_COUNT + 1):
     _GENERIC_DEFAULTS[f"range_{_i}_hue_center"] = 0.0
     _GENERIC_DEFAULTS[f"range_{_i}_feather"] = 30.0
     _GENERIC_DEFAULTS[f"range_{_i}_saturation_boost"] = 100.0
+    # Replacement color for this range (see the module docstring). Defaulting `target_enabled` to
+    # 0 is what makes every pre-substitution recipe/preset render bit-identically to before: with
+    # no target active the hue is never displaced and the source's own boost keeps applying.
+    _GENERIC_DEFAULTS[f"range_{_i}_target_enabled"] = 0.0
+    _GENERIC_DEFAULTS[f"range_{_i}_target_hue_center"] = 0.0
+    _GENERIC_DEFAULTS[f"range_{_i}_target_feather"] = 30.0
+    _GENERIC_DEFAULTS[f"range_{_i}_target_saturation_boost"] = 100.0
     # Unlike light.py -- whose resolver seeds 4 so a fresh Zoom session shows its default
     # rectangle -- the vertex count defaults to 0 on BOTH paths here: "no zone" is the resting
     # state this addon must return to on Réinitialiser and on every recipe reload.
@@ -115,6 +137,15 @@ def _hsl_to_rgb(hue: numpy.ndarray, saturation: numpy.ndarray, luminance: numpy.
     return numpy.stack([r1 + m, g1 + m, b1 + m], axis=-1) * 255.0
 
 
+def _wrap180(delta):
+    """Signed shortest-arc form of an angular difference: maps any value onto -180..+180. Works on
+    a scalar or an array. Used twice by the substitution below -- once to read a pixel's signed
+    position inside its source window, once to turn a desired absolute hue back into the smallest
+    displacement that reaches it (going the long way round would sweep through every intermediate
+    hue when the weight blends it down)."""
+    return ((delta + 180.0) % 360.0) - 180.0
+
+
 def _hue_window_weight(hue: numpy.ndarray, center: float, feather: float) -> numpy.ndarray:
     """Cosine-weighted window: 1.0 at `center`, falling smoothly to 0.0
     at `feather` degrees away, 0.0 beyond. Same formula as film.py's
@@ -131,6 +162,18 @@ def _hue_window_weight(hue: numpy.ndarray, center: float, feather: float) -> num
 
 
 class _RangeParams(NamedTuple):
+    enabled: bool
+    hue_center: float
+    feather: float
+    saturation_boost: float
+
+
+class _TargetParams(NamedTuple):
+    """One range's replacement color -- same three fields the source selection exposes, read with
+    the same per-key defensive fallback. `feather` is allowed down to 0 here (the source's own
+    floor is 5): a zero-width target window is the meaningful "flatten this range onto a single
+    tone" case, whereas a zero-width SOURCE window would select nothing at all."""
+
     enabled: bool
     hue_center: float
     feather: float
@@ -169,6 +212,24 @@ def _read_range(params: dict[str, Any], index: int) -> _RangeParams:
         ),
         feather=_read_float(
             params, f"{prefix}_feather", _GENERIC_DEFAULTS[f"{prefix}_feather"], minimum=5.0, maximum=90.0
+        ),
+        saturation_boost=_read_float(
+            params, f"{prefix}_saturation_boost", _GENERIC_DEFAULTS[f"{prefix}_saturation_boost"],
+            minimum=0.0, maximum=200.0,
+        ),
+    )
+
+
+def _read_target(params: dict[str, Any], index: int) -> _TargetParams:
+    prefix = f"range_{index}_target"
+    enabled_value = _read_float(params, f"{prefix}_enabled", _GENERIC_DEFAULTS[f"{prefix}_enabled"])
+    return _TargetParams(
+        enabled=enabled_value >= 0.5,
+        hue_center=_read_float(
+            params, f"{prefix}_hue_center", _GENERIC_DEFAULTS[f"{prefix}_hue_center"], wrap=True
+        ),
+        feather=_read_float(
+            params, f"{prefix}_feather", _GENERIC_DEFAULTS[f"{prefix}_feather"], minimum=0.0, maximum=90.0
         ),
         saturation_boost=_read_float(
             params, f"{prefix}_saturation_boost", _GENERIC_DEFAULTS[f"{prefix}_saturation_boost"],
@@ -288,6 +349,10 @@ def color_splash(image: numpy.ndarray, params: dict[str, Any]) -> numpy.ndarray:
     than to "every pixel desaturated": `background_desaturation` alone has no effect without at
     least one active range, by design, not merely as a side effect of the blend formula below).
     Never raises; does not mutate `image`.
+
+    A range's `range_N_target_*` substitution (2026-08-31) is likewise inert unless the range
+    ITSELF is enabled: a replacement color for a selection that selects nothing has nothing to
+    replace, so the second early return above covers that case too.
     """
     if not any(key in params for key in _GENERIC_DEFAULTS):
         return image
@@ -309,6 +374,7 @@ def color_splash(image: numpy.ndarray, params: dict[str, Any]) -> numpy.ndarray:
 
     combined_weight = numpy.zeros_like(saturation)
     boost_numerator = numpy.zeros_like(saturation)
+    hue_delta_numerator = numpy.zeros_like(saturation)
     for index, range_params in enumerate(ranges, start=1):
         if not range_params.enabled:
             continue
@@ -323,10 +389,31 @@ def color_splash(image: numpy.ndarray, params: dict[str, Any]) -> numpy.ndarray:
         if mask is not None:
             weight = weight * _polygon_mask(image.shape, mask.points, mask.feather_pct, mask.invert)
         combined_weight = numpy.maximum(combined_weight, weight)
+        # Replacement color, if this range declares one: remap the pixel's position INSIDE the
+        # source window into the target window (see the module docstring's formula). Expanded
+        # algebraically to `center_delta + offset * (ratio - 1)` rather than computed as
+        # `_wrap180(desired_hue - hue)` per pixel -- same result at full weight, but it decides
+        # which way round the color wheel to travel ONCE for the whole range (from its center)
+        # instead of once per pixel. The per-pixel form breaks down when a source hue lands near
+        # the target's antipode: neighbouring pixels there pick opposite directions, and at partial
+        # weight a smooth gradient tears into two hue families with a hard seam (visible on a
+        # sunset sky substituted toward its complementary color). `offset` stays continuous inside
+        # the window, since any pixel with a non-zero weight is at most `feather` (<= 90) away.
+        target = _read_target(params, index)
+        if target.enabled:
+            spread_ratio = target.feather / max(range_params.feather, 1e-6)
+            center_delta = _wrap180(target.hue_center - range_params.hue_center)
+            offset = _wrap180(hue - range_params.hue_center)
+            hue_delta_numerator = hue_delta_numerator + weight * (
+                center_delta + offset * (spread_ratio - 1.0)
+            )
         # Per-range boosts are blended by their own local weight (not just the first/strongest
         # range's boost) so an overlap zone between two active ranges with different boosts
-        # reads as a smooth mix, not a hard flip from one range's setting to the other's.
-        boost_numerator = boost_numerator + weight * range_params.saturation_boost
+        # reads as a smooth mix, not a hard flip from one range's setting to the other's. A range
+        # being substituted contributes its TARGET intensity instead of its source one: both act on
+        # the same saturation, and the color actually on screen there is the replacement.
+        boost = target.saturation_boost if target.enabled else range_params.saturation_boost
+        boost_numerator = boost_numerator + weight * boost
 
     # A pixel whose hue falls in an active range but whose ORIGINAL saturation is below the
     # threshold is never eligible (FR-008 edge case: a near-gray pixel must not "jump" into
@@ -341,7 +428,17 @@ def color_splash(image: numpy.ndarray, params: dict[str, Any]) -> numpy.ndarray:
         gated_weight * kept_saturation + (1.0 - gated_weight) * background_saturation, 0.0, 1.0
     )
 
-    result = _hsl_to_rgb(hue, final_saturation, luminance)
+    # Hue displacement rides the SAME gated weight as the saturation blend above, so a near-gray
+    # pixel excluded by `saturation_threshold` is excluded from the substitution too -- it would
+    # otherwise change tint without ever having had a visible color to replace. With no active
+    # substitution `hue_delta_numerator` is all zeros and `final_hue is hue` numerically, which is
+    # what keeps every pre-substitution recipe bit-identical.
+    effective_delta = numpy.where(
+        combined_weight > 1e-6, hue_delta_numerator / numpy.maximum(combined_weight, 1e-6), 0.0
+    )
+    final_hue = (hue + gated_weight * effective_delta) % 360.0
+
+    result = _hsl_to_rgb(final_hue, final_saturation, luminance)
     return numpy.clip(result, 0, 255).round().astype(numpy.uint8)
 
 
@@ -409,6 +506,38 @@ def _mask_parameter_descriptions(index: int) -> tuple[ParameterDescription, ...]
     return tuple(descriptions)
 
 
+def _target_parameter_descriptions(index: int) -> tuple[ParameterDescription, ...]:
+    """One range's replacement color -- deliberately the SAME three declarations the source
+    selection uses (a `hue_range` plus an `_enabled` toggle and a `_saturation_boost` dial), named
+    so ZoomOverlay.tsx's `groupHueRanges` picks them up by its existing convention. That is what
+    makes the substitution render with a color wheel, an "Adoucissement" slider and an on/off
+    button without a single frontend line: nothing here is Color-Splash-specific.
+
+    Not `transient` (unlike the zones): a replacement color means the same thing on any photo and
+    must survive a saved recipe. `feather_minimum` is 0 rather than the source's 5 -- see
+    `_TargetParams`."""
+    prefix = f"range_{index}_target"
+    return (
+        ParameterDescription(
+            identifier=prefix, label=f"Remplacement {index}", kind="hue_range", default=0.0,
+            zoom_only=True,
+            constraints=HueRangeConstraints(
+                hue_minimum=0.0, hue_maximum=360.0, hue_default=0.0,
+                feather_minimum=0.0, feather_maximum=90.0, feather_default=30.0,
+            ),
+        ),
+        ParameterDescription(
+            identifier=f"{prefix}_enabled", label=f"Remplacement {index} actif", kind="numeric_slider",
+            default=0.0, zoom_only=True, constraints=NumericSliderConstraints(minimum=0.0, maximum=1.0, step=1.0),
+        ),
+        ParameterDescription(
+            identifier=f"{prefix}_saturation_boost", label=f"Intensité remplacement {index}",
+            kind="numeric_slider", default=100.0, zoom_only=True,
+            constraints=NumericSliderConstraints(minimum=0.0, maximum=200.0, step=1.0),
+        ),
+    )
+
+
 def _range_parameter_descriptions(index: int) -> tuple[ParameterDescription, ...]:
     prefix = f"range_{index}"
     return (
@@ -427,6 +556,10 @@ def _range_parameter_descriptions(index: int) -> tuple[ParameterDescription, ...
             identifier=f"{prefix}_saturation_boost", label=f"Intensité couleur {index}", kind="numeric_slider",
             default=100.0, zoom_only=True, constraints=NumericSliderConstraints(minimum=0.0, maximum=200.0, step=1.0),
         ),
+        # Declared right after the source selection and BEFORE the zone parameters, so the
+        # `hue_ranges` list reaching the frontend reads range_1, range_1_target, range_2, ... --
+        # each replacement immediately follows the interval it belongs to.
+        *_target_parameter_descriptions(index),
         *_mask_parameter_descriptions(index),
     )
 
@@ -466,6 +599,24 @@ ADDON_DESCRIPTION = AddonSubmission(
         ThumbnailPreset(
             identifier="Violet", label="Violet",
             preset_parameters={"range_1_enabled": 1.0, "range_1_hue_center": 285.0},
+        ),
+        # Substitution de couleur (2026-08-31) -- the entry point to the replacement engine, not a
+        # look in its own right: it enables range 1 on a DELIBERATELY wide red window (60 degrees
+        # instead of the generic 30) and remaps it onto blue, leaving the rest of the photo in its
+        # original colors (`background_desaturation` 0, unlike every preset above). The wide source
+        # window is what makes the thumbnail read as different from Neutre on an ordinary photo;
+        # everything here is meant to be retuned in Zoom.
+        ThumbnailPreset(
+            identifier="Substitution", label="Substitution",
+            preset_parameters={
+                "range_1_enabled": 1.0,
+                "range_1_hue_center": 0.0,
+                "range_1_feather": 60.0,
+                "range_1_target_enabled": 1.0,
+                "range_1_target_hue_center": 210.0,
+                "range_1_target_feather": 60.0,
+                "background_desaturation": 0.0,
+            },
         ),
         # "Brun" was removed post-launch: sharing "Orange"'s hue center and differing only by a
         # raised saturation_threshold produced results visually

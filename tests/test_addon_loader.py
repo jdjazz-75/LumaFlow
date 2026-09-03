@@ -49,11 +49,12 @@ def test_real_builtin_directory_resolves_color_splash_addon():
     descriptor = report.index["color_splash"]
     assert descriptor.category == "color_splash"
     assert descriptor.processing_function is not None
-    assert len(descriptor.thumbnail_presets) == 7
-    # The 11 portable parameters (3 ranges x hue_range/enabled/saturation_boost, plus the 2 global
-    # sliders); the per-range application zones added on top of them are all transient, so they are
-    # counted separately rather than inflating this number.
-    assert len([p for p in descriptor.zoom_parameters if not p.transient]) == 11
+    assert len(descriptor.thumbnail_presets) == 8
+    # The 20 portable parameters: 3 ranges x (hue_range/enabled/saturation_boost) for the source
+    # selection + the same 3 again for the replacement color (range_N_target_*, 2026-08-31), plus
+    # the 2 global sliders. The per-range application zones added on top of them are all transient,
+    # so they are counted separately rather than inflating this number.
+    assert len([p for p in descriptor.zoom_parameters if not p.transient]) == 20
     assert len([p for p in descriptor.zoom_parameters if p.transient]) == 3 * 67
     assert descriptor.resolve_zoom_values is not None
 

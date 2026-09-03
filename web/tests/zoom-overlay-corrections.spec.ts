@@ -117,7 +117,7 @@ test.describe("Zoom overlay corrections -- Geometry/Cadrage/Masque Sujet", () =>
   test("Geometry: le cadre wrapper est confiné dans le stage ET pixel-identique à la photo, centré", async ({ page }) => {
     await openFilmZoom(page);
     await zoomIn(page, 8);
-    await page.getByRole("button", { name: "Activer Geometry" }).click();
+    await page.getByRole("switch", { name: "Geometry" }).click();
     await waitForStagePhotoLoaded(page, ".geometry-canvas__photo");
     await page.waitForTimeout(300);
 
@@ -150,7 +150,7 @@ test.describe("Zoom overlay corrections -- Geometry/Cadrage/Masque Sujet", () =>
   test("Cadrage: le cadre wrapper est confiné dans le stage ET pixel-identique à la photo, centré", async ({ page }) => {
     await openFilmZoom(page);
     await zoomIn(page, 8);
-    await page.getByRole("button", { name: "Activer Cadrage" }).click();
+    await page.getByRole("switch", { name: "Cadrage" }).click();
     await waitForStagePhotoLoaded(page, ".crop-canvas__photo");
     await page.waitForTimeout(300);
 
@@ -177,7 +177,7 @@ test.describe("Zoom overlay corrections -- Geometry/Cadrage/Masque Sujet", () =>
     page,
   }) => {
     await openFilmZoom(page);
-    await page.getByRole("button", { name: "Activer Cadrage" }).click();
+    await page.getByRole("switch", { name: "Cadrage" }).click();
     await waitForStagePhotoLoaded(page, ".crop-canvas__photo");
     await page.waitForTimeout(300);
 
@@ -225,7 +225,7 @@ test.describe("Zoom overlay corrections -- Geometry/Cadrage/Masque Sujet", () =>
     await expect(page.locator(".zoom-overlay__pan-zone").first()).toBeVisible();
 
     await page.getByRole("button", { name: "Sujet" }).click();
-    await page.getByRole("button", { name: "Activer le masque sujet" }).click();
+    await page.getByRole("switch", { name: "Masque sujet" }).click();
     await page.waitForTimeout(500);
 
     const maskContentBox = await page.locator(".zoom-overlay__compare-content").boundingBox();
@@ -264,7 +264,7 @@ test.describe("Zoom overlay corrections -- Geometry/Cadrage/Masque Sujet", () =>
     const zoomedContentBox = await page.locator(".zoom-overlay__compare-content").boundingBox();
     await expect(page.locator(".zoom-overlay__pan-zone").first()).toBeVisible();
 
-    await page.getByRole("button", { name: /Modifier la zone de Intervalle 1/i }).click();
+    await page.getByRole("switch", { name: "Zone d'application — Intervalle 1" }).click();
     await page.waitForTimeout(500);
 
     // Same re-fit-on-activation guarantee as Masque Sujet (bug 2026-07-31).
@@ -284,6 +284,65 @@ test.describe("Zoom overlay corrections -- Geometry/Cadrage/Masque Sujet", () =>
     await expect(page.locator(".subject-mask-stage__controls")).toBeVisible();
     await expect(page.getByRole("button", { name: "Toute l'image" })).toBeVisible();
     await expect(page.locator(".zoom-overlay__optical-zoom")).toBeVisible();
+  });
+
+  test("Color Splash: la couleur de remplacement est imbriquée dans son intervalle et n'apparaît que si celui-ci est actif", async ({
+    page,
+  }) => {
+    await openTestImage(page);
+    const colorSplashRow = await navigateToRow(page, "Color Splash");
+    // "Substitution" -- the only preset that enables a replacement color (interval 1 only).
+    await colorSplashRow.locator(".vignette-card", { hasText: "Substitution" }).dblclick();
+    await waitForPaneImagesLoaded(page);
+
+    const panel = page.locator(".zoom-overlay__panel");
+    // The 3 replacement hue ranges are declared like any other, so a naive rendering would give
+    // them 3 top-level sections of their own. They must stay nested instead: only the 3 intervals
+    // plus "Réglages globaux" may appear at the top level.
+    await expect(panel.getByRole("button", { name: /^Remplacement \d/ })).toHaveCount(0);
+    for (const name of [/Intervalle 1/, /Intervalle 2/, /Intervalle 3/, /Réglages globaux/]) {
+      await expect(panel.getByRole("button", { name }).first()).toBeVisible();
+    }
+
+    // Interval 1 is enabled by the preset -> both of its groups render, inside the section.
+    await panel.getByRole("button", { name: /Intervalle 1/i }).first().click();
+    const groups = panel.locator(".zoom-overlay__range-subgroup");
+    await expect(groups).toHaveCount(2);
+    const sourceGroup = groups.nth(0);
+    const replacementGroup = groups.nth(1);
+
+    // Both groups carry the same controls (2026-09-03 reorganisation); only the source selection
+    // owns the spatial zone -- the replacement is confined by the interval's own.
+    for (const group of [sourceGroup, replacementGroup]) {
+      await expect(group).toContainText("Actif");
+      await expect(group).toContainText("Adoucissement");
+      await expect(group).toContainText("Intensité");
+      await expect(group.locator(".color-wheel")).toBeVisible();
+    }
+    await expect(sourceGroup).toContainText("Zone d'application");
+    await expect(replacementGroup).toContainText("Couleur de remplacement");
+    await expect(replacementGroup).not.toContainText("Zone d'application");
+    // The declared labels are shortened to a bare "Intensité" now that the group title carries the
+    // distinction -- guards against the backend label leaking back into the panel.
+    await expect(
+      panel.locator(".zoom-overlay__slider-label", { hasText: /Intensité (couleur|remplacement)/ }),
+    ).toHaveCount(0);
+
+    // Interval 2 is disabled by the preset: its "Couleur" group renders (collapsed to its Actif
+    // row), but a replacement for a selection that selects nothing must not be offered.
+    await panel.getByRole("button", { name: /Intervalle 2/i }).first().click();
+    await expect(panel.locator(".zoom-overlay__range-subgroup")).toHaveCount(3);
+    await expect(
+      panel.locator(".zoom-overlay__range-subgroup", { hasText: "Couleur de remplacement" }),
+    ).toHaveCount(1);
+
+    // And the replacement's own parameters must not leak into the flat global slider list.
+    await page.getByRole("button", { name: /Réglages globaux/i }).click();
+    await expect(
+      panel.locator(".zoom-overlay__sliders > .collapsible-section")
+        .filter({ hasText: "Réglages globaux" })
+        .locator(".zoom-overlay__slider-label", { hasText: /remplacement/i }),
+    ).toHaveCount(0);
   });
 });
 

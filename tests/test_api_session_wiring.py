@@ -363,7 +363,13 @@ def test_color_splash_row_has_zoom_and_zoom_open_returns_populated_hue_ranges(cl
     response = client.post(f"/sessions/{session_id}/zoom/{color_splash_index}/open", json={"identifier": "Rouge"})
     assert response.status_code == 200
     zoom_state = response.json()
-    assert len(zoom_state["hue_ranges"]) == 3
+    # 6 since 2026-08-31: each of the 3 source intervals is immediately followed by its own
+    # replacement color, declared as a hue range of its own so the frontend groups and renders it
+    # with no addon-specific code (see color_splash.py's _target_parameter_descriptions).
+    assert len(zoom_state["hue_ranges"]) == 6
+    assert [r["identifier"] for r in zoom_state["hue_ranges"]] == [
+        "range_1", "range_1_target", "range_2", "range_2_target", "range_3", "range_3_target",
+    ]
     range_1 = next(r for r in zoom_state["hue_ranges"] if r["identifier"] == "range_1")
     assert range_1["hue_value"] == 0.0
     assert range_1["hue_minimum"] == 0.0
@@ -2410,6 +2416,44 @@ def test_color_splash_application_zones_never_reach_a_saved_recipe(client, tmp_p
     assert by_id["range_1_mask_point_count"] == 0.0  # no zone: back to the whole image
     assert by_id["range_1_mask_feather"] == 0.0
     assert by_id["range_1_saturation_boost"] == 150.0  # the portable part survived
+
+
+def test_color_splash_substitution_round_trips_through_a_saved_recipe(client, tmp_path):
+    """The mirror image of the zone test above: a replacement color (2026-08-31) means the same
+    thing on any photo, so unlike a zone it MUST be written to the recipe and restored on reload.
+    Guards against a future `transient=True` being copy-pasted onto these parameters."""
+    session_id = _open(client)
+    step_index = _color_splash_step_index()
+    client.post(f"/sessions/{session_id}/steps/{step_index}/select", json={"identifier": "Substitution"})
+    client.post(f"/sessions/{session_id}/zoom/{step_index}/open", json={"identifier": "Substitution"})
+    updates = [
+        {"identifier": "range_1_target_hue_center", "value": 130.0},
+        {"identifier": "range_1_target_feather", "value": 45.0},
+        {"identifier": "range_1_target_saturation_boost", "value": 160.0},
+        {"identifier": "range_2_enabled", "value": 1.0},
+        {"identifier": "range_2_target_enabled", "value": 1.0},
+    ]
+    assert client.post(f"/sessions/{session_id}/zoom/parameters", json={"updates": updates}).status_code == 200
+    assert client.post(f"/sessions/{session_id}/zoom/confirm").status_code == 200
+
+    dest = tmp_path / "color_splash_substitution_recipe.json"
+    assert client.post(f"/sessions/{session_id}/recipe/save", json={"dest_path": str(dest)}).status_code == 200
+    saved = json.loads(dest.read_text(encoding="utf-8"))
+    parameters = next(s for s in saved["steps"] if s["step_identifier"] == "color_splash")["parameters"]
+    assert parameters["range_1_target_hue_center"] == 130.0
+    assert parameters["range_1_target_enabled"] == 1.0
+
+    session_id_2 = _open(client)
+    assert client.post(f"/sessions/{session_id_2}/recipe/load", json={"path": str(dest)}).status_code == 200
+    reopened = client.post(
+        f"/sessions/{session_id_2}/zoom/{step_index}/open", json={"identifier": "Substitution"}
+    ).json()
+    target_1 = next(r for r in reopened["hue_ranges"] if r["identifier"] == "range_1_target")
+    assert target_1["hue_value"] == 130.0
+    assert target_1["feather_value"] == 45.0
+    by_id = {s["identifier"]: s["value"] for s in reopened["sliders"]}
+    assert by_id["range_1_target_saturation_boost"] == 160.0
+    assert by_id["range_2_target_enabled"] == 1.0
 
 
 def test_reopening_zoom_on_the_same_selection_preserves_prior_confirmed_edits(large_fixture_image):

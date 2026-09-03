@@ -493,6 +493,34 @@ ZoomOverlay.tsx's groupHueRanges). */
   border-bottom: none;
 }
 
+/* Color Splash's two per-interval groups (2026-09-03): "Couleur" (the source selection) and
+"Couleur de remplacement", both nested INSIDE the interval's own section rather than given sections
+of their own -- the indent and the left rule are what make each read as "belonging to" the interval
+above it instead of as a sibling control. Only the SECOND group carries a top rule, so the first
+sits flush under the interval's section header instead of doubling it. The replacement group is
+rendered only while the interval is active (see ZoomOverlay.tsx), so it never appears on a Color
+Splash preset that has no substitution. */
+.zoom-overlay__range-subgroup {
+  padding-left: 9px;
+  border-left: 1px solid var(--bd);
+}
+
+.zoom-overlay__range-subgroup + .zoom-overlay__range-subgroup {
+  margin-top: 13px;
+  padding-top: 9px;
+  border-top: 1px solid var(--bd);
+}
+
+/* The group's own title. Weighted like a CollapsibleSection title (600) rather than like the
+control labels it sits above -- flat at --t2 it read as just another row label, which is what made
+the two groups hard to tell apart at a glance. */
+.zoom-overlay__range-subgroup > .zoom-overlay__slider-label {
+  display: block;
+  margin-bottom: 9px;
+  font-weight: 600;
+  color: var(--t1);
+}
+
 /* Wraps one COLOR_WHEEL_PAIRS entry (feature 047) -- only needed when a group renders more than
 one wheel (Light's shadow/highlight split-tone) so each gets its own label above it; Monochrome's
 single wheel renders without this wrapper's label (see ZoomOverlay.tsx). */
@@ -505,38 +533,64 @@ single wheel renders without this wrapper's label (see ZoomOverlay.tsx). */
   margin-bottom: 6px;
 }
 
-.zoom-overlay__toggle {
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-round);
+/* Sliding on/off switch -- the single on/off affordance of the Zoom panel since 2026-09-03. It
+replaced a round `+`/`×` button (.zoom-overlay__toggle, removed with its last call site): the four
+tool/overlay controls first (Geometry, Cadrage, Aides dynamiques, Masque sujet), then, once the
+look was validated, every remaining one (Actif, Zone d'application, and any addon's generic 0/1/1
+slider -- see isBinaryToggle). Same amber-when-on language as every other active control.
+
+Geometry: 34x18 border-box, so the padding box is 32 wide; the 12px knob sits 2px from the left
+edge and travels 16px to land 2px from the right one. No transition -- this codebase deliberately
+does not animate state changes (see CollapsibleSection.css's own note). */
+.zoom-overlay__switch {
+  position: relative;
+  flex: none;
+  width: 34px;
+  height: 18px;
+  padding: 0;
   border: 1px solid var(--bd);
+  border-radius: var(--radius-round);
   background: transparent;
-  color: var(--t2);
-  font-size: 14px;
-  line-height: 1;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.zoom-overlay__toggle:hover {
+.zoom-overlay__switch::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  border-radius: var(--radius-round);
+  background: var(--t2);
+}
+
+.zoom-overlay__switch:hover {
   border-color: var(--bdh);
-  color: var(--t1);
 }
 
-.zoom-overlay__toggle--on {
+.zoom-overlay__switch:hover::after {
+  background: var(--t1);
+}
+
+.zoom-overlay__switch--on {
   background: var(--amber);
   border-color: var(--amber);
-  color: var(--accent-text);
+}
+
+.zoom-overlay__switch--on::after {
+  background: var(--accent-text);
+  transform: translateX(16px);
 }
 
 /* filter_color (B&W row, 2026-08-04) -- 4 labeled on/off buttons instead of a plain numeric
 slider (see ZoomOverlay.tsx's FILTER_COLOR_OPTIONS): "1"/"2"/"3"/"4" on a drag slider gave no way
 to tell which number was which color. Reuses the same on/off visual language as
-.zoom-overlay__toggle (amber fill when active) rather than tinting each button its own color, to
+.zoom-overlay__switch (amber fill when active) rather than tinting each button its own color, to
 stay inside the app's single-accent visual language -- the color is
-identified by its label text, not by a color swatch. */
+identified by its label text, not by a color swatch. These stay buttons, not switches: they are a
+mutually-exclusive 1-of-4 choice, not four independent on/off states. */
 .zoom-overlay__filter-color-buttons {
   display: flex;
   gap: 6px;

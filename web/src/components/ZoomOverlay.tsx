@@ -1324,6 +1324,20 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
     feather: hueRangeValues[hueRange.identifier]?.feather ?? hueRange.feather_value,
     enabled: enabledSlider ? (sliderValues[enabledSlider.identifier] ?? enabledSlider.value) >= 0.5 : false,
   }));
+  // Color Splash's replacement colors (2026-08-31) are declared as hue ranges of their own, named
+  // `${source}_target` (color_splash.py's _target_parameter_descriptions), so groupHueRanges picks
+  // them up exactly like a source range -- wheel, feather and intensity for free. They are rendered
+  // NESTED inside the interval they substitute rather than as 3 more top-level sections: a
+  // replacement for a disabled interval has no observable effect, so it must not be offered.
+  // Keyed by identifier rather than by position, since partitioning the list breaks the positional
+  // ringHandles[index] alignment the single-list rendering relied on.
+  const isTargetGroup = (group: ReturnType<typeof groupHueRanges>[number]) =>
+    group.hueRange.identifier.endsWith("_target");
+  const baseRangeGroups = rangeGroups.filter((group) => !isTargetGroup(group));
+  const targetGroupById = new Map(
+    rangeGroups.filter(isTargetGroup).map((group) => [group.hueRange.identifier, group]),
+  );
+  const ringHandleById = new Map(ringHandles.map((handle) => [handle.identifier, handle]));
   const isColorSplash = rowLabel === "Color Splash";
   const isLight = rowLabel === "Light";
   const sliderGroupMap = SLIDER_GROUPS[rowLabel];
@@ -1338,6 +1352,31 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
     return (sliderValues[slider.identifier] ?? slider.value) !== slider.default;
   }
 
+  /** The Zoom panel's one and only on/off affordance (user request, 2026-09-03) -- rolled out to
+  the four tool/overlay controls first (Geometry, Cadrage, Aides dynamiques, Masque sujet), then to
+  every remaining one once the look was validated: "Actif", "Zone d'application", and any addon's
+  generic 0/1/1 slider. It replaced a round `+`/`×` button, whose CSS was deleted with its last
+  call site. Anything still rendered as a plain button is a genuinely different control -- the B&W
+  filter row, for instance, is a mutually-exclusive 1-of-4 choice, not four on/off states.
+
+  `role="switch"` + `aria-checked` rather than the old button's trick of flipping its own
+  aria-label between "Activer X"/"Désactiver X": the state now belongs on the control, so the
+  accessible NAME stays stable (`label`) and only `aria-checked` moves. Still a real <button>, so
+  keyboard activation and focus behaviour are unchanged. Pass a name that identifies WHICH control
+  when the visible caption repeats across rows ("Actif", "Zone d'application"). */
+  function renderSwitch(label: string, on: boolean, onToggle: () => void) {
+    return (
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        aria-label={label}
+        className={`zoom-overlay__switch${on ? " zoom-overlay__switch--on" : ""}`}
+        onClick={onToggle}
+      />
+    );
+  }
+
   /** Geometry/Cadrage toggle row -- extracted so Light can place it AFTER its own Global/Sujet/
   Fond tabs (user request 2026-07-28) while every other row keeps it at the top of the panel,
   without duplicating this JSX at both call sites. */
@@ -1348,16 +1387,7 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
           <div key={kind} className="zoom-overlay__slider-row">
             <div className="zoom-overlay__slider-header">
               <span className="zoom-overlay__slider-label">{CORRECTION_LABELS[kind]}</span>
-              <button
-                type="button"
-                className={`zoom-overlay__toggle${activeCorrection === kind ? " zoom-overlay__toggle--on" : ""}`}
-                onClick={() => toggleCorrection(kind)}
-                aria-label={
-                  activeCorrection === kind ? `Désactiver ${CORRECTION_LABELS[kind]}` : `Activer ${CORRECTION_LABELS[kind]}`
-                }
-              >
-                {activeCorrection === kind ? "×" : "+"}
-              </button>
+              {renderSwitch(CORRECTION_LABELS[kind], activeCorrection === kind, () => toggleCorrection(kind))}
             </div>
           </div>
         ))}
@@ -1365,24 +1395,20 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
     );
   }
 
-  /** The `+`/`×` row opening one mask's polygon editor -- same shape and classes as Light's own
+  /** The row opening one mask's polygon editor -- same shape and classes as Light's own
   "Masque sujet" row and as renderCorrections' Geometry/Cadrage rows, so all three read alike.
-  `prefix` identifies which mask (Color Splash's "range_N_"); `rangeLabel` only feeds the
-  accessible name, since the enclosing section title already names the interval on screen. */
+  `prefix` identifies which mask (Color Splash's "range_N_"); `rangeLabel` disambiguates the
+  accessible name (there is one of these per interval, all captioned "Zone d'application" on
+  screen, so the visible text alone would not identify which). */
   function renderZoneToggle(prefix: string, rangeLabel: string) {
     const open = activeMask?.prefix === prefix;
     return (
       <div className="zoom-overlay__slider-row">
         <div className="zoom-overlay__slider-header">
           <span className="zoom-overlay__slider-label">Zone d'application</span>
-          <button
-            type="button"
-            className={`zoom-overlay__toggle${open ? " zoom-overlay__toggle--on" : ""}`}
-            onClick={() => handleToggleMask(prefix, `Zone — ${rangeLabel}`)}
-            aria-label={open ? `Fermer la zone de ${rangeLabel}` : `Modifier la zone de ${rangeLabel}`}
-          >
-            {open ? "×" : "+"}
-          </button>
+          {renderSwitch(`Zone d'application — ${rangeLabel}`, open, () =>
+            handleToggleMask(prefix, `Zone — ${rangeLabel}`),
+          )}
         </div>
       </div>
     );
@@ -1412,13 +1438,9 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
         <div key={slider.identifier} className="zoom-overlay__slider-row">
           <div className="zoom-overlay__slider-header">
             <span className="zoom-overlay__slider-label">{slider.label}</span>
-            <button
-              type="button"
-              className={`zoom-overlay__toggle${(sliderValues[slider.identifier] ?? slider.value) >= 0.5 ? " zoom-overlay__toggle--on" : ""}`}
-              onClick={() => handleToggleClick(slider)}
-            >
-              {(sliderValues[slider.identifier] ?? slider.value) >= 0.5 ? "×" : "+"}
-            </button>
+            {renderSwitch(slider.label, (sliderValues[slider.identifier] ?? slider.value) >= 0.5, () =>
+              handleToggleClick(slider),
+            )}
           </div>
         </div>
       );
@@ -1465,16 +1487,7 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
         <div className="zoom-overlay__slider-row">
           <div className="zoom-overlay__slider-header">
             <span className="zoom-overlay__slider-label">{showLabel ? hueRange.label : "Actif"}</span>
-            {enabledSlider && (
-              <button
-                type="button"
-                className={`zoom-overlay__toggle${enabled ? " zoom-overlay__toggle--on" : ""}`}
-                onClick={() => handleToggleClick(enabledSlider)}
-                aria-label={enabled ? `Désactiver ${hueRange.label}` : `Activer ${hueRange.label}`}
-              >
-                {enabled ? "×" : "+"}
-              </button>
-            )}
+            {enabledSlider && renderSwitch(hueRange.label, enabled, () => handleToggleClick(enabledSlider))}
           </div>
         </div>
         {enabled && (
@@ -1498,6 +1511,89 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
           </>
         )}
       </>
+    );
+  }
+
+  /** The color wheel of one hue-range group -- shared by a Color Splash interval and by the nested
+  replacement group below it, which are the same shape (a hue range + its boost slider) and must
+  behave identically. Reads its handle by identifier, see ringHandleById above. */
+  function renderRangeWheel(group: ReturnType<typeof groupHueRanges>[number]) {
+    const { hueRange, boostSlider } = group;
+    const handle = ringHandleById.get(hueRange.identifier);
+    return (
+      <ColorWheel
+        hue={handle?.hue ?? hueRange.hue_value}
+        saturation={(boostSlider ? sliderValues[boostSlider.identifier] ?? boostSlider.value : 100) / 2}
+        feather={handle?.feather ?? hueRange.feather_value}
+        onChange={(hue, radius) =>
+          handleColorSplashWheelChange(hueRange.identifier, boostSlider?.identifier, hue, radius)
+        }
+      />
+    );
+  }
+
+  /** One Color Splash group: an interval's source selection ("Couleur") or its replacement color
+  ("Couleur de remplacement"). Both carry the same controls in the same order (user request,
+  2026-09-03): the toggles first, then the wheel, then the two dials -- so the two groups read as
+  the same object twice rather than as two differently-shaped panels. Everything after "Actif" is
+  gated on it: an inactive interval collapses to a single row, which is what keeps a panel of 3
+  intervals x 2 groups legible.
+
+  `renderRangeGroupContents` above is deliberately NOT reused: it exists for the generic
+  hue-range fallback (any future addon declaring hue ranges without a dedicated branch) and orders
+  its rows differently. Sharing it would couple that fallback to Color Splash's own layout. */
+  function renderColorSplashGroup(
+    group: ReturnType<typeof groupHueRanges>[number],
+    title: string,
+    { withZone }: { withZone: boolean },
+  ) {
+    const { hueRange, enabledSlider, boostSlider } = group;
+    const enabled = enabledSlider ? (sliderValues[enabledSlider.identifier] ?? enabledSlider.value) >= 0.5 : false;
+    const feather = hueRangeValues[hueRange.identifier]?.feather ?? hueRange.feather_value;
+    // Same convention-not-identifier detection as before: a group declaring its own polygon
+    // vertex-count parameter gets the zone affordance. Only the source selection has one -- the
+    // replacement color is confined by the interval's zone, it does not carry a second one.
+    const hasZone =
+      withZone && (zoomState?.sliders.some((s) => s.identifier === `${hueRange.identifier}_mask_point_count`) ?? false);
+    return (
+      <div className="zoom-overlay__range-subgroup">
+        <span className="zoom-overlay__slider-label">{title}</span>
+        {enabledSlider && (
+          <div className="zoom-overlay__slider-row">
+            <div className="zoom-overlay__slider-header">
+              <span className="zoom-overlay__slider-label">Actif</span>
+              {/* Accessible name is the range's own label ("Intervalle 1" / "Remplacement 1"), not
+              the visible "Actif": every group shows the same word, so the caption alone would not
+              say which one a screen reader is on. */}
+              {renderSwitch(hueRange.label, enabled, () => handleToggleClick(enabledSlider))}
+            </div>
+          </div>
+        )}
+        {enabled && (
+          <>
+            {hasZone && renderZoneToggle(`${hueRange.identifier}_`, hueRange.label)}
+            {renderRangeWheel(group)}
+            <div className="zoom-overlay__slider-row">
+              <div className="zoom-overlay__slider-header">
+                <span className="zoom-overlay__slider-label">Adoucissement</span>
+                <span className="zoom-overlay__slider-value">{Math.round(feather)}</span>
+              </div>
+              <input
+                type="range"
+                min={hueRange.feather_minimum}
+                max={hueRange.feather_maximum}
+                step={1}
+                value={feather}
+                onChange={(event) => handleFeatherChange(hueRange.identifier, Number(event.target.value))}
+              />
+            </div>
+            {/* The declared labels ("Intensité couleur 1" / "Intensité remplacement 1") repeat what
+            the enclosing group title already says, so they are shortened here -- presentation only,
+            a shallow copy: every handler reads fields off the slider, never its identity. */}
+            {boostSlider && renderSlider({ ...boostSlider, label: "Intensité" })}
+          </>
+        )}
+      </div>
     );
   }
 
@@ -1702,14 +1798,7 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
             <div className="zoom-overlay__slider-row">
               <div className="zoom-overlay__slider-header">
                 <span className="zoom-overlay__slider-label">Aides dynamiques</span>
-                <button
-                  type="button"
-                  className={`zoom-overlay__toggle${vignetteAidsEnabled ? " zoom-overlay__toggle--on" : ""}`}
-                  onClick={() => setVignetteAidsEnabled((v) => !v)}
-                  aria-label={vignetteAidsEnabled ? "Désactiver les aides dynamiques" : "Activer les aides dynamiques"}
-                >
-                  {vignetteAidsEnabled ? "×" : "+"}
-                </button>
+                {renderSwitch("Aides dynamiques", vignetteAidsEnabled, () => setVignetteAidsEnabled((v) => !v))}
               </div>
             </div>
           </div>
@@ -1742,14 +1831,7 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
               <div className="zoom-overlay__slider-row">
                 <div className="zoom-overlay__slider-header">
                   <span className="zoom-overlay__slider-label">Masque sujet</span>
-                  <button
-                    type="button"
-                    className={`zoom-overlay__toggle${activeMask ? " zoom-overlay__toggle--on" : ""}`}
-                    onClick={() => handleToggleMask("", "Masque sujet")}
-                    aria-label={activeMask ? "Désactiver le masque sujet" : "Activer le masque sujet"}
-                  >
-                    {activeMask ? "×" : "+"}
-                  </button>
+                  {renderSwitch("Masque sujet", Boolean(activeMask), () => handleToggleMask("", "Masque sujet"))}
                 </div>
               </div>
             )}
@@ -1759,23 +1841,26 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
         <div className="zoom-overlay__sliders">
           {isColorSplash ? (
             <>
-              {rangeGroups.map((group, index) => (
-                <CollapsibleSection
-                  key={group.hueRange.identifier}
-                  title={group.hueRange.label}
-                  hasModifiedValue={isRangeGroupModified(group)}
-                >
-                  <ColorWheel
-                    hue={ringHandles[index].hue}
-                    saturation={(group.boostSlider ? sliderValues[group.boostSlider.identifier] ?? group.boostSlider.value : 100) / 2}
-                    feather={ringHandles[index].feather}
-                    onChange={(hue, radius) =>
-                      handleColorSplashWheelChange(group.hueRange.identifier, group.boostSlider?.identifier, hue, radius)
+              {baseRangeGroups.map((group) => {
+                const targetGroup = targetGroupById.get(`${group.hueRange.identifier}_target`);
+                const rangeEnabled = group.enabledSlider
+                  ? (sliderValues[group.enabledSlider.identifier] ?? group.enabledSlider.value) >= 0.5
+                  : false;
+                return (
+                  <CollapsibleSection
+                    key={group.hueRange.identifier}
+                    title={group.hueRange.label}
+                    hasModifiedValue={
+                      isRangeGroupModified(group) || (targetGroup ? isRangeGroupModified(targetGroup) : false)
                     }
-                  />
-                  {renderRangeGroupContents(group, false)}
-                </CollapsibleSection>
-              ))}
+                  >
+                    {renderColorSplashGroup(group, "Couleur", { withZone: true })}
+                    {rangeEnabled &&
+                      targetGroup &&
+                      renderColorSplashGroup(targetGroup, "Couleur de remplacement", { withZone: false })}
+                  </CollapsibleSection>
+                );
+              })}
               {ungroupedSliders.length > 0 && (
                 <CollapsibleSection title="Réglages globaux" hasModifiedValue={ungroupedSliders.some(isModified)}>
                   {ungroupedSliders.map(renderSlider)}
