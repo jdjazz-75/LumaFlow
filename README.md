@@ -10,7 +10,9 @@
 ![RAW](https://img.shields.io/badge/RAW-CR2%20%7C%20NEF%20%7C%20ARW-orange)
 
 <p align="center">
-  <img src="docs/screenshots/00-lumaflow.png" alt="LumaFlow Photo interface" width="100%">
+  <img src="docs/media/lumaflow-demo.gif"
+       alt="LumaFlow Photo editing workflow"
+       width="100%">
 </p>
 
 <p align="center">
