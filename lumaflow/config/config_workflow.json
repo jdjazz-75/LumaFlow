@@ -61,7 +61,7 @@
       "label": "Color Splash",
       "category": "color_splash",
       "addon_identifiers": null,
-      "short_description": "Noir et blanc + couleur(s) conserv\u00e9e(s)",
+      "short_description": "Noir et blanc + couleur(s) conserv\u00e9e(s), ou substitution de couleur",
       "thumbnail_presets": [
         "neutral",
         "Rouge",
@@ -69,7 +69,8 @@
         "Jaune",
         "Vert",
         "Bleu",
-        "Violet"
+        "Violet",
+        "Substitution"
       ]
     },
     {

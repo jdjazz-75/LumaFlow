@@ -321,8 +321,10 @@ def test_real_color_splash_row_positioned_after_bleach_bypass_and_validates_agai
     assert identifiers.index("color_splash") == identifiers.index("bleach_bypass") + 1
 
     color_splash_row = next(row for row in config.rows if row.identifier == "color_splash")
+    # "Substitution" (2026-08-31) is the color-replacement entry point -- the only preset here that
+    # remaps hues instead of desaturating, and the only one that leaves the background in color.
     assert color_splash_row.thumbnail_presets == (
-        "neutral", "Rouge", "Orange", "Jaune", "Vert", "Bleu", "Violet",
+        "neutral", "Rouge", "Orange", "Jaune", "Vert", "Bleu", "Violet", "Substitution",
     )
 
     result = validate_workflow_config(config, addon_index)

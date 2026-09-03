@@ -34,6 +34,7 @@
     <article>
 <h1 id="4-3-color-splash">4.3 Color Splash</h1>
 <p><strong>Moteur</strong> : désature l'image entière, à l'exception d'au plus 3 plages de teinte actives simultanément. Une plage est définie par une teinte centrale et un « adoucissement » (demi-largeur en degrés) : le poids de conservation vaut 1 au centre, décroît en cosinus jusqu'à 0 à la limite de l'adoucissement. Les 3 plages se combinent par un maximum (union), jamais une somme, pour qu'un recouvrement entre deux plages ne sursature jamais. Un pixel n'est éligible à la couleur que si sa saturation <em>d'origine</em> dépasse un seuil réglable (évite qu'un pixel presque gris ne bascule en couleur au moindre effleurement d'une plage active).</p>
+<p><strong>Substitution de couleur</strong> : chaque plage peut en outre déclarer une <em>couleur de remplacement</em>, décrite exactement comme la plage source — teinte, adoucissement, intensité. Quand elle est active, les pixels sélectionnés ne se contentent plus de conserver leur couleur : leur teinte est <em>remplacée</em>. La position d'un pixel <em>à l'intérieur</em> de la fenêtre source est reprojetée proportionnellement dans la fenêtre cible, selon <code>teinte finale = C2 + (teinte − C1) × (F2 / F1)</code>, où C/F sont la teinte centrale et l'adoucissement de la plage source (1) et de la plage de remplacement (2). C'est l'adoucissement <em>cible</em> F2 qui décide de la quantité de nuances d'origine qui survivent : à 0° toute la plage s'aplatit sur une teinte unique, à F2 = F1 les nuances sont conservées à l'identique, au-delà elles sont amplifiées. La <strong>luminance n'est jamais touchée</strong> — c'est ce qui garde une substitution photographique plutôt que peinte. Le déplacement est pondéré par le même poids en cosinus que la conservation : un pixel en bordure de plage ne parcourt qu'une partie du chemin, ce qui fond la transition dans le reste de l'image au lieu de la trancher net. Chaque plage a sa propre couleur de remplacement, et la <em>zone d'application</em> décrite plus bas la contraint spatialement comme elle contraint la conservation.</p>
 <h2 id="vignettes">Vignettes</h2>
 <div class="table-wrap"><table>
 <thead><tr><th>Vignette</th><th>Effet</th></tr></thead>
@@ -45,33 +46,54 @@
 <tr><td><strong>Vert</strong></td><td>Même mécanisme, centré sur 120° (vert).</td></tr>
 <tr><td><strong>Bleu</strong></td><td>Même mécanisme, centré sur 240° (bleu).</td></tr>
 <tr><td><strong>Violet</strong></td><td>Même mécanisme, centré sur 285° (violet).</td></tr>
+<tr><td><strong>Substitution</strong></td><td>Le seul preset qui <em>remplace</em> une couleur au lieu d'en désaturer d'autres : remappe les rouges (0°, fenêtre volontairement large de 60°) vers le bleu (210°) et laisse <em>tout le reste de l'image dans ses couleurs d'origine</em> (désaturation du fond à 0 %). C'est un point d'entrée destiné à être réglé dans le Zoom, pas un rendu fini.</td></tr>
 </tbody></table></div>
-<p>Les 6 presets ne diffèrent que par la teinte centrale conservée — l'adoucissement (30°), l'intensité de la couleur conservée (100 %) et le seuil de saturation (15 %) restent partout à leur valeur générique.</p>
+<p>Les 6 premiers presets ne diffèrent que par la teinte centrale conservée — l'adoucissement (30°), l'intensité de la couleur conservée (100 %) et le seuil de saturation (15 %) restent partout à leur valeur générique. <strong>Substitution</strong> est le seul à sortir de ce moule : il active une couleur de remplacement et neutralise la désaturation du fond.</p>
 <h2 id="r-glages-manuels">Réglages manuels</h2>
-<p>Un seul groupe, affiché sous forme d'un <strong>sélecteur en anneau</strong> (jusqu'à 3 curseurs simultanés, puisqu'une teinte est cyclique — un curseur linéaire couperait artificiellement le rouge à la jointure 0°/360°) plus des curseurs classiques :</p>
+<p>Le panneau expose une section repliable par intervalle — <strong>Intervalle 1</strong>, <strong>2</strong>, <strong>3</strong> — puis un groupe <em>Réglages globaux</em>. Chaque intervalle contient <strong>deux groupes bâtis à l'identique</strong> : <strong>Couleur</strong> (la plage sélectionnée) et <strong>Couleur de remplacement</strong> (la plage qui s'y substitue). Les deux présentent les mêmes contrôles dans le même ordre — un interrupteur <em>Actif</em>, une <strong>roue chromatique</strong> (une teinte est cyclique : un curseur linéaire couperait artificiellement le rouge à la jointure 0°/360°, et le rayon de la roue pilote l'intensité), un <em>Adoucissement</em> et une <em>Intensité</em> — la seule différence étant la <em>Zone d'application</em>, portée par la sélection source uniquement. Tout ce qui suit <em>Actif</em> n'apparaît que lorsque le groupe est actif, et le groupe <em>Couleur de remplacement</em> n'apparaît pas du tout tant que l'intervalle est inactif : un remplacement sans sélection n'a rien à remplacer.</p>
+<h3 id="groupe-couleur">Groupe <em>Couleur</em></h3>
 <ul>
-<li><strong>Intervalle 1/2/3</strong> (<code>range_N</code>, anneau, 0..360°) — position de la teinte centrale conservée pour chacune des 3 plages actives au plus. Illustré ici sur l'intervalle 1, rouge (0°) puis bleu (240°).</li>
-</ul>
-<p class="figure"><img src="../screenshots/reglages/color_splash/range_hue_center.png" alt="Intervalle — teinte centrale" loading="lazy"></p>
-<ul>
-<li><strong>Intervalle N actif</strong> (<code>range_N_enabled</code>) — active/désactive cette plage (bouton +/×). C'est ce qui permet jusqu'à 3 plages simultanées, chacune avec son propre interrupteur.</li>
+<li><strong>Actif</strong> (<code>range_N_enabled</code>) — active/désactive cette plage (bouton +/×). C'est ce qui permet jusqu'à 3 plages simultanées, chacune avec son propre interrupteur.</li>
 </ul>
 <p class="figure"><img src="../screenshots/reglages/color_splash/range_enabled.png" alt="Intervalle actif" loading="lazy"></p>
+<ul>
+<li><strong>Zone d'application</strong> (bouton +/×, par intervalle) — ouvre l'éditeur de contour et limite <em>spatialement</em> l'intervalle à la zone tracée : tout ce qui est en dehors bascule en noir et blanc selon la <em>Désaturation du fond</em>, même si la teinte correspond. Elle contraint aussi bien la conservation que la substitution — c'est pourquoi il n'y en a qu'une par intervalle, et non une par groupe. Le tracé fonctionne exactement comme le <a href="light.html">Masque du sujet</a> de la ligne Light (sommets déplaçables, double-clic pour supprimer un sommet, « + » sur une arête pour en insérer un, <em>Adoucissement</em> du contour et <em>Inverser</em>). Chaque intervalle a sa propre zone, indépendante des deux autres.
+<br>Par défaut aucune zone n'est tracée : l'intervalle s'applique à l'image entière. Le bouton <strong>Toute l'image</strong> de la barre flottante y revient à tout moment ; fermer l'éditeur avec « × » referme seulement l'outil et conserve la zone.
+<br><strong>Les zones ne sont pas enregistrées dans les presets</strong> — comme le recadrage ou la correction de perspective, un contour tracé autour d'un sujet n'a pas de sens sur une autre photo. Un preset rechargé applique donc toujours la configuration Color Splash à l'image entière.</li>
+</ul>
+<ul>
+<li><strong>Roue chromatique</strong> (<code>range_N</code>, 0..360°) — position de la teinte centrale conservée pour cette plage. Illustré ici sur l'intervalle 1, rouge (0°) puis bleu (240°).</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/color_splash/range_hue_center.png" alt="Intervalle — teinte centrale" loading="lazy"></p>
 <ul>
 <li><strong>Adoucissement</strong> (<code>range_N_feather</code>, 5..90°) — largeur de la transition en cosinus autour de la teinte centrale : étroit = coupure nette vers le gris, large = transition beaucoup plus progressive (davantage de teintes voisines restent partiellement colorées).</li>
 </ul>
 <p class="figure"><img src="../screenshots/reglages/color_splash/range_feather.png" alt="Adoucissement" loading="lazy"></p>
 <ul>
-<li><strong>Intensité couleur N</strong> (<code>range_N_saturation_boost</code>, 0..200 %) — multiplie la saturation d'origine des pixels conservés par cette plage : en dessous de 100 %, la couleur conservée est atténuée ; au-dessus, elle est intensifiée/sursaturée.</li>
+<li><strong>Intensité</strong> (<code>range_N_saturation_boost</code>, 0..200 %) — multiplie la saturation d'origine des pixels conservés par cette plage : en dessous de 100 %, la couleur conservée est atténuée ; au-dessus, elle est intensifiée/sursaturée. Sans effet lorsque le remplacement est actif, qui porte alors sa propre intensité.</li>
 </ul>
 <p class="figure"><img src="../screenshots/reglages/color_splash/range_saturation_boost.png" alt="Intensité couleur" loading="lazy"></p>
+<h3 id="groupe-couleur-de-remplacement">Groupe <em>Couleur de remplacement</em></h3>
 <ul>
-<li><strong>Zone d'application</strong> (bouton +/×, par intervalle) — ouvre l'éditeur de contour et limite <em>spatialement</em> cette plage à la zone tracée : tout ce qui est en dehors bascule en noir et blanc selon la <em>Désaturation du fond</em>, même si la teinte correspond. Le tracé fonctionne exactement comme le <a href="light.html">Masque du sujet</a> de la ligne Light (sommets déplaçables, double-clic pour supprimer un sommet, « + » sur une arête pour en insérer un, <em>Adoucissement</em> du contour et <em>Inverser</em>). Chaque intervalle a sa propre zone, indépendante des deux autres.
-<br>Par défaut aucune zone n'est tracée : la plage s'applique à l'image entière. Le bouton <strong>Toute l'image</strong> de la barre flottante y revient à tout moment ; fermer l'éditeur avec « × » referme seulement l'outil et conserve la zone.
-<br><strong>Les zones ne sont pas enregistrées dans les presets</strong> — comme le recadrage ou la correction de perspective, un contour tracé autour d'un sujet n'a pas de sens sur une autre photo. Un preset rechargé applique donc toujours la configuration Color Splash à l'image entière.</li>
+<li><strong>Actif</strong> (<code>range_N_target_enabled</code>) — bascule cet intervalle du mode « conserver » au mode « remplacer » (bouton +/×). Inactif, l'intervalle se comporte exactement comme avant : il conserve sa couleur d'origine.</li>
 </ul>
+<p class="figure"><img src="../screenshots/reglages/color_splash/range_target_enabled.png" alt="Remplacement actif" loading="lazy"></p>
 <ul>
-<li><strong>Désaturation du fond</strong> (<code>background_desaturation</code>, 0..100 %) — force de désaturation appliquée en dehors des plages conservées : à 100 %, le fond devient entièrement gris (l'effet « splash » classique) ; en dessous, une partie de la couleur d'origine reste visible dans le fond.</li>
+<li><strong>Roue chromatique</strong> (<code>range_N_target</code>, 0..360°) — teinte centrale de la couleur qui se substitue à la plage. Illustré ici sur l'intervalle 1 (rouge sélectionné), remplacé par du bleu (210°) puis par du vert (120°) ; le reste de l'image ne bouge pas.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/color_splash/range_target_hue_center.png" alt="Remplacement — teinte centrale" loading="lazy"></p>
+<ul>
+<li><strong>Adoucissement</strong> (<code>range_N_target_feather</code>, 0..90°) — largeur de la plage de teintes cibles, et donc quantité de nuances d'origine conservées : à <strong>0°</strong> toutes les teintes sélectionnées visent la même couleur (aplatissement) ; à une valeur <strong>égale à l'adoucissement de la source</strong> les écarts de teinte d'origine sont reproduits à l'identique ; <strong>au-delà</strong> ils sont amplifiés. Contrairement à celui de la source, il descend jusqu'à 0° — une fenêtre cible de largeur nulle est un cas utile, alors qu'une fenêtre source de largeur nulle ne sélectionnerait rien. Illustré sur une sélection volontairement large (60°, qui englobe aussi le ciel et le bâtiment orange, comme la figure de l'adoucissement source plus haut) : à gauche 0°, à droite 90°.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/color_splash/range_target_feather.png" alt="Adoucissement du remplacement" loading="lazy"></p>
+<ul>
+<li><strong>Intensité</strong> (<code>range_N_target_saturation_boost</code>, 0..200 %) — saturation de la couleur de remplacement. Elle <em>prend la place</em> de l'<em>Intensité</em> de la sélection source tant que le remplacement est actif : les deux agissent sur la même saturation, et c'est la couleur de remplacement qui est effectivement à l'écran.</li>
+</ul>
+<p class="figure"><img src="../screenshots/reglages/color_splash/range_target_saturation_boost.png" alt="Intensité du remplacement" loading="lazy"></p>
+<p>Un pixel n'est déplacé qu'à hauteur de son poids dans la fenêtre source : au centre de la plage il atteint exactement la teinte de remplacement, en bordure il ne parcourt qu'une fraction du chemin — c'est ce qui fond la substitution dans le reste de l'image plutôt que de la trancher net. Le <em>Seuil de saturation</em> ci-dessous exclut du remplacement, comme de la conservation, les pixels presque gris. Contrairement aux zones, ces réglages <strong>sont enregistrés dans les presets</strong> : une couleur de remplacement veut dire la même chose sur n'importe quelle photo.</p>
+<h3 id="r-glages-globaux">Groupe <em>Réglages globaux</em></h3>
+<ul>
+<li><strong>Désaturation du fond</strong> (<code>background_desaturation</code>, 0..100 %) — force de désaturation appliquée en dehors des plages conservées : à 100 %, le fond devient entièrement gris (l'effet « splash » classique) ; en dessous, une partie de la couleur d'origine reste visible dans le fond ; à <strong>0 %</strong> le fond est rigoureusement intact — c'est la valeur du preset <em>Substitution</em>, qui remplace une couleur sans toucher au reste de la photo. Les deux mécanismes se combinent librement : rien n'interdit de substituer une teinte <em>et</em> de désaturer le fond.</li>
 </ul>
 <p class="figure"><img src="../screenshots/reglages/color_splash/background_desaturation.png" alt="Désaturation du fond" loading="lazy"></p>
 <ul>

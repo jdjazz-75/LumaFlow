@@ -19,8 +19,10 @@ from lumaflow.addons.builtin.color_splash import (
     _read_float,
     _read_mask,
     _read_range,
+    _read_target,
     _rgb_to_hsl,
     _hsl_to_rgb,
+    _wrap180,
     color_splash,
     resolve_zoom_values,
 )
@@ -411,3 +413,228 @@ def test_rgb_hsl_round_trip_is_approximately_stable():
     hue, saturation, luminance = _rgb_to_hsl(image.astype(numpy.float32))
     back = _hsl_to_rgb(hue, saturation, luminance)
     assert numpy.allclose(back, image.astype(numpy.float32), atol=1.5)
+
+
+# ---------------------------------------------------------------------------
+# Color substitution (2026-08-31): a range's `range_N_target_*` replacement color remaps the hue
+# of the pixels that range selects, instead of merely keeping their saturation.
+# ---------------------------------------------------------------------------
+
+
+def _mean_hue(region: numpy.ndarray) -> float:
+    """Mean hue of a solid patch, computed on the unit circle so a patch sitting near the 0/360
+    seam (red) averages to ~0 rather than to ~180."""
+    hue, _, _ = _rgb_to_hsl(region.astype(numpy.float32))
+    radians = numpy.deg2rad(hue)
+    return float(numpy.rad2deg(numpy.arctan2(numpy.sin(radians).mean(), numpy.cos(radians).mean())) % 360.0)
+
+
+def _mean_luminance(region: numpy.ndarray) -> float:
+    _, _, luminance = _rgb_to_hsl(region.astype(numpy.float32))
+    return float(luminance.mean())
+
+
+def _substitution(index: int, source_hue: float, target_hue: float, **extra) -> dict:
+    params = {
+        f"range_{index}_enabled": 1.0,
+        f"range_{index}_hue_center": source_hue,
+        f"range_{index}_target_enabled": 1.0,
+        f"range_{index}_target_hue_center": target_hue,
+        "background_desaturation": 0.0,
+    }
+    params.update(extra)
+    return params
+
+
+def test_no_substitution_leaves_the_pre_substitution_behavior_bit_identical():
+    """Regression guard for the whole feature: a Color Splash configuration that predates the
+    substitution parameters must render EXACTLY as before, byte for byte. Adding the target keys
+    with their declared defaults (target_enabled = 0) must be a no-op, not a near-no-op."""
+    image, _ = _standard_image()
+    legacy = {"range_1_enabled": 1.0, "range_1_hue_center": 0.0, "range_2_enabled": 1.0,
+              "range_2_hue_center": 240.0, "range_1_saturation_boost": 150.0}
+    with_explicit_defaults = {
+        **legacy,
+        **{key: value for key, value in _GENERIC_DEFAULTS.items() if "_target_" in key},
+    }
+    assert numpy.array_equal(color_splash(image, legacy), color_splash(image, with_explicit_defaults))
+
+
+def test_substitution_remaps_the_selected_range_onto_the_target_hue():
+    image, regions = _standard_image()
+    result = color_splash(image, _substitution(1, source_hue=0.0, target_hue=240.0))
+
+    substituted = result[regions["red"]]
+    assert abs(_wrap180(_mean_hue(substituted) - 240.0)) < 8.0
+    # The replaced patch must still be a real color, not a gray -- the remap moves the hue, it
+    # does not consume the saturation.
+    assert _mean_saturation(substituted) > 0.5
+
+
+def test_substitution_preserves_luminance():
+    """What keeps a substitution photographic rather than painted: only the hue travels."""
+    image, regions = _standard_image()
+    result = color_splash(image, _substitution(1, source_hue=0.0, target_hue=240.0))
+    assert abs(_mean_luminance(result[regions["red"]]) - _mean_luminance(image[regions["red"]])) < 0.02
+
+
+def test_substitution_leaves_the_rest_of_the_image_exactly_untouched():
+    """`background_desaturation = 0` (what the "Substitution" vignette ships) means a pure
+    replacement: every pixel outside the source range keeps its ORIGINAL rgb, bit for bit."""
+    image, regions = _standard_image()
+    result = color_splash(image, _substitution(1, source_hue=0.0, target_hue=240.0))
+    for name in ("green", "blue", "yellow", "gray"):
+        assert numpy.array_equal(result[regions[name]], image[regions[name]]), name
+
+
+def test_target_feather_zero_aims_every_selected_hue_at_the_same_target():
+    """F2 = 0 is the "aplatir la couleur" case: the target stops spreading with the source's own
+    hue variety. At the CENTER of the source window (weight 1.0) that lands exactly on the target
+    hue; an off-center pixel still travels only in proportion to its window weight -- which is the
+    deliberate mechanism that lets a range's edge blend smoothly back into the untouched
+    background instead of ending on a hard seam."""
+    patches = {"center": _solid_patch(30.0, 0.8, 0.5), "edge": _solid_patch(50.0, 0.8, 0.5)}
+    image, regions = _image_with_patches(patches)
+    flat = color_splash(image, _substitution(
+        1, 30.0, 240.0, **{"range_1_feather": 60.0, "range_1_target_feather": 0.0}))
+    spread = color_splash(image, _substitution(
+        1, 30.0, 240.0, **{"range_1_feather": 60.0, "range_1_target_feather": 60.0}))
+
+    # A full-weight pixel reaches the target exactly, and F2 is irrelevant there (offset is 0).
+    assert abs(_wrap180(_mean_hue(flat[regions["center"]]) - 240.0)) < 4.0
+    assert abs(_wrap180(_mean_hue(spread[regions["center"]]) - 240.0)) < 4.0
+
+    def gap(result: numpy.ndarray) -> float:
+        return abs(_wrap180(_mean_hue(result[regions["edge"]]) - _mean_hue(result[regions["center"]])))
+
+    assert gap(flat) < gap(spread)
+
+
+def test_target_feather_equal_to_source_feather_preserves_the_hue_spacing():
+    """F2 == F1 is the identity ratio: the 40-degree gap between the two source patches survives
+    the substitution instead of being compressed or spread."""
+    patches = {"a": _solid_patch(10.0, 0.8, 0.5), "b": _solid_patch(50.0, 0.8, 0.5)}
+    image, regions = _image_with_patches(patches)
+    result = color_splash(image, _substitution(
+        1, source_hue=30.0, target_hue=240.0, **{"range_1_feather": 60.0, "range_1_target_feather": 60.0}
+    ))
+    spacing = abs(_wrap180(_mean_hue(result[regions["b"]]) - _mean_hue(result[regions["a"]])))
+    assert abs(spacing - 40.0) < 6.0
+
+
+def test_wider_target_feather_amplifies_the_hue_spacing():
+    patches = {"a": _solid_patch(10.0, 0.8, 0.5), "b": _solid_patch(50.0, 0.8, 0.5)}
+    image, regions = _image_with_patches(patches)
+
+    def spacing(target_feather: float) -> float:
+        result = color_splash(image, _substitution(
+            1, source_hue=30.0, target_hue=240.0,
+            **{"range_1_feather": 60.0, "range_1_target_feather": target_feather},
+        ))
+        return abs(_wrap180(_mean_hue(result[regions["b"]]) - _mean_hue(result[regions["a"]])))
+
+    assert spacing(20.0) < spacing(60.0) < spacing(90.0)
+
+
+def test_target_enabled_without_its_source_range_enabled_changes_nothing():
+    """A replacement color for a selection that selects nothing has nothing to replace."""
+    image, _ = _standard_image()
+    params = {"range_1_target_enabled": 1.0, "range_1_target_hue_center": 240.0,
+              "background_desaturation": 0.0}
+    assert numpy.array_equal(color_splash(image, params), image)
+
+
+def test_substitution_intensity_drives_the_replaced_saturation():
+    image, regions = _standard_image()
+    faded = color_splash(image, _substitution(
+        1, 0.0, 240.0, **{"range_1_target_saturation_boost": 20.0}))
+    vivid = color_splash(image, _substitution(
+        1, 0.0, 240.0, **{"range_1_target_saturation_boost": 200.0}))
+    assert _mean_saturation(faded[regions["red"]]) < _mean_saturation(vivid[regions["red"]])
+
+
+def test_two_ranges_can_be_substituted_onto_two_different_targets_simultaneously():
+    image, regions = _standard_image()
+    params = {
+        **_substitution(1, source_hue=0.0, target_hue=120.0),
+        **_substitution(2, source_hue=240.0, target_hue=60.0),
+    }
+    result = color_splash(image, params)
+    assert abs(_wrap180(_mean_hue(result[regions["red"]]) - 120.0)) < 8.0
+    assert abs(_wrap180(_mean_hue(result[regions["blue"]]) - 60.0)) < 8.0
+    assert numpy.array_equal(result[regions["gray"]], image[regions["gray"]])
+
+
+def test_near_gray_pixel_is_excluded_from_the_substitution_by_the_saturation_threshold():
+    """Same gate as the colorization path: a pixel with no visible color to replace must not
+    silently change tint."""
+    patches = {"pale": _solid_patch(0.0, saturation=0.05, lightness=0.5)}
+    image, regions = _image_with_patches(patches)
+    result = color_splash(image, _substitution(
+        1, 0.0, 240.0, **{"saturation_threshold": 20.0}))
+    assert numpy.array_equal(result[regions["pale"]], image[regions["pale"]])
+
+
+def test_application_zone_confines_the_substitution_spatially():
+    """The zone multiplies the hue weight BEFORE the remap accumulates, so a matching hue outside
+    the zone keeps its original color exactly (with background_desaturation at 0)."""
+    image, _ = _image_with_patches({"left": _solid_patch(0.0, 0.8, 0.5), "right": _solid_patch(0.0, 0.8, 0.5)})
+    params = _substitution(1, source_hue=0.0, target_hue=240.0)
+    # A polygon covering only the left half of the (2 * _PATCH_SIZE) wide image.
+    params.update({"range_1_mask_point_count": 4.0})
+    for i, (x, y) in enumerate(((0.0, 0.0), (0.5, 0.0), (0.5, 1.0), (0.0, 1.0))):
+        params[f"range_1_mask_point_{i:02d}_x"] = x
+        params[f"range_1_mask_point_{i:02d}_y"] = y
+    result = color_splash(image, params)
+
+    assert abs(_wrap180(_mean_hue(result[:, : _PATCH_SIZE // 2]) - 240.0)) < 8.0
+    assert numpy.array_equal(result[:, -(_PATCH_SIZE // 2):], image[:, -(_PATCH_SIZE // 2):])
+
+
+def test_malformed_target_values_fall_back_per_key_without_raising():
+    image, _ = _standard_image()
+    for bad in (None, "far", True, -999.0, 999.0, [], {}):
+        params = {
+            "range_1_enabled": 1.0, "range_1_hue_center": 0.0,
+            "range_1_target_enabled": bad, "range_1_target_hue_center": bad,
+            "range_1_target_feather": bad, "range_1_target_saturation_boost": bad,
+        }
+        result = color_splash(image, params)
+        assert result.dtype == numpy.uint8
+        assert result.shape == image.shape
+
+
+def test_read_target_clamps_feather_down_to_zero_unlike_the_source_range():
+    """The source's floor is 5 degrees (a zero-width selection would select nothing); the target's
+    is 0 (a zero-width replacement window is the meaningful flat-tone case)."""
+    assert _read_target({"range_1_target_feather": -5.0}, 1).feather == 0.0
+    assert _read_range({"range_1_feather": -5.0}, 1).feather == 5.0
+    assert _read_target({"range_1_target_feather": 999.0}, 1).feather == 90.0
+    assert _read_target({"range_1_target_hue_center": 370.0}, 1).hue_center == 10.0
+
+
+def test_substitution_preset_replaces_red_and_leaves_the_background_in_color():
+    """The shipped "Substitution" vignette, end to end."""
+    preset = next(p for p in ADDON_DESCRIPTION.thumbnail_presets if p.identifier == "Substitution")
+    assert preset.identifier == preset.label  # displayed caption IS the identifier
+    image, regions = _standard_image()
+    result = color_splash(image, dict(preset.preset_parameters))
+    assert abs(_wrap180(_mean_hue(result[regions["red"]]) - 210.0)) < 12.0
+    assert numpy.array_equal(result[regions["green"]], image[regions["green"]])
+
+
+def test_substitution_parameters_are_declared_portable_not_transient():
+    """Unlike the application zones, a replacement color means the same thing on any photo and
+    must survive a saved recipe -- so none of these may be transient."""
+    target_parameters = [
+        p for p in ADDON_DESCRIPTION.parameter_descriptions if "_target" in (p.identifier or "")
+    ]
+    assert len(target_parameters) == 3 * 3
+    assert not any(p.transient for p in target_parameters)
+    values = resolve_zoom_values({})
+    for index in (1, 2, 3):
+        assert values[f"range_{index}_target_enabled"] == 0.0
+        assert values[f"range_{index}_target_feather"] == 30.0
+        assert values[f"range_{index}_target_saturation_boost"] == 100.0
+    # Overrides win over the generic defaults, same contract as every other parameter.
+    assert resolve_zoom_values({"range_2_target_hue_center": 180.0})["range_2_target_hue_center"] == 180.0
