@@ -15,7 +15,6 @@ import {
 import "./ZoomOverlay.css";
 import * as api from "../lib/api";
 import type { RowSpec, ZoomHueRange, ZoomOverlay as ZoomOverlayDescriptor, ZoomSlider, ZoomState } from "../lib/api";
-import { vignetteDisplayText } from "../lib/filmstrip";
 import { computeFitPercent } from "../lib/zoomFit";
 import { CloseIcon, SplitHandleIcon } from "./icons";
 import { HueRing, type HueRingHandle } from "./HueRing";
@@ -47,6 +46,8 @@ import {
   type LineBorderId,
 } from "./VignetteShapeStage";
 import { CollapsibleSection } from "./CollapsibleSection";
+import { t } from "../i18n";
+import { groupLabel, paramLabel, presetLabel } from "../i18n/backend";
 
 // Vignetting's own row (feature 044 + the "dynamic aids" pass): unlike Geometry/Cadrage, which
 // are only ever edited as an "auxiliary correction" from within another row's Zoom, Vignette is
@@ -66,17 +67,26 @@ const VIGNETTE_SHAPE_GEOMETRY_FIELDS = new Set([
 // row except Geometry/Framing themselves gets the "Réglages manuels" toggles below. "framing" is
 // config_workflow.json's row identifier for Cadrage, matching lumaflow/api/session.py's auxiliary
 // endpoints.
+//
+// Keyed by RowSpec.identifier since 2026-09-03 (i18n phase 1). Previously keyed by RowSpec.label
+// ("Film", "Bleach Bypass"...), a convention this file's own comments called
+// "fragile-but-established" -- and one that silently stopped matching the moment a row label was
+// translated, emptying the corrections panel with no error. Same change applied to SLIDER_GROUPS/
+// GROUP_ORDER/COLOR_WHEEL_PAIRS below and to filmstrip.ts's hidden-row set.
 type CorrectionKind = "geometry" | "framing";
+/** The two auxiliary correction editors offered inside another row's Zoom, in display order.
+Their visible labels are resolved through the i18n catalog at render time (i18n phase 2) --
+`geometry`/`framing` here are config_workflow.json row identifiers, not display text. */
+const CORRECTION_KINDS: CorrectionKind[] = ["geometry", "framing"];
 const CORRECTION_ROWS: Record<string, true> = {
-  Film: true,
-  "Bleach Bypass": true,
-  "Color Splash": true,
-  Monochrome: true,
-  "B&W": true,
-  Light: true,
-  Vignettage: true,
+  film: true,
+  bleach_bypass: true,
+  color_splash: true,
+  monochrome: true,
+  bw: true,
+  light: true,
+  vignette: true,
 };
-const CORRECTION_LABELS: Record<CorrectionKind, string> = { geometry: "Geometry", framing: "Cadrage" };
 
 /** A `numeric_slider` declared with exactly these bounds (e.g. Color Splash's
 `range_N_enabled`, feature 046) is rendered as an on/off toggle instead of a drag slider --
@@ -88,13 +98,16 @@ function isBinaryToggle(slider: ZoomSlider): boolean {
 
 /** filter_color's 4 non-zero values (see film.py's _FILTER_WEIGHTS_TABLE), rendered as labeled
 on/off buttons instead of a plain numeric slider (user feedback, 2026-08-04: "1"/"2"/"3"/"4" on a
-drag slider didn't identify which color was which). English labels match the existing "Acros +
-Yellow" etc. preset identifiers, not translated. */
-const FILTER_COLOR_OPTIONS: { value: number; label: string }[] = [
-  { value: 1, label: "Yellow" },
-  { value: 2, label: "Red" },
-  { value: 3, label: "Green" },
-  { value: 4, label: "Blue" },
+drag slider didn't identify which color was which). ancien : ces 4 libellés étaient codés en dur en
+anglais ("Yellow"/"Red"/"Green"/"Blue") pour coller aux identifiants de preset "Acros + Yellow",
+alors que le curseur d'intensité juste à côté était déjà en français ("Léger"/"Modéré"/"Foncé") --
+incohérence relevée pendant l'i18n (2026-09-03). Les identifiants de preset, eux, ne bougent pas
+(cf. D5) : seul l'affichage de ce sélecteur est traduit. */
+const FILTER_COLOR_OPTIONS: { value: number; key: string }[] = [
+  { value: 1, key: "zoom.filter_color.yellow" },
+  { value: 2, key: "zoom.filter_color.red" },
+  { value: 3, key: "zoom.filter_color.green" },
+  { value: 4, key: "zoom.filter_color.blue" },
 ];
 
 /** filter_intensity's 3 steps (0/1/2), labeled instead of shown as a bare number (user feedback,
@@ -102,11 +115,12 @@ const FILTER_COLOR_OPTIONS: { value: number; label: string }[] = [
 non-zero-filter intensities -- filter_color, not filter_intensity, is what carries the "off"
 state). Keeps the drag-slider interaction the user already liked, just relabels the displayed
 value. */
-const FILTER_INTENSITY_LABELS = ["Léger", "Modéré", "Foncé"];
+const FILTER_INTENSITY_KEYS = ["zoom.filter_intensity.light", "zoom.filter_intensity.medium", "zoom.filter_intensity.dark"];
 
 function formatSliderValue(slider: ZoomSlider, value: number): string {
   if (slider.identifier === "filter_intensity") {
-    return FILTER_INTENSITY_LABELS[Math.round(value)] ?? value.toFixed(0);
+    const key = FILTER_INTENSITY_KEYS[Math.round(value)];
+    return key ? t(key) : value.toFixed(0);
   }
   return value.toFixed(slider.step < 1 ? 3 : 0);
 }
@@ -140,38 +154,38 @@ function groupHueRanges(hueRanges: ZoomHueRange[], sliders: ZoomSlider[]) {
 }
 
 /** Presentation-only grouping metadata for the "Réglages manuels" accordion, keyed by
-`rowLabel` (same fragile-but-established signal as the Framing/Geometry dispatch above). Addons
+`rowIdentifier` (re-keyed from `rowLabel` on 2026-09-03, i18n phase 1). Addons
 absent from this map (Light, Vignette) fall back to the original flat slider list -- adding an
 addon here doesn't affect any other row. Color Splash isn't listed here: its hue-range
 groups (+ a "Réglages globaux" group for its 2 plain sliders) are handled by a dedicated branch
 below, since its shape (ranges, not a flat identifier list) doesn't fit this map. */
 const FILM_SLIDER_GROUPS: Record<string, string> = {
-  intensity: "Intensité",
-  contrast: "Tonalité",
-  highlights: "Tonalité",
-  shadows: "Tonalité",
-  black_clip: "Tonalité",
-  global_saturation: "Couleur",
-  hsl_saturation_scale: "Couleur",
-  hsl_luminance_scale: "Couleur",
-  temperature: "Couleur",
-  tint: "Couleur",
-  split_tone_scale: "Couleur",
-  clarity: "Texture & Grain",
-  sharpness: "Texture & Grain",
-  grain_std: "Texture & Grain",
+  intensity: "intensity",
+  contrast: "tone",
+  highlights: "tone",
+  shadows: "tone",
+  black_clip: "tone",
+  global_saturation: "color",
+  hsl_saturation_scale: "color",
+  hsl_luminance_scale: "color",
+  temperature: "color",
+  tint: "color",
+  split_tone_scale: "color",
+  clarity: "texture_grain",
+  sharpness: "texture_grain",
+  grain_std: "texture_grain",
   // Added 2026-07-25 for the Summer Story/Inky Depths recipes -- each a
   // discrete Off/Weak/Strong (or DR100/200/400) 3-level dial, rendered as
   // an ordinary slider (no frontend kind change needed, see film.py).
-  dynamic_range: "Tonalité",
-  color_chrome_effect: "Couleur",
-  color_chrome_blue: "Couleur",
+  dynamic_range: "tone",
+  color_chrome_effect: "color",
+  color_chrome_blue: "color",
   // Added 2026-07-26 for the "Monochrome" workflow row's recipes -- Fuji's
   // "Mono Colour" WC/MG dial pair, silently inert on color looks (see
   // film.py's _apply_monochrome_grade), same grouping as the other
   // toning/cast sliders above.
-  mono_color_wc: "Couleur",
-  mono_color_mg: "Couleur",
+  mono_color_wc: "color",
+  mono_color_mg: "color",
 };
 
 // B&W (2026-08-04): a single colored-filter selector + intensity dial (Yellow/Red/Green/Blue,
@@ -180,11 +194,12 @@ const FILM_SLIDER_GROUPS: Record<string, string> = {
 // filter_color/filter_intensity are meaningless on Film/Bleach Bypass's own color-look presets
 // (monochrome_weights starts at None there -- see film.py's own note on why the backend override
 // still technically applies, but showing the dial there would only confuse), so they're declared
-// in this dedicated map instead, under a new "Filtre" group (see GROUP_ORDER below).
+// in this dedicated map instead, under a new "filter" group (see GROUP_ORDER below; group values became stable slugs
+// resolved through the i18n catalog on 2026-09-03, they are no longer display strings).
 const BW_SLIDER_GROUPS: Record<string, string> = {
   ...FILM_SLIDER_GROUPS,
-  filter_color: "Filtre",
-  filter_intensity: "Filtre",
+  filter_color: "filter",
+  filter_intensity: "filter",
 };
 
 // Monochrome (2026-07-27): a dedicated addon (monochrome_tone.py), distinct
@@ -194,61 +209,61 @@ const BW_SLIDER_GROUPS: Record<string, string> = {
 // addon (Ambre/Bleu Nuit/Vert Cactus/Jaune Léger/Sépia Chaud), with its own
 // 14 sliders (+ intensity) instead of Film's 19.
 const MONOCHROME_TONE_SLIDER_GROUPS: Record<string, string> = {
-  intensity: "Intensité",
-  force: "Intensité",
-  contrast: "Tonalité",
-  shadows: "Tonalité",
-  highlights: "Tonalité",
-  black_point: "Tonalité",
-  hue: "Couleur",
-  tint_saturation: "Couleur",
-  original_saturation: "Couleur",
-  temperature_shift: "Couleur",
-  tint_magenta: "Couleur",
-  clarity: "Texture & Grain",
-  sharpness: "Texture & Grain",
-  grain: "Texture & Grain",
-  vignette: "Texture & Grain",
+  intensity: "intensity",
+  force: "intensity",
+  contrast: "tone",
+  shadows: "tone",
+  highlights: "tone",
+  black_point: "tone",
+  hue: "color",
+  tint_saturation: "color",
+  original_saturation: "color",
+  temperature_shift: "color",
+  tint_magenta: "color",
+  clarity: "texture_grain",
+  sharpness: "texture_grain",
+  grain: "texture_grain",
+  vignette: "texture_grain",
 };
 
 // Light v2 (feature 047) -- the ~31 base-grade fields grouped into 5 buckets (no separate
-// "Intensité" bucket unlike Film/Monochrome; `intensity` folds into the first group). Region-delta
+// "intensity" bucket unlike Film/Monochrome; `intensity` folds into the first group). Region-delta
 // (subject_*/background_*) and mask fields are NOT listed here -- this map is an allow-list, so
 // they simply never render as plain sliders (User Story 3's own delta fields render via
-// baseIdOf-stripped identifiers matching these same group names, see regionOf/baseIdOf above).
+// baseIdOf-stripped identifiers matching these same group slugs, see regionOf/baseIdOf above).
 const LIGHT_SLIDER_GROUPS: Record<string, string> = {
-  intensity: "Exposition & Tonalité",
-  exposure: "Exposition & Tonalité",
-  contrast: "Exposition & Tonalité",
-  contrast_pivot: "Exposition & Tonalité",
-  blacks: "Exposition & Tonalité",
-  shadows: "Exposition & Tonalité",
-  highlights: "Exposition & Tonalité",
-  whites: "Exposition & Tonalité",
-  black_point: "Exposition & Tonalité",
-  black_floor: "Exposition & Tonalité",
-  saturation: "Couleur",
-  temperature: "Couleur",
-  tint: "Couleur",
-  split_shadow_hue: "Couleur",
-  split_shadow_strength: "Couleur",
-  split_highlight_hue: "Couleur",
-  split_highlight_strength: "Couleur",
-  hsl_saturation_scale: "Couleur",
-  hsl_luminance_scale: "Couleur",
-  clarity: "Texture & Netteté",
-  texture: "Texture & Netteté",
-  sharpness: "Texture & Netteté",
-  dehaze: "Texture & Netteté",
-  bloom_threshold: "Halo & Douceur",
-  bloom_amount: "Halo & Douceur",
-  bloom_radius: "Halo & Douceur",
-  bloom_warmth: "Halo & Douceur",
-  soft_detail_amount: "Halo & Douceur",
-  soft_detail_radius: "Halo & Douceur",
-  edge_protection: "Halo & Douceur",
-  vignette: "Finition",
-  grain: "Finition",
+  intensity: "exposure_tone",
+  exposure: "exposure_tone",
+  contrast: "exposure_tone",
+  contrast_pivot: "exposure_tone",
+  blacks: "exposure_tone",
+  shadows: "exposure_tone",
+  highlights: "exposure_tone",
+  whites: "exposure_tone",
+  black_point: "exposure_tone",
+  black_floor: "exposure_tone",
+  saturation: "color",
+  temperature: "color",
+  tint: "color",
+  split_shadow_hue: "color",
+  split_shadow_strength: "color",
+  split_highlight_hue: "color",
+  split_highlight_strength: "color",
+  hsl_saturation_scale: "color",
+  hsl_luminance_scale: "color",
+  clarity: "texture_sharpness",
+  texture: "texture_sharpness",
+  sharpness: "texture_sharpness",
+  dehaze: "texture_sharpness",
+  bloom_threshold: "bloom_softness",
+  bloom_amount: "bloom_softness",
+  bloom_radius: "bloom_softness",
+  bloom_warmth: "bloom_softness",
+  soft_detail_amount: "bloom_softness",
+  soft_detail_radius: "bloom_softness",
+  edge_protection: "bloom_softness",
+  vignette: "finishing",
+  grain: "finishing",
 };
 
 // "Bleach Bypass" is another workflow row over the SAME film_look addon
@@ -260,19 +275,19 @@ const LIGHT_SLIDER_GROUPS: Record<string, string> = {
 // on Film/Bleach Bypass's color looks, hence its own BW_SLIDER_GROUPS map
 // above instead of reusing FILM_SLIDER_GROUPS directly.
 const SLIDER_GROUPS: Record<string, Record<string, string>> = {
-  Film: FILM_SLIDER_GROUPS,
-  "Bleach Bypass": FILM_SLIDER_GROUPS,
-  Monochrome: MONOCHROME_TONE_SLIDER_GROUPS,
-  "B&W": BW_SLIDER_GROUPS,
-  Light: LIGHT_SLIDER_GROUPS,
+  film: FILM_SLIDER_GROUPS,
+  bleach_bypass: FILM_SLIDER_GROUPS,
+  monochrome: MONOCHROME_TONE_SLIDER_GROUPS,
+  bw: BW_SLIDER_GROUPS,
+  light: LIGHT_SLIDER_GROUPS,
 };
 
 const GROUP_ORDER: Record<string, string[]> = {
-  Film: ["Intensité", "Tonalité", "Couleur", "Texture & Grain"],
-  "Bleach Bypass": ["Intensité", "Tonalité", "Couleur", "Texture & Grain"],
-  Monochrome: ["Intensité", "Tonalité", "Couleur", "Texture & Grain"],
-  "B&W": ["Intensité", "Tonalité", "Filtre", "Couleur", "Texture & Grain"],
-  Light: ["Exposition & Tonalité", "Couleur", "Texture & Netteté", "Halo & Douceur", "Finition"],
+  film: ["intensity", "tone", "color", "texture_grain"],
+  bleach_bypass: ["intensity", "tone", "color", "texture_grain"],
+  monochrome: ["intensity", "tone", "color", "texture_grain"],
+  bw: ["intensity", "tone", "filter", "color", "texture_grain"],
+  light: ["exposure_tone", "color", "texture_sharpness", "bloom_softness", "finishing"],
 };
 
 // Generalizes the single hardcoded Monochrome hue/tint_saturation ColorWheel wiring (feature
@@ -281,12 +296,12 @@ const GROUP_ORDER: Record<string, string[]> = {
 // tint_saturation's own range 1:1). Light adds two entries for its shadow/highlight split-tone
 // (satScale: 5 maps split_*_strength's 0-20% range onto the wheel's 0-100 radius, mirroring Color
 // Splash's own boost rescale, handleColorSplashWheelChange above).
-type ColorWheelPair = { group: string; hue: string; sat: string; satScale: number; label: string };
+type ColorWheelPair = { group: string; hue: string; sat: string; satScale: number; labelKey: string };
 const COLOR_WHEEL_PAIRS: Record<string, ColorWheelPair[]> = {
-  Monochrome: [{ group: "Couleur", hue: "hue", sat: "tint_saturation", satScale: 1, label: "Teinte" }],
-  Light: [
-    { group: "Couleur", hue: "split_shadow_hue", sat: "split_shadow_strength", satScale: 5, label: "Virage ombres" },
-    { group: "Couleur", hue: "split_highlight_hue", sat: "split_highlight_strength", satScale: 5, label: "Virage hautes lumières" },
+  monochrome: [{ group: "color", hue: "hue", sat: "tint_saturation", satScale: 1, labelKey: "zoom.wheel.tint" }],
+  light: [
+    { group: "color", hue: "split_shadow_hue", sat: "split_shadow_strength", satScale: 5, labelKey: "zoom.wheel.split_shadow" },
+    { group: "color", hue: "split_highlight_hue", sat: "split_highlight_strength", satScale: 5, labelKey: "zoom.wheel.split_highlight" },
   ],
 };
 
@@ -342,7 +357,13 @@ const PAN_SPEED_PX_PER_FRAME = 14;
 type ZoomOverlayProps = {
   sessionId: string;
   stepIndex: number;
+  /** Display text only (the row's translated name shown in the header). NEVER dispatch on this --
+  use `rowIdentifier` (i18n phase 1, 2026-09-03). */
   rowLabel: string;
+  /** RowSpec.identifier -- the stable, locale-independent key every per-row table below is keyed
+  by (CORRECTION_ROWS, SLIDER_GROUPS, GROUP_ORDER, COLOR_WHEEL_PAIRS, the Vignette/Color Splash/
+  Light branches). */
+  rowIdentifier: string;
   identifier: string;
   onConfirm: (rows: RowSpec[]) => void;
   onCancel: (rows: RowSpec[]) => void;
@@ -351,11 +372,11 @@ type ZoomOverlayProps = {
 // Geometry/Framing no longer have their own standalone Zoom entry point (2026-07-24, removed from
 // the filmstrip) -- their editing now lives exclusively in ZoomOverlayGeneric's own "Réglages
 // manuels" > Geometry/Cadrage toggle (Film/Color Splash), so this is a thin passthrough.
-export function ZoomOverlay({ sessionId, stepIndex, rowLabel, identifier, onConfirm, onCancel }: ZoomOverlayProps) {
-  return <ZoomOverlayGeneric sessionId={sessionId} stepIndex={stepIndex} rowLabel={rowLabel} identifier={identifier} onConfirm={onConfirm} onCancel={onCancel} />;
+export function ZoomOverlay({ sessionId, stepIndex, rowLabel, rowIdentifier, identifier, onConfirm, onCancel }: ZoomOverlayProps) {
+  return <ZoomOverlayGeneric sessionId={sessionId} stepIndex={stepIndex} rowLabel={rowLabel} rowIdentifier={rowIdentifier} identifier={identifier} onConfirm={onConfirm} onCancel={onCancel} />;
 }
 
-function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConfirm, onCancel }: ZoomOverlayProps) {
+function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, rowIdentifier, identifier, onConfirm, onCancel }: ZoomOverlayProps) {
   const [zoomState, setZoomState] = useState<ZoomState | null>(null);
   const [sliderValues, setSliderValues] = useState<Record<string, number>>({});
   const [hueRangeValues, setHueRangeValues] = useState<Record<string, { hue: number; feather: number }>>({});
@@ -415,7 +436,7 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
   // the same 8 geometry/feather fields). Values are lifted the same way maskPoints/maskFeather
   // are: seeded once per Zoom open (effect below), driving both the drawing layer (inside the
   // zoomable viewport) and the floating toolbar (a sibling of it).
-  const vignetteShape = rowLabel === "Vignettage" ? VIGNETTE_SHAPE_BY_IDENTIFIER[identifier] ?? null : null;
+  const vignetteShape = rowIdentifier === "vignette" ? VIGNETTE_SHAPE_BY_IDENTIFIER[identifier] ?? null : null;
   const [vignetteValues, setVignetteValues] = useState<VignetteShapeValues | null>(null);
   const [vignetteActiveTool, setVignetteActiveTool] = useState<VignetteActiveTool | null>(null);
   // Master on/off switch for the shape editor + floating toolbar, surfaced as a "Réglages
@@ -1338,9 +1359,9 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
     rangeGroups.filter(isTargetGroup).map((group) => [group.hueRange.identifier, group]),
   );
   const ringHandleById = new Map(ringHandles.map((handle) => [handle.identifier, handle]));
-  const isColorSplash = rowLabel === "Color Splash";
-  const isLight = rowLabel === "Light";
-  const sliderGroupMap = SLIDER_GROUPS[rowLabel];
+  const isColorSplash = rowIdentifier === "color_splash";
+  const isLight = rowIdentifier === "light";
+  const sliderGroupMap = SLIDER_GROUPS[rowIdentifier];
   // Light only: the accordion shows exactly one region's fields at a time (Global · Sujet · Fond,
   // regionTab) -- every other row's ungroupedSliders passes through unfiltered (regionOf is
   // "global" for every non-prefixed identifier, i.e. every other addon's own sliders).
@@ -1383,11 +1404,11 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
   function renderCorrections() {
     return (
       <div className="zoom-overlay__corrections">
-        {(Object.keys(CORRECTION_LABELS) as CorrectionKind[]).map((kind) => (
+        {CORRECTION_KINDS.map((kind) => (
           <div key={kind} className="zoom-overlay__slider-row">
             <div className="zoom-overlay__slider-header">
-              <span className="zoom-overlay__slider-label">{CORRECTION_LABELS[kind]}</span>
-              {renderSwitch(CORRECTION_LABELS[kind], activeCorrection === kind, () => toggleCorrection(kind))}
+              <span className="zoom-overlay__slider-label">{t(`zoom.correction.${kind}`)}</span>
+              {renderSwitch(t(`zoom.correction.${kind}`), activeCorrection === kind, () => toggleCorrection(kind))}
             </div>
           </div>
         ))}
@@ -1405,16 +1426,24 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
     return (
       <div className="zoom-overlay__slider-row">
         <div className="zoom-overlay__slider-header">
-          <span className="zoom-overlay__slider-label">Zone d'application</span>
-          {renderSwitch(`Zone d'application — ${rangeLabel}`, open, () =>
-            handleToggleMask(prefix, `Zone — ${rangeLabel}`),
+          <span className="zoom-overlay__slider-label">{t("zoom.application_zone")}</span>
+          {renderSwitch(t("zoom.application_zone_of", { label: rangeLabel }), open, () =>
+            handleToggleMask(prefix, t("zoom.zone_of", { label: rangeLabel })),
           )}
         </div>
       </div>
     );
   }
 
-  function renderSlider(slider: ZoomSlider) {
+  /** `labelOverride`, when given, bypasses `paramLabel` entirely -- used by
+  `renderColorSplashGroup` to shorten a boost slider's displayed label to a bare "Intensité"
+  once the enclosing group's title already names the interval (i18n phase 3 regression, found via
+  zoom-overlay-corrections.spec.ts: `paramLabel` resolves `range_N_saturation_boost`/
+  `range_N_target_saturation_boost` through DYNAMIC_PARAM_PATTERNS keyed on *identifier*, so a
+  caller-side `{ ...slider, label: "..." }` shallow-copy override -- which worked when this read
+  `slider.label` directly -- was silently discarded; the full backend label leaked back into the
+  panel instead of the intended shortened one). */
+  function renderSlider(slider: ZoomSlider, labelOverride?: string) {
     if (slider.identifier === "filter_color") {
       const current = sliderValues[slider.identifier] ?? slider.value;
       return (
@@ -1427,18 +1456,19 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
               onClick={() => handleFilterColorClick(slider, option.value)}
               aria-pressed={current === option.value}
             >
-              {option.label}
+              {t(option.key)}
             </button>
           ))}
         </div>
       );
     }
+    const label = labelOverride ?? paramLabel(rowIdentifier, slider);
     if (isBinaryToggle(slider)) {
       return (
         <div key={slider.identifier} className="zoom-overlay__slider-row">
           <div className="zoom-overlay__slider-header">
-            <span className="zoom-overlay__slider-label">{slider.label}</span>
-            {renderSwitch(slider.label, (sliderValues[slider.identifier] ?? slider.value) >= 0.5, () =>
+            <span className="zoom-overlay__slider-label">{label}</span>
+            {renderSwitch(label, (sliderValues[slider.identifier] ?? slider.value) >= 0.5, () =>
               handleToggleClick(slider),
             )}
           </div>
@@ -1448,7 +1478,7 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
     return (
       <div key={slider.identifier} className="zoom-overlay__slider-row">
         <div className="zoom-overlay__slider-header">
-          <span className="zoom-overlay__slider-label">{slider.label}</span>
+          <span className="zoom-overlay__slider-label">{label}</span>
           <span className="zoom-overlay__slider-value">
             {formatSliderValue(slider, sliderValues[slider.identifier] ?? slider.value)}
           </span>
@@ -1486,15 +1516,15 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
       <>
         <div className="zoom-overlay__slider-row">
           <div className="zoom-overlay__slider-header">
-            <span className="zoom-overlay__slider-label">{showLabel ? hueRange.label : "Actif"}</span>
-            {enabledSlider && renderSwitch(hueRange.label, enabled, () => handleToggleClick(enabledSlider))}
+            <span className="zoom-overlay__slider-label">{showLabel ? paramLabel(rowIdentifier, hueRange) : t("zoom.active")}</span>
+            {enabledSlider && renderSwitch(paramLabel(rowIdentifier, hueRange), enabled, () => handleToggleClick(enabledSlider))}
           </div>
         </div>
         {enabled && (
           <>
             <div className="zoom-overlay__slider-row">
               <div className="zoom-overlay__slider-header">
-                <span className="zoom-overlay__slider-label">Adoucissement</span>
+                <span className="zoom-overlay__slider-label">{t("zoom.feather")}</span>
                 <span className="zoom-overlay__slider-value">{Math.round(feather)}</span>
               </div>
               <input
@@ -1561,11 +1591,11 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
         {enabledSlider && (
           <div className="zoom-overlay__slider-row">
             <div className="zoom-overlay__slider-header">
-              <span className="zoom-overlay__slider-label">Actif</span>
+              <span className="zoom-overlay__slider-label">{t("zoom.active")}</span>
               {/* Accessible name is the range's own label ("Intervalle 1" / "Remplacement 1"), not
               the visible "Actif": every group shows the same word, so the caption alone would not
               say which one a screen reader is on. */}
-              {renderSwitch(hueRange.label, enabled, () => handleToggleClick(enabledSlider))}
+              {renderSwitch(paramLabel(rowIdentifier, hueRange), enabled, () => handleToggleClick(enabledSlider))}
             </div>
           </div>
         )}
@@ -1575,7 +1605,7 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
             {renderRangeWheel(group)}
             <div className="zoom-overlay__slider-row">
               <div className="zoom-overlay__slider-header">
-                <span className="zoom-overlay__slider-label">Adoucissement</span>
+                <span className="zoom-overlay__slider-label">{t("zoom.feather")}</span>
                 <span className="zoom-overlay__slider-value">{Math.round(feather)}</span>
               </div>
               <input
@@ -1590,7 +1620,7 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
             {/* The declared labels ("Intensité couleur 1" / "Intensité remplacement 1") repeat what
             the enclosing group title already says, so they are shortened here -- presentation only,
             a shallow copy: every handler reads fields off the slider, never its identity. */}
-            {boostSlider && renderSlider({ ...boostSlider, label: "Intensité" })}
+            {boostSlider && renderSlider(boostSlider, t("zoom.intensity"))}
           </>
         )}
       </div>
@@ -1613,11 +1643,11 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
       <div className="zoom-overlay__main">
         <div className="zoom-overlay__header">
           <span className="zoom-overlay__category">{rowLabel.toUpperCase()}</span>
-          <span className="zoom-overlay__option">{vignetteDisplayText(identifier)}</span>
+          <span className="zoom-overlay__option">{presetLabel(rowIdentifier, identifier)}</span>
           <div className="zoom-overlay__spacer" />
           <button type="button" className="zoom-overlay__close" onClick={handleCancel}>
             <CloseIcon />
-            Fermer
+            {t("ui.action.close")}
           </button>
         </div>
         {error && <div className="zoom-overlay__error">{error}</div>}
@@ -1644,7 +1674,7 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
             onCommitParameter={handleFramingCommitParameter}
           />
         ) : activeCorrection ? (
-          <div className="zoom-overlay__compare zoom-overlay__compare--loading">Chargement…</div>
+          <div className="zoom-overlay__compare zoom-overlay__compare--loading">{t("ui.loading")}</div>
         ) : (
           <>
             <div className="zoom-overlay__compare-wrap">
@@ -1701,8 +1731,8 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
                           </div>
                         </div>
                       )}
-                      <div className="zoom-overlay__badge zoom-overlay__badge--before">AVANT</div>
-                      <div className="zoom-overlay__badge zoom-overlay__badge--after">APRÈS</div>
+                      <div className="zoom-overlay__badge zoom-overlay__badge--before">{t("zoom.before")}</div>
+                      <div className="zoom-overlay__badge zoom-overlay__badge--after">{t("zoom.after")}</div>
                       <div className="zoom-overlay__handle" style={{ left: `${split}%` }}>
                         <div className="zoom-overlay__handle-grip">
                           <SplitHandleIcon />
@@ -1754,8 +1784,8 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
             constants block above), but now also active in mask-edit mode -- it's the same shared
             zoomable viewport as the plain compare view, see .zoom-overlay__compare-content above. */}
             <div className="zoom-overlay__optical-zoom">
-              <span className="zoom-overlay__optical-zoom-label">Zoom</span>
-              <button type="button" className="zoom-overlay__optical-zoom-button" onClick={handleZoomOut} aria-label="Zoom arrière">
+              <span className="zoom-overlay__optical-zoom-label">{t("ui.zoom.optical")}</span>
+              <button type="button" className="zoom-overlay__optical-zoom-button" onClick={handleZoomOut} aria-label={t("ui.zoom.out")}>
                 −
               </button>
               <input
@@ -1767,7 +1797,7 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
                 value={zoomPercent ?? zoomBounds.min}
                 onChange={(event) => handleZoomSliderChange(Number(event.target.value))}
               />
-              <button type="button" className="zoom-overlay__optical-zoom-button" onClick={handleZoomIn} aria-label="Zoom avant">
+              <button type="button" className="zoom-overlay__optical-zoom-button" onClick={handleZoomIn} aria-label={t("ui.zoom.in")}>
                 +
               </button>
               <input
@@ -1780,11 +1810,11 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
                 onKeyDown={(event) => {
                   if (event.key === "Enter") event.currentTarget.blur();
                 }}
-                aria-label="Pourcentage de zoom"
+                aria-label={t("ui.zoom.percent")}
               />
               <span className="zoom-overlay__optical-zoom-percent-sign">%</span>
               <button type="button" className="zoom-overlay__optical-zoom-fit" onClick={handleZoomFit}>
-                Ajuster
+                {t("ui.zoom.fit")}
               </button>
             </div>
           </>
@@ -1792,13 +1822,13 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
       </div>
 
       <div className="zoom-overlay__panel">
-        {CORRECTION_ROWS[rowLabel] && !isLight && renderCorrections()}
+        {CORRECTION_ROWS[rowIdentifier] && !isLight && renderCorrections()}
         {vignetteShape && (
           <div className="zoom-overlay__corrections">
             <div className="zoom-overlay__slider-row">
               <div className="zoom-overlay__slider-header">
-                <span className="zoom-overlay__slider-label">Aides dynamiques</span>
-                {renderSwitch("Aides dynamiques", vignetteAidsEnabled, () => setVignetteAidsEnabled((v) => !v))}
+                <span className="zoom-overlay__slider-label">{t("zoom.dynamic_aids")}</span>
+                {renderSwitch(t("zoom.dynamic_aids"), vignetteAidsEnabled, () => setVignetteAidsEnabled((v) => !v))}
               </div>
             </div>
           </div>
@@ -1823,21 +1853,21 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
                     }
                   }}
                 >
-                  {tab === "global" ? "Global" : tab === "subject" ? "Sujet" : "Fond"}
+                  {t(`zoom.region.${tab}`)}
                 </button>
               ))}
             </div>
             {regionTab !== "global" && (
               <div className="zoom-overlay__slider-row">
                 <div className="zoom-overlay__slider-header">
-                  <span className="zoom-overlay__slider-label">Masque sujet</span>
-                  {renderSwitch("Masque sujet", Boolean(activeMask), () => handleToggleMask("", "Masque sujet"))}
+                  <span className="zoom-overlay__slider-label">{t("zoom.subject_mask")}</span>
+                  {renderSwitch(t("zoom.subject_mask"), Boolean(activeMask), () => handleToggleMask("", t("zoom.subject_mask")))}
                 </div>
               </div>
             )}
           </div>
         )}
-        {isLight && regionTab === "global" && CORRECTION_ROWS[rowLabel] && renderCorrections()}
+        {isLight && regionTab === "global" && CORRECTION_ROWS[rowIdentifier] && renderCorrections()}
         <div className="zoom-overlay__sliders">
           {isColorSplash ? (
             <>
@@ -1849,42 +1879,42 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
                 return (
                   <CollapsibleSection
                     key={group.hueRange.identifier}
-                    title={group.hueRange.label}
+                    title={paramLabel(rowIdentifier, group.hueRange)}
                     hasModifiedValue={
                       isRangeGroupModified(group) || (targetGroup ? isRangeGroupModified(targetGroup) : false)
                     }
                   >
-                    {renderColorSplashGroup(group, "Couleur", { withZone: true })}
+                    {renderColorSplashGroup(group, t("zoom.color"), { withZone: true })}
                     {rangeEnabled &&
                       targetGroup &&
-                      renderColorSplashGroup(targetGroup, "Couleur de remplacement", { withZone: false })}
+                      renderColorSplashGroup(targetGroup, t("zoom.replacement_color"), { withZone: false })}
                   </CollapsibleSection>
                 );
               })}
               {ungroupedSliders.length > 0 && (
-                <CollapsibleSection title="Réglages globaux" hasModifiedValue={ungroupedSliders.some(isModified)}>
-                  {ungroupedSliders.map(renderSlider)}
+                <CollapsibleSection title={t("zoom.global_settings")} hasModifiedValue={ungroupedSliders.some(isModified)}>
+                  {ungroupedSliders.map((slider) => renderSlider(slider))}
                 </CollapsibleSection>
               )}
             </>
           ) : sliderGroupMap ? (
-            GROUP_ORDER[rowLabel]
+            GROUP_ORDER[rowIdentifier]
               .map((groupName) => ({
                 groupName,
                 groupSliders: regionFilteredSliders.filter((s) => sliderGroupMap[baseIdOf(s.identifier)] === groupName),
               }))
               .filter(({ groupSliders }) => groupSliders.length > 0)
               .map(({ groupName, groupSliders }) => {
-                const wheelPairs = (COLOR_WHEEL_PAIRS[rowLabel] ?? []).filter((pair) => pair.group === groupName);
+                const wheelPairs = (COLOR_WHEEL_PAIRS[rowIdentifier] ?? []).filter((pair) => pair.group === groupName);
                 return (
-                  <CollapsibleSection key={groupName} title={groupName} hasModifiedValue={groupSliders.some(isModified)}>
+                  <CollapsibleSection key={groupName} title={groupLabel(groupName)} hasModifiedValue={groupSliders.some(isModified)}>
                     {wheelPairs.map((pair) => {
                       const hueSlider = groupSliders.find((s) => s.identifier === pair.hue);
                       const saturationSlider = groupSliders.find((s) => s.identifier === pair.sat);
                       if (!hueSlider || !saturationSlider) return null;
                       return (
                         <div key={pair.hue} className="zoom-overlay__color-wheel-group">
-                          {wheelPairs.length > 1 && <span className="zoom-overlay__slider-label">{pair.label}</span>}
+                          {wheelPairs.length > 1 && <span className="zoom-overlay__slider-label">{t(pair.labelKey)}</span>}
                           <ColorWheel
                             hue={sliderValues[hueSlider.identifier] ?? hueSlider.value}
                             saturation={(sliderValues[saturationSlider.identifier] ?? saturationSlider.value) * pair.satScale}
@@ -1893,7 +1923,7 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
                         </div>
                       );
                     })}
-                    {groupSliders.map(renderSlider)}
+                    {groupSliders.map((slider) => renderSlider(slider))}
                   </CollapsibleSection>
                 );
               })
@@ -1905,30 +1935,30 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, identifier, onConf
                   {renderRangeGroupContents(group, true)}
                 </div>
               ))}
-              {ungroupedSliders.map(renderSlider)}
+              {ungroupedSliders.map((slider) => renderSlider(slider))}
             </>
           )}
           {zoomState && zoomState.sliders.length === 0 && rangeGroups.length === 0 && (
-            <div className="zoom-overlay__no-sliders">Aucun réglage manuel disponible pour cette ligne.</div>
+            <div className="zoom-overlay__no-sliders">{t("zoom.no_manual_settings")}</div>
           )}
         </div>
         <div className="zoom-overlay__spacer" />
         <div className="zoom-overlay__actions">
           <button type="button" className="zoom-overlay__reset" onClick={handleReset}>
-            Réinitialiser
+            {t("ui.action.reset")}
           </button>
-          {CORRECTION_ROWS[rowLabel] && (
+          {CORRECTION_ROWS[rowIdentifier] && (
             <button
               type="button"
               className="zoom-overlay__apply"
               onClick={handleCorrectionApply}
               disabled={(activeCorrection === null && activeMask === null) || correctionApplying}
             >
-              {correctionApplying ? "Application…" : "Appliquer"}
+              {correctionApplying ? t("ui.action.applying") : t("ui.action.apply")}
             </button>
           )}
           <button type="button" className="zoom-overlay__confirm" onClick={handleConfirm}>
-            Valider
+            {t("ui.action.validate")}
           </button>
         </div>
       </div>

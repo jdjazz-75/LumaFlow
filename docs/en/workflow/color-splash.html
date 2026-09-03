@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Color Splash — LumaFlow</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="../index.html">LumaFlow</a>
+    <div class="lang-switch"><a href="../../workflow/color-splash.html">FR</a><span class="sep">/</span><strong>EN</strong></div>
+    <nav>
+      <ul class="nav-main">
+        <li><a href="../index.html">Overview</a></li>
+        <li><a href="../installation.html">Installation</a></li>
+        <li><a href="../features.html">Features</a></li>
+        <li><a href="../batch.html">Batch processing</a></li>
+        <li><a href="../workflow/index.html">Workflow</a></li>
+      </ul>
+      <div class="nav-section-label">Workflow steps</div>
+      <ul class="nav-workflow">
+        <li><a href="../workflow/film.html">Film</a></li>
+        <li><a href="../workflow/bleach-bypass.html">Bleach Bypass</a></li>
+        <li><a href="../workflow/color-splash.html" class="active">Color Splash</a></li>
+        <li><a href="../workflow/monochrome.html">Monochrome</a></li>
+        <li><a href="../workflow/bw.html">B&W</a></li>
+        <li><a href="../workflow/light.html">Light</a></li>
+        <li><a href="../workflow/vignetting.html">Vignetting</a></li>
+      </ul>
+    </nav>
+  </aside>
+  <main class="content">
+    <article>
+<h1 id="4-3-color-splash">4.3 Color Splash</h1>
+<p><strong>Engine</strong>: desaturates the whole image, except for up to 3 simultaneously active hue ranges. A range is defined by a center hue and a "feather" (half-width in degrees): the keep weight is 1 at the center, decaying in a cosine curve to 0 at the edge of the feather. The 3 ranges combine by taking a maximum (union), never a sum, so an overlap between two ranges never oversaturates. A pixel is only eligible for color if its <em>original</em> saturation exceeds an adjustable threshold (this keeps a near-gray pixel from flipping into color at the slightest brush with an active range).</p>
+<p><strong>Color substitution</strong>: each range can additionally declare a <em>replacement color</em>, described exactly like the source range — hue, feather, strength. When it's active, the selected pixels no longer just keep their color: their hue is <em>replaced</em>. A pixel's position <em>inside</em> the source window is proportionally reprojected into the target window, following <code>final hue = C2 + (hue − C1) × (F2 / F1)</code>, where C/F are the center hue and feather of the source range (1) and the replacement range (2). It's the <em>target</em> feather F2 that decides how much of the original variation survives: at 0° the whole range flattens onto a single hue, at F2 = F1 the original hue differences are reproduced identically, beyond that they're amplified. <strong>Luminance is never touched</strong> — that's what keeps a substitution photographic rather than painted. The shift is weighted by the same cosine weight as the keep operation: a pixel at the edge of the range only travels part of the way, which blends the transition into the rest of the image instead of cutting it sharply. Each range has its own replacement color, and the <em>application zone</em> described below constrains it spatially the same way it constrains the keep operation.</p>
+<h2 id="thumbnails">Thumbnails</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Thumbnail</th><th>Effect</th></tr></thead>
+<tbody>
+<tr><td><strong>Neutral</strong></td><td>No transformation.</td></tr>
+<tr><td><strong>Red</strong></td><td>Keeps hues around 0° (red), ±30° feather; desaturates everything else by 100%.</td></tr>
+<tr><td><strong>Orange</strong></td><td>Same mechanism, centered on 30° (orange).</td></tr>
+<tr><td><strong>Yellow</strong></td><td>Same mechanism, centered on 60° (yellow).</td></tr>
+<tr><td><strong>Green</strong></td><td>Same mechanism, centered on 120° (green).</td></tr>
+<tr><td><strong>Blue</strong></td><td>Same mechanism, centered on 240° (blue).</td></tr>
+<tr><td><strong>Purple</strong></td><td>Same mechanism, centered on 285° (purple).</td></tr>
+<tr><td><strong>Substitution</strong></td><td>The only preset that <em>replaces</em> a color instead of desaturating others: remaps reds (0°, a deliberately wide 60° window) to blue (210°) and leaves <em>the rest of the image in its original colors</em> (background desaturation at 0%). This is meant as a starting point to tune in Zoom, not a finished look.</td></tr>
+</tbody></table></div>
+<p>The first 6 presets differ only by the kept center hue — the feather (30°), the kept color's strength (100%), and the saturation threshold (15%) stay at their generic value throughout. <strong>Substitution</strong> is the only one that breaks that mold: it enables a replacement color and neutralizes the background desaturation.</p>
+<h2 id="manual-settings">Manual settings</h2>
+<p>The panel exposes a collapsible section per range — <strong>Range 1</strong>, <strong>2</strong>, <strong>3</strong> — followed by a <em>Global settings</em> group. Each range contains <strong>two identically-built groups</strong>: <strong>Colour</strong> (the selected range) and <strong>Replacement colour</strong> (the range that substitutes for it). Both present the same controls in the same order — an <em>On</em> switch, a <strong>color wheel</strong> (hue is cyclic: a linear slider would artificially cut red at the 0°/360° seam, and the wheel's radius drives the strength), a <em>Feather</em> and a <em>Strength</em> — the only difference being the <em>Application zone</em>, carried by the source selection alone. Everything after <em>On</em> only appears once the group is on, and the <em>Replacement colour</em> group doesn't appear at all while the range is off: a replacement with nothing selected has nothing to replace.</p>
+<h3 id="colour-group">The <em>Colour</em> group</h3>
+<ul>
+<li><strong>On</strong> (<code>range_N_enabled</code>) — enables/disables this range (+/× button). This is what allows up to 3 simultaneous ranges, each with its own switch.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/color_splash/range_enabled.png" alt="Range on" loading="lazy"></p>
+<ul>
+<li><strong>Application zone</strong> (+/× button, per range) — opens the outline editor and <em>spatially</em> restricts the range to the drawn area: everything outside it switches to black and white according to <em>Background desaturation</em>, even if the hue matches. It constrains both the keep operation and the substitution — which is why there's only one per range, not one per group. Drawing works exactly like the <a href="light.html">Subject Mask</a> on the Light row (movable vertices, double-click to remove a vertex, "+" on an edge to insert one, outline <em>Feather</em> and <em>Invert</em>). Each range has its own zone, independent of the other two.
+<br>By default no zone is drawn: the range applies to the whole image. The <strong>Whole image</strong> button on the floating toolbar returns to that state at any time; closing the editor with "×" only closes the tool and keeps the zone.
+<br><strong>Zones are not saved in presets</strong> — like cropping or perspective correction, an outline drawn around a subject makes no sense on another photo. A reloaded preset therefore always applies its Color Splash configuration to the whole image.</li>
+</ul>
+<ul>
+<li><strong>Color wheel</strong> (<code>range_N</code>, 0..360°) — position of the center hue kept for this range. Illustrated here on range 1, red (0°) then blue (240°).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/color_splash/range_hue_center.png" alt="Range — center hue" loading="lazy"></p>
+<ul>
+<li><strong>Feather</strong> (<code>range_N_feather</code>, 5..90°) — width of the cosine transition around the center hue: narrow = a sharp cutoff to gray, wide = a much more gradual transition (more neighboring hues stay partially colored).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/color_splash/range_feather.png" alt="Feather" loading="lazy"></p>
+<ul>
+<li><strong>Strength</strong> (<code>range_N_saturation_boost</code>, 0..200%) — multiplies the original saturation of the pixels kept by this range: below 100%, the kept color is muted; above, it's boosted/oversaturated. Has no effect once the replacement is on, which then carries its own strength.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/color_splash/range_saturation_boost.png" alt="Colour strength" loading="lazy"></p>
+<h3 id="replacement-colour-group">The <em>Replacement colour</em> group</h3>
+<ul>
+<li><strong>On</strong> (<code>range_N_target_enabled</code>) — switches this range from "keep" mode to "replace" mode (+/× button). While off, the range behaves exactly as before: it keeps its original color.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/color_splash/range_target_enabled.png" alt="Replacement on" loading="lazy"></p>
+<ul>
+<li><strong>Color wheel</strong> (<code>range_N_target</code>, 0..360°) — center hue of the color that substitutes for the range. Illustrated here on range 1 (red selected), replaced by blue (210°) then by green (120°); the rest of the image doesn't move.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/color_splash/range_target_hue_center.png" alt="Replacement — center hue" loading="lazy"></p>
+<ul>
+<li><strong>Feather</strong> (<code>range_N_target_feather</code>, 0..90°) — width of the target hue range, and therefore how much of the original variation is kept: at <strong>0°</strong> every selected hue targets the same color (flattening); at a value <strong>equal to the source's feather</strong> the original hue differences are reproduced identically; <strong>beyond that</strong> they're amplified. Unlike the source's, this one goes down to 0° — a zero-width target window is a useful case, while a zero-width source window would select nothing. Illustrated on a deliberately wide selection (60°, which also captures the sky and the orange building, like the source-feather figure above): 0° on the left, 90° on the right.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/color_splash/range_target_feather.png" alt="Replacement feather" loading="lazy"></p>
+<ul>
+<li><strong>Strength</strong> (<code>range_N_target_saturation_boost</code>, 0..200%) — saturation of the replacement color. It <em>takes the place</em> of the source selection's <em>Strength</em> for as long as the replacement is on: both act on the same saturation, and it's the replacement color that's actually on screen.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/color_splash/range_target_saturation_boost.png" alt="Replacement strength" loading="lazy"></p>
+<p>A pixel only moves by the amount of its weight in the source window: at the center of the range it reaches exactly the replacement hue, at the edge it only travels a fraction of the way — this is what blends the substitution into the rest of the image rather than cutting it sharply. The <em>Saturation threshold</em> below excludes near-gray pixels from the replacement just as it does from the keep operation. Unlike zones, these settings <strong>are saved in presets</strong>: a replacement color means the same thing on any photo.</p>
+<h3 id="global-settings-group">The <em>Global settings</em> group</h3>
+<ul>
+<li><strong>Background desaturation</strong> (<code>background_desaturation</code>, 0..100%) — strength of the desaturation applied outside the kept ranges: at 100%, the background turns entirely gray (the classic "splash" effect); below that, some of the original color stays visible in the background; at <strong>0%</strong> the background is left rigorously intact — this is the <em>Substitution</em> preset's value, which replaces a color without touching the rest of the photo. The two mechanisms combine freely: nothing stops you from substituting a hue <em>and</em> desaturating the background.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/color_splash/background_desaturation.png" alt="Background desaturation" loading="lazy"></p>
+<ul>
+<li><strong>Saturation threshold</strong> (<code>saturation_threshold</code>, 0..100%) — minimum saturation, in the original image, that a pixel must have to stay eligible for color even if its hue matches an active range: the higher it is, the more marginal/already-low-saturation pixels are excluded from the kept color.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/color_splash/saturation_threshold.png" alt="Saturation threshold" loading="lazy"></p>
+    </article>
+  </main>
+</div>
+</body>
+</html>

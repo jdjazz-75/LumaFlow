@@ -7,8 +7,16 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { pinFrenchLocale } from "./helpers/locale";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// i18n phase 0 (2026-09-03, garde-fou) -- cette suite sélectionne par texte français ; épingler
+// la locale avant CHAQUE test, indépendamment du describe qui le contient (voir tests/helpers/
+// locale.ts).
+test.beforeEach(async ({ page }) => {
+  await pinFrenchLocale(page);
+});
 
 /**
  * End-to-end verification of feature 047: loading a recipe saved from one image onto a different
@@ -131,7 +139,9 @@ function rowLocator(page: Page, rowLabel: string) {
 
 // Visible filmstrip row order (Geometry/Framing excluded -- HIDDEN_ROW_LABELS,
 // web/src/lib/filmstrip.ts), used only to pick ArrowUp vs ArrowDown below.
-const VISIBLE_ROW_ORDER = ["Film", "Bleach Bypass", "Color Splash", "Monochrome", "B&W", "Light", "Vignettage"];
+// i18n phase 3 (2026-09-03) : les libellés harmonisés en français sont ceux affichés --
+// "B&W" -> "N&B", "Light" -> "Lumière" (voir web/src/i18n/fr.json's row.bw.label/row.light.label).
+const VISIBLE_ROW_ORDER = ["Film", "Bleach Bypass", "Color Splash", "Monochrome", "N&B", "Lumière", "Vignettage"];
 
 /** Same keyboard-only navigation as tests/mvp-flow.spec.ts::navigateToRow -- clicking a row
 mid-transition was found flaky there (a click can land with zero resulting network request). */
@@ -186,7 +196,7 @@ test.describe("Recipe load -- US1: appliquer une recette sauvegardée à une nou
     // leftover from image A -- which is the whole point of the pre-check that follows.
     await selectNouveau(page);
     const filmRowBBefore = rowLocator(page, "Film");
-    await expect(filmRowBBefore.locator(".vignette-card--selected .vignette-card__caption-text")).toHaveText("Neutral");
+    await expect(filmRowBBefore.locator(".vignette-card--selected .vignette-card__caption-text")).toHaveText("Neutre");
 
     await loadRecipeViaDialog(page, recipePath);
 

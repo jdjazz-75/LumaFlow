@@ -24,6 +24,8 @@ import {
   MirrorHorizontalIcon,
   MirrorVerticalIcon,
 } from "./icons";
+import { t } from "../i18n";
+import { overlayLabel } from "../i18n/backend";
 
 // Free-form crop frame, extracted from CropCanvas.tsx so it can be reused both by Framing's own
 // dedicated Zoom screen (CropCanvas.tsx, unchanged from the user's point of view) AND embedded
@@ -277,7 +279,7 @@ export const CropToolStage = forwardRef<CropToolStageHandle, CropToolStageProps>
           setPreviewSrc(url);
           resolve();
         };
-        preload.onerror = () => reject(new Error("Échec du rendu de l'aperçu"));
+        preload.onerror = () => reject(new Error(t("error.preview_render_failed")));
         preload.src = url;
       });
     },
@@ -380,7 +382,7 @@ export const CropToolStage = forwardRef<CropToolStageHandle, CropToolStageProps>
     return (
       <div className="crop-canvas__stage crop-canvas__stage--preview" onClick={() => setPreviewSrc(null)}>
         <img src={previewSrc} alt="" className="crop-canvas__preview-photo" draggable={false} />
-        <div className="crop-canvas__preview-badge">Aperçu du recadrage · cliquer pour reprendre l'édition</div>
+        <div className="crop-canvas__preview-badge">{t("ui.crop.preview_badge")}</div>
       </div>
     );
   }
@@ -456,8 +458,8 @@ export const CropToolStage = forwardRef<CropToolStageHandle, CropToolStageProps>
               type="button"
               className={`crop-canvas__guide-button${selected ? " crop-canvas__guide-button--selected" : ""}`}
               onClick={() => toggleGuide(overlay.kind)}
-              title={overlay.label}
-              aria-label={overlay.label}
+              title={overlayLabel("framing", overlay)}
+              aria-label={overlayLabel("framing", overlay)}
             >
               <Icon size={18} />
             </button>
@@ -469,8 +471,8 @@ export const CropToolStage = forwardRef<CropToolStageHandle, CropToolStageProps>
               type="button"
               className={`crop-canvas__guide-button${mirror.flipX ? " crop-canvas__guide-button--selected" : ""}`}
               onClick={() => setMirror((m) => ({ ...m, flipX: !m.flipX }))}
-              aria-label="Miroir horizontal"
-              title="Miroir horizontal"
+              aria-label={t("ui.crop.mirror_horizontal")}
+              title={t("ui.crop.mirror_horizontal")}
               aria-pressed={mirror.flipX}
             >
               <MirrorHorizontalIcon size={14} />
@@ -479,8 +481,8 @@ export const CropToolStage = forwardRef<CropToolStageHandle, CropToolStageProps>
               type="button"
               className={`crop-canvas__guide-button${mirror.flipY ? " crop-canvas__guide-button--selected" : ""}`}
               onClick={() => setMirror((m) => ({ ...m, flipY: !m.flipY }))}
-              aria-label="Miroir vertical"
-              title="Miroir vertical"
+              aria-label={t("ui.crop.mirror_vertical")}
+              title={t("ui.crop.mirror_vertical")}
               aria-pressed={mirror.flipY}
             >
               <MirrorVerticalIcon size={14} />

@@ -6,8 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import "./PresetSelector.css";
 import type { PresetEntry } from "../lib/api";
 import { ChevronDownIcon } from "./icons";
-
-const NEW_LABEL = "Nouveau";
+import { t } from "../i18n";
 
 type PresetSelectorProps = {
   presets: PresetEntry[];
@@ -46,7 +45,8 @@ export function PresetSelector({ presets, activePath, onSelect }: PresetSelector
   // Falls back to the raw basename when activePath isn't among the configured directory's
   // presets (e.g. opened/exported via Presets > Ouvrir/Exporter from elsewhere) -- keeps the
   // header showing the real file name rather than silently reverting to "Nouveau".
-  const label = activeEntry ? activeEntry.name : activePath ? basenameWithoutExtension(activePath) : NEW_LABEL;
+  // A preset FILE NAME is user data, never translated -- only the "no preset" entry is.
+  const label = activeEntry ? activeEntry.name : activePath ? basenameWithoutExtension(activePath) : t("ui.preset.new");
 
   function choose(path: string | null) {
     setOpen(false);
@@ -72,7 +72,7 @@ export function PresetSelector({ presets, activePath, onSelect }: PresetSelector
             className={activePath === null ? "preset-selector__option preset-selector__option--active" : "preset-selector__option"}
             onClick={() => choose(null)}
           >
-            {NEW_LABEL}
+            {t("ui.preset.new")}
           </button>
           {presets.map((preset) => (
             <button

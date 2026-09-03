@@ -12,6 +12,8 @@ import {
 } from "../lib/api";
 import { describeError } from "../lib/errorMessages";
 import { ChevronDownIcon, ChevronUpIcon } from "./icons";
+import { t } from "../i18n";
+import { presetLabel, rowDisplayLabel } from "../i18n/backend";
 
 /* Préférences > Workflow (2026-08-06): rows themselves are structurally fixed (identifier/label/
 category read-only here, never authored in this UI) -- only each row's vignette enabled flag/
@@ -116,14 +118,14 @@ export function PreferencesWorkflowPage({ config, onChange }: PreferencesWorkflo
 
   return (
     <div className="prefs-workflow-group">
-      <div className="prefs-workflow-title">Workflow</div>
+      <div className="prefs-workflow-title">{t("ui.prefs.category.workflow")}</div>
       <div className="prefs-workflow-toolbar">
         <span className="prefs-workflow-source-label">{sourceFileName(config.source_path)}</span>
         <button type="button" className="prefs-btn" onClick={handleOpen} disabled={busy}>
-          Ouvrir…
+          {t("ui.action.open_ellipsis")}
         </button>
         <button type="button" className="prefs-btn" onClick={handleExport} disabled={busy}>
-          Exporter…
+          {t("ui.action.export_ellipsis")}
         </button>
       </div>
       {error && <div className="prefs-error">{error}</div>}
@@ -140,7 +142,7 @@ export function PreferencesWorkflowPage({ config, onChange }: PreferencesWorkflo
                 aria-expanded={isOpen}
               >
                 {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                <span className="prefs-workflow-row-label">{row.label ?? row.identifier}</span>
+                <span className="prefs-workflow-row-label">{rowDisplayLabel({ identifier: row.identifier ?? "", label: row.label ?? row.identifier ?? "" })}</span>
               </button>
               {isOpen && (
                 <>
@@ -168,7 +170,7 @@ export function PreferencesWorkflowPage({ config, onChange }: PreferencesWorkflo
                             onChange={() => toggleVignette(rowIndex, vignetteIndex)}
                             onClick={(event) => event.stopPropagation()}
                           />
-                          <span className="prefs-workflow-vignette-label">{vignette.label}</span>
+                          <span className="prefs-workflow-vignette-label">{presetLabel(row.identifier ?? "", vignette.identifier)}</span>
                         </label>
                       );
                     })}
@@ -180,7 +182,7 @@ export function PreferencesWorkflowPage({ config, onChange }: PreferencesWorkflo
                       onClick={() => moveVignette(rowIndex, -1)}
                       disabled={selected?.rowIndex !== rowIndex || selected.vignetteIndex <= 1}
                     >
-                      ▲ Monter
+                      {t("ui.prefs.workflow.move_up")}
                     </button>
                     <button
                       type="button"
@@ -192,7 +194,7 @@ export function PreferencesWorkflowPage({ config, onChange }: PreferencesWorkflo
                         selected.vignetteIndex >= row.vignettes.length - 1
                       }
                     >
-                      ▼ Descendre
+                      {t("ui.prefs.workflow.move_down")}
                     </button>
                   </div>
                 </>

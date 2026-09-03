@@ -13,6 +13,7 @@ import {
   PresetsIcon,
   UploadIcon,
 } from "./icons";
+import { t } from "../i18n";
 
 type HeaderMenuProps = {
   onOpenImage: () => void;
@@ -77,7 +78,7 @@ export function HeaderMenu({
 
   return (
     <div className="header-menu-root" ref={rootRef}>
-      <button type="button" className="header-menu" title="Menu" onClick={toggleOpen} aria-expanded={open}>
+      <button type="button" className="header-menu" title={t("ui.header.menu")} onClick={toggleOpen} aria-expanded={open}>
         <HamburgerIcon />
       </button>
       {open && (
@@ -90,17 +91,17 @@ export function HeaderMenu({
               aria-expanded={expandedGroup === "photo"}
             >
               <ImageIcon size={16} />
-              Photo
+              {t("ui.menu.photo")}
             </button>
             {expandedGroup === "photo" && (
               <div className="header-menu-group">
                 <button type="button" className="header-menu-item header-menu-item--child" onClick={() => runLeaf(onOpenImage)}>
                   <DownloadIcon />
-                  Ouvrir
+                  {t("ui.menu.open")}
                 </button>
                 <button type="button" className="header-menu-item header-menu-item--child" onClick={() => runLeaf(onExportImage)}>
                   <UploadIcon />
-                  Exporter
+                  {t("ui.menu.export")}
                 </button>
               </div>
             )}
@@ -114,17 +115,17 @@ export function HeaderMenu({
               aria-expanded={expandedGroup === "presets"}
             >
               <PresetsIcon size={16} />
-              Presets
+              {t("ui.menu.presets")}
             </button>
             {expandedGroup === "presets" && (
               <div className="header-menu-group">
                 <button type="button" className="header-menu-item header-menu-item--child" onClick={() => runLeaf(onLoadRecipe)}>
                   <DownloadIcon />
-                  Ouvrir
+                  {t("ui.menu.open")}
                 </button>
                 <button type="button" className="header-menu-item header-menu-item--child" onClick={() => runLeaf(onSaveRecipe)}>
                   <UploadIcon />
-                  Exporter
+                  {t("ui.menu.export")}
                 </button>
               </div>
             )}
@@ -135,12 +136,12 @@ export function HeaderMenu({
           rather than a configuration one. */}
           <button type="button" className="header-menu-item" onClick={() => runLeaf(onOpenBatch)}>
             <BatchIcon size={16} />
-            Lot
+            {t("ui.menu.batch")}
           </button>
 
           <button type="button" className="header-menu-item" onClick={() => runLeaf(onOpenPreferences)}>
             <PreferencesIcon size={16} />
-            Préférences
+            {t("ui.menu.preferences")}
           </button>
         </div>
       )}

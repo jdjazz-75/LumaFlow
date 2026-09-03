@@ -84,10 +84,16 @@ class BatchAlreadyRunning(Exception):
 class BatchValidationError(Exception):
     """A batch definition that cannot possibly succeed (no file, missing preset file, missing
     output directory) -- rejected up front rather than turned into one identical error line per
-    image. `batch_index` is 0-based, or None when the whole submission is empty."""
+    image. `batch_index` is 0-based, or None when the whole submission is empty.
 
-    def __init__(self, message: str, batch_index: int | None = None) -> None:
+    `code` (i18n phase 4, 2026-09-03) distinguishes the 4 reasons machine-readably -- same
+    convention as RecipeValidationError.reason / ImageIOError.category -- so the frontend catalog
+    can translate the SPECIFIC cause instead of always falling back to this class's one French
+    `message` (which stays the repli for any code the frontend catalog does not recognize)."""
+
+    def __init__(self, message: str, code: str, batch_index: int | None = None) -> None:
         super().__init__(message)
+        self.code = code
         self.batch_index = batch_index
 
 
@@ -102,14 +108,14 @@ def validate_specs(specs: list[BatchSpec]) -> None:
     checked for existence here -- one that vanished between selection and launch is a per-file
     error line (the batch keeps going), not a reason to refuse the whole run."""
     if not specs:
-        raise BatchValidationError("Aucun lot à exécuter.")
+        raise BatchValidationError("Aucun lot à exécuter.", "no_batches")
     for index, spec in enumerate(specs):
         if not spec.files:
-            raise BatchValidationError("Ce lot ne contient aucun fichier.", index)
+            raise BatchValidationError("Ce lot ne contient aucun fichier.", "empty_batch", index)
         if not spec.preset_path.is_file():
-            raise BatchValidationError("Le preset de ce lot est introuvable.", index)
+            raise BatchValidationError("Le preset de ce lot est introuvable.", "preset_not_found", index)
         if not spec.output_dir.is_dir():
-            raise BatchValidationError("Le répertoire de sortie de ce lot est introuvable.", index)
+            raise BatchValidationError("Le répertoire de sortie de ce lot est introuvable.", "output_dir_not_found", index)
 
 
 def start_run(specs: list[BatchSpec]) -> BatchRun:

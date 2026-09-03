@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workflow step details — LumaFlow</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="../index.html">LumaFlow</a>
+    <div class="lang-switch"><a href="../../workflow/index.html">FR</a><span class="sep">/</span><strong>EN</strong></div>
+    <nav>
+      <ul class="nav-main">
+        <li><a href="../index.html">Overview</a></li>
+        <li><a href="../installation.html">Installation</a></li>
+        <li><a href="../features.html">Features</a></li>
+        <li><a href="../batch.html">Batch processing</a></li>
+        <li><a href="../workflow/index.html" class="active">Workflow</a></li>
+      </ul>
+      <div class="nav-section-label">Workflow steps</div>
+      <ul class="nav-workflow">
+        <li><a href="../workflow/film.html">Film</a></li>
+        <li><a href="../workflow/bleach-bypass.html">Bleach Bypass</a></li>
+        <li><a href="../workflow/color-splash.html">Color Splash</a></li>
+        <li><a href="../workflow/monochrome.html">Monochrome</a></li>
+        <li><a href="../workflow/bw.html">B&W</a></li>
+        <li><a href="../workflow/light.html">Light</a></li>
+        <li><a href="../workflow/vignetting.html">Vignetting</a></li>
+      </ul>
+    </nav>
+  </aside>
+  <main class="content">
+    <article>
+<h1 id="4-workflow-step-details">4. Workflow step details</h1>
+<p>This section details, row by row, <strong>exactly what each thumbnail does</strong>, then <strong>each manual setting</strong> available in that row's Zoom. Manual settings are grouped exactly as in the interface (Zoom's "Manual settings" accordion): Strength / Tone / Colour / Texture &amp; Grain for Film, Bleach Bypass, Monochrome and B&amp;W (B&amp;W adds a Filter group); Exposure &amp; Tone / Colour / Texture &amp; Sharpness / Bloom &amp; Softness / Finishing for Light.</p>
+<p><strong>A note on the before/after images</strong>: each manual setting is illustrated in isolation — the slider is pushed to an extreme value on a fixed base (a neutral preset or a reference preset, depending on the setting), with every other value left at its default, so that the image shows only the contribution of THAT one setting, without blending it with the others. <strong>Bleach Bypass</strong> and <strong>B&amp;W</strong> share exactly the same engine and the same setting identifiers as <strong>Film</strong> (<code>lumaflow/addons/builtin/film.py</code>, a single module for all three rows): rather than duplicating pixel-for-pixel identical images under a different heading, the Bleach Bypass page links to the Film page's illustrations, and the B&amp;W page only illustrates the 2 settings that are specific to it (the colored filter). Two settings on the Light row (<code>hsl_saturation_scale</code>/<code>hsl_luminance_scale</code>) are flagged without an image: as of today, none of the shipped presets populate the internal tables they're meant to modulate, so they're inert regardless of the selected preset (reserved for a future hue-calibrated look) — a before/after would be misleading since it would never show any difference.</p>
+    </article>
+  </main>
+</div>
+</body>
+</html>

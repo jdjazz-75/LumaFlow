@@ -6,8 +6,16 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { pinFrenchLocale } from "./helpers/locale";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// i18n phase 0 (2026-09-03, garde-fou) -- cette suite sélectionne par texte français ; épingler
+// la locale avant CHAQUE test, indépendamment du describe qui le contient (voir tests/helpers/
+// locale.ts).
+test.beforeEach(async ({ page }) => {
+  await pinFrenchLocale(page);
+});
 
 /**
  * End-to-end verification of feature 048: recipe-load diagnostics.
@@ -76,7 +84,9 @@ function rowLocator(page: Page, rowLabel: string) {
 
 // Visible filmstrip row order (Geometry/Framing excluded -- HIDDEN_ROW_LABELS,
 // web/src/lib/filmstrip.ts), used only to pick ArrowUp vs ArrowDown below.
-const VISIBLE_ROW_ORDER = ["Film", "Bleach Bypass", "Color Splash", "Monochrome", "B&W", "Light", "Vignettage"];
+// i18n phase 3 (2026-09-03) : les libellés harmonisés en français sont ceux affichés --
+// "B&W" -> "N&B", "Light" -> "Lumière" (voir web/src/i18n/fr.json's row.bw.label/row.light.label).
+const VISIBLE_ROW_ORDER = ["Film", "Bleach Bypass", "Color Splash", "Monochrome", "N&B", "Lumière", "Vignettage"];
 
 /** Same keyboard-only navigation as tests/mvp-flow.spec.ts::navigateToRow -- clicking a row
 mid-transition was found flaky there (a click can land with zero resulting network request). */
@@ -166,7 +176,10 @@ test.describe("Recipe diagnostics -- US3: paramètre hors bornes corrigé et sig
     const correctionBanner = page.locator(".central-work-area__warning", { hasText: "corrigés" });
     await expect(correctionBanner).toBeVisible();
     const correctionText = await correctionBanner.innerText();
-    expect(correctionText).toMatch(/Light/);
+    // i18n phase 3 (2026-09-03) : rowLabelForIdentifier() traduit désormais "light" -> "Lumière"
+    // dans ce message (AppShell.tsx) -- seul le NOM de la ligne est traduit, l'identifiant du
+    // paramètre lui-même ("intensity") reste tel quel (ce n'est pas un libellé affiché).
+    expect(correctionText).toMatch(/Lumière/);
     expect(correctionText).toMatch(/intensity/);
 
     // US3 Acceptance Scenario 2: the rest of the recipe is unaffected -- editing further, and

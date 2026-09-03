@@ -7,6 +7,7 @@ import "./FilmstripRow.css";
 import * as api from "../lib/api";
 import type { RowSpec } from "../lib/api";
 import { VignetteCard } from "./VignetteCard";
+import { rowDescription, rowDisplayLabel } from "../i18n/backend";
 
 // Ported from filmstrip_view.py: DEFAULT_VIGNETTE_SPACING_PX (gap between
 // cards) and FIRST_VIGNETTE_OFFSET_PX (the strip's left inset before the
@@ -68,8 +69,8 @@ export function FilmstripRow({
         />
       )}
       <div className={`filmstrip-row__label${isActive ? " filmstrip-row__label--active" : ""}`}>
-        <span className="filmstrip-row__name">{row.label}</span>
-        {row.short_description && <span className="filmstrip-row__hint">{row.short_description}</span>}
+        <span className="filmstrip-row__name">{rowDisplayLabel(row)}</span>
+        {row.short_description && <span className="filmstrip-row__hint">{rowDescription(row)}</span>}
       </div>
       <div
         className="filmstrip-row__strip"
@@ -90,6 +91,7 @@ export function FilmstripRow({
             ref={(el) => {
               cardRefs.current[identifier] = el;
             }}
+            rowIdentifier={row.identifier}
             identifier={identifier}
             state={row.vignette_states[identifier]}
             selected={row.selected_vignette_identifier === identifier}

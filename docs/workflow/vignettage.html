@@ -10,6 +10,7 @@
 <div class="layout">
   <aside class="sidebar">
     <a class="brand" href="../index.html">LumaFlow</a>
+    <div class="lang-switch"><strong>FR</strong><span class="sep">/</span><a href="../en/workflow/vignetting.html">EN</a></div>
     <nav>
       <ul class="nav-main">
         <li><a href="../index.html">Présentation</a></li>
@@ -24,8 +25,8 @@
         <li><a href="../workflow/bleach-bypass.html">Bleach Bypass</a></li>
         <li><a href="../workflow/color-splash.html">Color Splash</a></li>
         <li><a href="../workflow/monochrome.html">Monochrome</a></li>
-        <li><a href="../workflow/bw.html">B&W</a></li>
-        <li><a href="../workflow/light.html">Light</a></li>
+        <li><a href="../workflow/bw.html">N&B</a></li>
+        <li><a href="../workflow/light.html">Lumière</a></li>
         <li><a href="../workflow/vignettage.html" class="active">Vignettage</a></li>
       </ul>
     </nav>
@@ -39,51 +40,51 @@
 <thead><tr><th>Vignette</th><th>Effet</th></tr></thead>
 <tbody>
 <tr><td><strong>Neutre</strong></td><td>Aucune transformation.</td></tr>
-<tr><td><strong>Round Central</strong></td><td>Ellipse centrée couvrant environ 85 % du cadre (rayons égaux), assombrissement jusqu'à 35 % vers les coins/bords, transition douce (adoucissement 12 %), courbe de progressivité modérée. Le vignettage circulaire classique.</td></tr>
-<tr><td><strong>Linear Top+Bottom</strong></td><td>Bande horizontale claire couvrant les 60 % centraux de la hauteur, assombrissement jusqu'à 30 % sur les bandes hautes/basses (20 % chacune), même douceur de transition. Un effet « letterbox » assombri en haut et en bas.</td></tr>
+<tr><td><strong>Ronde centrée</strong></td><td>Ellipse centrée couvrant environ 85 % du cadre (rayons égaux), assombrissement jusqu'à 35 % vers les coins/bords, transition douce (adoucissement 12 %), courbe de progressivité modérée. Le vignettage circulaire classique.</td></tr>
+<tr><td><strong>Linéaire</strong></td><td>Bande horizontale claire couvrant les 60 % centraux de la hauteur, assombrissement jusqu'à 30 % sur les bandes hautes/basses (20 % chacune), même douceur de transition. Un effet « letterbox » assombri en haut et en bas.</td></tr>
 </tbody></table></div>
 <h2 id="r-glages-manuels">Réglages manuels</h2>
 <p>10 réglages au total ; 8 sont communs aux deux formes (Intensité, Progressivité, Centre X/Y, Rotation, Adoucissement), 2 sont propres à l'ellipse (Rayon X/Y) et 2 à la bande (Décalage haut/bas).</p>
 <ul>
-<li><strong>Intensity</strong> (<code>intensity</code>, 0..1) — force maximale de l'assombrissement à l'extérieur de la forme.</li>
+<li><strong>Intensité</strong> (<code>intensity</code>, 0..1) — force maximale de l'assombrissement à l'extérieur de la forme.</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/vignette/intensity.png" alt="Intensity" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/vignette/intensity.png" alt="Intensité" loading="lazy"></p>
 <ul>
-<li><strong>Progressivity</strong> (<code>progressivity</code>, 0..1) — façonne la courbe de transition : plus bas, la coupure est plus nette/abrupte ; plus haut, le dégradé est plus progressif.</li>
+<li><strong>Progressivité</strong> (<code>progressivity</code>, 0..1) — façonne la courbe de transition : plus bas, la coupure est plus nette/abrupte ; plus haut, le dégradé est plus progressif.</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/vignette/progressivity.png" alt="Progressivity" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/vignette/progressivity.png" alt="Progressivité" loading="lazy"></p>
 <ul>
-<li><strong>Center X</strong> (<code>center_x</code>, -0,5..1,5) — position horizontale du centre de la forme (0,5 = centre de l'image ; la plage dépasse volontairement [0,1] pour pouvoir décentrer la forme jusqu'à moitié hors cadre).</li>
+<li><strong>Centre X</strong> (<code>center_x</code>, -0,5..1,5) — position horizontale du centre de la forme (0,5 = centre de l'image ; la plage dépasse volontairement [0,1] pour pouvoir décentrer la forme jusqu'à moitié hors cadre).</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/vignette/center_x.png" alt="Center X" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/vignette/center_x.png" alt="Centre X" loading="lazy"></p>
 <ul>
-<li><strong>Center Y</strong> (<code>center_y</code>, -0,5..1,5) — position verticale du centre, même convention.</li>
+<li><strong>Centre Y</strong> (<code>center_y</code>, -0,5..1,5) — position verticale du centre, même convention.</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/vignette/center_y.png" alt="Center Y" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/vignette/center_y.png" alt="Centre Y" loading="lazy"></p>
 <ul>
-<li><strong>Radius X</strong> (<code>radius_x</code>, 0,05..2,0) — demi-largeur de l'ellipse (Round Central uniquement).</li>
+<li><strong>Rayon X</strong> (<code>radius_x</code>, 0,05..2,0) — demi-largeur de l'ellipse (Ronde centrée uniquement).</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/vignette/radius_x.png" alt="Radius X" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/vignette/radius_x.png" alt="Rayon X" loading="lazy"></p>
 <ul>
-<li><strong>Radius Y</strong> (<code>radius_y</code>, 0,05..2,0) — demi-hauteur de l'ellipse (Round Central uniquement).</li>
+<li><strong>Rayon Y</strong> (<code>radius_y</code>, 0,05..2,0) — demi-hauteur de l'ellipse (Ronde centrée uniquement).</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/vignette/radius_y.png" alt="Radius Y" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/vignette/radius_y.png" alt="Rayon Y" loading="lazy"></p>
 <ul>
 <li><strong>Rotation</strong> (<code>rotation_angle</code>, -180..180°) — pivote la forme autour de son centre (sans effet visible sur un cercle parfait — illustré ici sur une ellipse allongée pour rendre la rotation perceptible).</li>
 </ul>
 <p class="figure"><img src="../screenshots/reglages/vignette/rotation_angle.png" alt="Rotation" loading="lazy"></p>
 <ul>
-<li><strong>Feather Width</strong> (<code>feather_width</code>, 0..40 % de la petite dimension de l'image) — largeur du flou de transition : 0 = bord net, valeurs élevées = transition très douce et étalée.</li>
+<li><strong>Largeur d'adoucissement</strong> (<code>feather_width</code>, 0..40 % de la petite dimension de l'image) — largeur du flou de transition : 0 = bord net, valeurs élevées = transition très douce et étalée.</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/vignette/feather_width.png" alt="Feather Width" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/vignette/feather_width.png" alt="Largeur d'adoucissement" loading="lazy"></p>
 <ul>
-<li><strong>Top Offset</strong> (<code>top_offset</code>, 0,05..1,5, Linear Top+Bottom uniquement) — distance du centre au bord haut de la bande claire : plus petit, plus la bande assombrie du haut est large.</li>
+<li><strong>Décalage haut</strong> (<code>top_offset</code>, 0,05..1,5, Linéaire uniquement) — distance du centre au bord haut de la bande claire : plus petit, plus la bande assombrie du haut est large.</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/vignette/top_offset.png" alt="Top Offset" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/vignette/top_offset.png" alt="Décalage haut" loading="lazy"></p>
 <ul>
-<li><strong>Bottom Offset</strong> (<code>bottom_offset</code>, 0,05..1,5, Linear Top+Bottom uniquement) — même réglage pour le bord bas.</li>
+<li><strong>Décalage bas</strong> (<code>bottom_offset</code>, 0,05..1,5, Linéaire uniquement) — même réglage pour le bord bas.</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/vignette/bottom_offset.png" alt="Bottom Offset" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/vignette/bottom_offset.png" alt="Décalage bas" loading="lazy"></p>
     </article>
   </main>
 </div>

@@ -10,6 +10,7 @@
 <div class="layout">
   <aside class="sidebar">
     <a class="brand" href="index.html">LumaFlow</a>
+    <div class="lang-switch"><strong>FR</strong><span class="sep">/</span><a href="en/features.html">EN</a></div>
     <nav>
       <ul class="nav-main">
         <li><a href="index.html">Présentation</a></li>
@@ -24,8 +25,8 @@
         <li><a href="workflow/bleach-bypass.html">Bleach Bypass</a></li>
         <li><a href="workflow/color-splash.html">Color Splash</a></li>
         <li><a href="workflow/monochrome.html">Monochrome</a></li>
-        <li><a href="workflow/bw.html">B&W</a></li>
-        <li><a href="workflow/light.html">Light</a></li>
+        <li><a href="workflow/bw.html">N&B</a></li>
+        <li><a href="workflow/light.html">Lumière</a></li>
         <li><a href="workflow/vignettage.html">Vignettage</a></li>
       </ul>
     </nav>
@@ -35,7 +36,7 @@
 <h1 id="3-fonctionnalit-s">3. Fonctionnalités</h1>
 <h2 id="3-1-interface-g-n-rale">3.1 Interface générale</h2>
 <h3 class="section-title">En haut</h3>
-<p>Le logo, un sélecteur de <strong>preset</strong> (recette précédemment sauvegardée — « Nouveau » réinitialise aux réglages neutres) et le menu principal (☰) qui regroupe Ouvrir/Exporter une photo, Enregistrer/Ouvrir une recette, et les Préférences.</p>
+<p>Le logo, un sélecteur de <strong>preset</strong> (recette précédemment sauvegardée — « Nouveau » réinitialise aux réglages neutres) et le menu principal (☰) qui regroupe Ouvrir/Exporter une photo, Ouvrir/Exporter une recette, et les Préférences.</p>
 <p>Une fois une photo ouverte, la zone centrale devient la <strong>pellicule</strong> : une colonne verticale d'étapes de traitement, chacune affichant ses vignettes disponibles en défilement horizontal.</p>
 <p class="figure"><img src="screenshots/02-filmstrip.png" alt="Pellicule avec une photo ouverte" loading="lazy"></p>
 <h3 class="section-title">En bas</h3>
@@ -44,42 +45,42 @@
 <li>un rappel des raccourcis clavier : flèches Haut/Bas pour changer d'étape, flèches Gauche/Droite pour changer de vignette au sein d'une étape, Espace/double-clic/icône loupe pour ouvrir le Zoom, Échap pour fermer.</li>
 </ul>
 <h2 id="3-2-le-workflow-9-tapes">3.2 Le workflow : 9 étapes</h2>
-<p>Le pipeline standard (défini dans <code>config_workflow.json</code>, jamais codé en dur) comprend 9 étapes. Deux d'entre elles (<strong>Geometry</strong> et <strong>Cadrage</strong>) ne s'affichent pas comme des lignes de la pellicule mais restent éditables depuis n'importe quelle autre étape (voir §3.4) — les 7 lignes suivantes sont directement visibles et navigables :</p>
+<p>Le pipeline standard (défini dans <code>config_workflow.json</code>, jamais codé en dur) comprend 9 étapes. Deux d'entre elles (<strong>Géométrie</strong> et <strong>Cadrage</strong>) ne s'affichent pas comme des lignes de la pellicule mais restent éditables depuis n'importe quelle autre étape (voir §3.4) — les 7 lignes suivantes sont directement visibles et navigables :</p>
 <div class="table-wrap"><table>
 <thead><tr><th>#</th><th>Étape</th><th>Rôle</th><th>Presets</th></tr></thead>
 <tbody>
-<tr><td>—</td><td><strong>Geometry</strong></td><td>Rotation manuelle et correction de perspective libre à 4 coins</td><td>(édition uniquement via une autre étape)</td></tr>
-<tr><td>—</td><td><strong>Cadrage (Framing)</strong></td><td>Recadrage libre avec guides de composition (règle des tiers, section/spirale d'or, lignes centrales, diagonale, pyramide, courbe composée, symétrie)</td><td>(édition uniquement via une autre étape)</td></tr>
+<tr><td>—</td><td><strong>Géométrie</strong></td><td>Rotation manuelle et correction de perspective libre à 4 coins</td><td>(édition uniquement via une autre étape)</td></tr>
+<tr><td>—</td><td><strong>Cadrage</strong></td><td>Recadrage libre avec guides de composition (règle des tiers, section/spirale d'or, lignes centrales, diagonale, pyramide, courbe composée, symétrie)</td><td>(édition uniquement via une autre étape)</td></tr>
 <tr><td>1</td><td><strong>Film</strong></td><td>Rendu et grain argentique — moteur de gradation paramétrique partagé par les looks Fujifilm</td><td>Neutre, Velvia, Astia, Pro Neg. Std, Eterna, Classic Negative, Classic Chrome, Rizzle Clicks, Glacier Blue</td></tr>
 <tr><td>2</td><td><strong>Bleach Bypass</strong></td><td>Même moteur, presets de négatifs désaturés type bleach-bypass</td><td>Neutre, Eterna Bleach Bypass, Inky Depths, Titanium, Ecowarrior, Milestone, Loki, Sunset Strip, Quicklime</td></tr>
 <tr><td>3</td><td><strong>Color Splash</strong></td><td>Désature l'image entière sauf jusqu'à 3 plages de teinte conservées simultanément, réglables via un sélecteur en anneau</td><td>Neutre, Rouge, Orange, Jaune, Vert, Bleu, Violet</td></tr>
 <tr><td>4</td><td><strong>Monochrome</strong></td><td>Duotone : supprime toute la couleur puis colorise la luminance avec une teinte unique</td><td>Neutre, Rouge, Sepia, Jaune, Vert, Bleu, Violet</td></tr>
-<tr><td>5</td><td><strong>B&amp;W</strong></td><td>Simulations noir et blanc alternatives (filtres colorés, émulations Kodak/Ilford)</td><td>Neutre, Acros, Acros + Jaune/Rouge/Vert/Bleu, Kodak T-MAX 3200, Kodak Tri-X, Ilford FP4</td></tr>
-<tr><td>6</td><td><strong>Light</strong></td><td>Exposition et contraste — moteur paramétrique (~31 champs), courbe de tons à 4 zones, halo, texture protégée, et un <strong>split sujet/fond</strong> via masque polygonal</td><td>Neutre, Low Key, Dramatique, Soft, Balance, High Key</td></tr>
-<tr><td>7</td><td><strong>Vignettage</strong></td><td>Assombrissement des bords, forme éditable directement à l'écran</td><td>Neutre, Round Central (ellipse), Linear Top+Bottom (bande)</td></tr>
+<tr><td>5</td><td><strong>N&amp;B</strong></td><td>Simulations noir et blanc alternatives (filtres colorés, émulations Kodak/Ilford)</td><td>Neutre, Acros, Acros + Jaune/Rouge/Vert/Bleu, Kodak T-MAX 3200, Kodak Tri-X, Ilford FP4</td></tr>
+<tr><td>6</td><td><strong>Lumière</strong></td><td>Exposition et contraste — moteur paramétrique (~31 champs), courbe de tons à 4 zones, halo, texture protégée, et un <strong>split sujet/fond</strong> via masque polygonal</td><td>Neutre, Low Key, Dramatique, Doux, Équilibre, High Key</td></tr>
+<tr><td>7</td><td><strong>Vignettage</strong></td><td>Assombrissement des bords, forme éditable directement à l'écran</td><td>Neutre, Ronde centrée (ellipse), Linéaire (bande)</td></tr>
 </tbody></table></div>
 <p>Sur chaque ligne, un simple clic sur une vignette <strong>sélectionne et applique</strong> immédiatement le preset correspondant — sans ouvrir de vue détaillée. Pour affiner un preset (curseurs individuels, édition interactive), on ouvre son <strong>Zoom</strong> : icône loupe en bas de la vignette, double-clic sur la vignette déjà active, ou barre Espace.</p>
 <h2 id="3-3-le-mode-zoom-comparaison-et-r-glages-d-taill-s">3.3 Le mode Zoom : comparaison et réglages détaillés</h2>
 <p>Le Zoom ouvre un grand comparateur <strong>Avant / Après</strong> avec une poignée de séparation déplaçable, un zoom optique et un panoramique (molette ou zones de maintien-clic sur les bords), et — à droite — un panneau de réglages regroupant les curseurs, roues de teinte et interrupteurs propres à l'addon de la ligne en cours.</p>
 <p class="figure"><img src="screenshots/03-zoom-film.png" alt="Mode Zoom sur l'étape Film" loading="lazy"></p>
-<p>Chaque réglage peut être <strong>réinitialisé</strong>, <strong>appliqué</strong> (aperçu sans valider) ou <strong>validé</strong> (enregistré sur la session). Les curseurs à bornes 0/1 se présentent comme des interrupteurs ; les réglages à choix discrets (ex. couleur/intensité d'un filtre B&amp;W) comme des boutons étiquetés plutôt que des valeurs numériques brutes.</p>
-<h2 id="3-4-corrections-crois-es-geometry-cadrage">3.4 Corrections croisées Geometry / Cadrage</h2>
-<p>Depuis le Zoom de <strong>n'importe quelle</strong> étape visible (Film, Bleach Bypass, Color Splash, Monochrome, B&amp;W, Light, Vignettage), deux interrupteurs en haut du panneau — <strong>Geometry</strong> et <strong>Cadrage</strong> — donnent accès à la rotation/correction de perspective et au recadrage sans quitter la ligne en cours d'édition : ce sont de vraies étapes du pipeline, exécutées normalement, mais l'interface les rend accessibles en surimpression plutôt que comme des lignes séparées de la pellicule.</p>
-<p class="figure"><img src="screenshots/04-zoom-reglages-manuels.png" alt="Réglage Geometry activé depuis le Zoom" loading="lazy"></p>
+<p>Chaque réglage peut être <strong>réinitialisé</strong>, <strong>appliqué</strong> (aperçu sans valider) ou <strong>validé</strong> (enregistré sur la session). Les curseurs à bornes 0/1 se présentent comme des interrupteurs ; les réglages à choix discrets (ex. couleur/intensité d'un filtre N&amp;B) comme des boutons étiquetés plutôt que des valeurs numériques brutes.</p>
+<h2 id="3-4-corrections-crois-es-geometry-cadrage">3.4 Corrections croisées Géométrie / Cadrage</h2>
+<p>Depuis le Zoom de <strong>n'importe quelle</strong> étape visible (Film, Bleach Bypass, Color Splash, Monochrome, N&amp;B, Lumière, Vignettage), deux interrupteurs en haut du panneau — <strong>Géométrie</strong> et <strong>Cadrage</strong> — donnent accès à la rotation/correction de perspective et au recadrage sans quitter la ligne en cours d'édition : ce sont de vraies étapes du pipeline, exécutées normalement, mais l'interface les rend accessibles en surimpression plutôt que comme des lignes séparées de la pellicule.</p>
+<p class="figure"><img src="screenshots/04-zoom-reglages-manuels.png" alt="Réglage Géométrie activé depuis le Zoom" loading="lazy"></p>
 <h2 id="3-5-dition-interactive-directement-sur-l-image">3.5 Édition interactive directement sur l'image</h2>
 <p>Plusieurs réglages s'éditent à la souris, directement sur l'aperçu, plutôt qu'au curseur :</p>
 <ul>
-<li><strong>Geometry</strong> : poignée de rotation et 4 coins de correction de perspective.</li>
+<li><strong>Géométrie</strong> : poignée de rotation et 4 coins de correction de perspective.</li>
 <li><strong>Cadrage</strong> : poignées de redimensionnement du cadre, avec superposition du guide de composition choisi.</li>
-<li><strong>Masque Sujet/Arrière-plan</strong> (étape Light) : tracé d'un contour polygonal (sommets, milieux d'arête, halo de plume) pour appliquer des réglages différents au sujet et au fond.</li>
-<li><strong>Forme du vignettage</strong> : centre déplaçable, rayons/décalages, rotation — pour l'ellipse (Round Central) comme pour la bande (Linear Top+Bottom).</li>
+<li><strong>Masque Sujet/Arrière-plan</strong> (étape Lumière) : tracé d'un contour polygonal (sommets, milieux d'arête, halo de plume) pour appliquer des réglages différents au sujet et au fond.</li>
+<li><strong>Forme du vignettage</strong> : centre déplaçable, rayons/décalages, rotation — pour l'ellipse (Ronde centrée) comme pour la bande (Linéaire).</li>
 </ul>
 <p class="figure"><img src="screenshots/05-zoom-vignettage.png" alt="Édition interactive de la forme du vignettage" loading="lazy"></p>
 <h2 id="3-6-recettes-sauvegarder-charger-r-appliquer">3.6 Recettes : sauvegarder, charger, réappliquer</h2>
-<p>Le menu ☰ &gt; Photo donne accès à <strong>Ouvrir</strong>/<strong>Exporter</strong> une image ; le menu ☰ &gt; Presets et le sélecteur d'en-tête donnent accès à <strong>Enregistrer</strong>/<strong>Ouvrir</strong> une recette (fichier <code>.json</code> capturant l'intégralité des réglages appliqués).</p>
+<p>Le menu ☰ &gt; Photo donne accès à <strong>Ouvrir</strong>/<strong>Exporter</strong> une image ; le menu ☰ &gt; Presets et le sélecteur d'en-tête donnent accès à <strong>Ouvrir</strong>/<strong>Exporter</strong> une recette (fichier <code>.json</code> capturant l'intégralité des réglages appliqués).</p>
 <p>Charger une recette sur une photo différente déclenche, si nécessaire, des avertissements non bloquants :</p>
 <ul>
-<li><strong>proportions incompatibles</strong> — la recette a été créée pour un format d'image différent ; chaque étape concernée (Geometry/Cadrage) est adaptée ou appliquée telle quelle ;</li>
+<li><strong>proportions incompatibles</strong> — la recette a été créée pour un format d'image différent ; chaque étape concernée (Géométrie/Cadrage) est adaptée ou appliquée telle quelle ;</li>
 <li><strong>réglages hors bornes</strong> — corrigés automatiquement à la valeur valide la plus proche ;</li>
 <li><strong>vignette désactivée depuis</strong> (via Préférences &gt; Workflow) — remplacée par le réglage neutre de sa ligne.</li>
 </ul>

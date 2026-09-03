@@ -18,6 +18,7 @@ import {
   ThirdsGuideIcon,
   VerticalLineGuideIcon,
 } from "./icons";
+import { t } from "../i18n";
 
 // The interactive geometry-correction stage (rotation dial + free-form 4-corner perspective
 // frame + alignment guides), extracted from GeometryCanvas.tsx so it can be reused both by
@@ -205,7 +206,7 @@ export const GeometryToolStage = forwardRef<GeometryToolStageHandle, GeometryToo
             setDisplaySrc(url);
             resolve();
           };
-          preload.onerror = () => reject(new Error("Échec du rendu de l'aperçu"));
+          preload.onerror = () => reject(new Error(t("error.preview_render_failed")));
           preload.src = url;
         });
       },
@@ -428,8 +429,8 @@ export const GeometryToolStage = forwardRef<GeometryToolStageHandle, GeometryToo
             type="button"
             className={`geometry-canvas__guide-button${activeTools.has("rotation") ? " geometry-canvas__guide-button--selected" : ""}`}
             onClick={() => toggleTool("rotation")}
-            title="Rotation"
-            aria-label="Rotation"
+            title={t("ui.tool.rotate")}
+            aria-label={t("ui.tool.rotate")}
             aria-pressed={activeTools.has("rotation")}
           >
             <RotationToolIcon size={18} />
@@ -438,8 +439,8 @@ export const GeometryToolStage = forwardRef<GeometryToolStageHandle, GeometryToo
             type="button"
             className={`geometry-canvas__guide-button${activeTools.has("distortion") ? " geometry-canvas__guide-button--selected" : ""}`}
             onClick={() => toggleTool("distortion")}
-            title="Distorsion"
-            aria-label="Distorsion"
+            title={t("ui.geometry.distortion")}
+            aria-label={t("ui.geometry.distortion")}
             aria-pressed={activeTools.has("distortion")}
           >
             <DistortionToolIcon size={18} />
@@ -449,8 +450,8 @@ export const GeometryToolStage = forwardRef<GeometryToolStageHandle, GeometryToo
               type="button"
               className={`geometry-canvas__guide-button${activeTools.has("v") ? " geometry-canvas__guide-button--selected" : ""}`}
               onClick={() => toggleTool("v")}
-              title="Ligne verticale"
-              aria-label="Ligne verticale"
+              title={t("ui.geometry.vertical_line")}
+              aria-label={t("ui.geometry.vertical_line")}
               aria-pressed={activeTools.has("v")}
             >
               <VerticalLineGuideIcon size={18} />
@@ -459,8 +460,8 @@ export const GeometryToolStage = forwardRef<GeometryToolStageHandle, GeometryToo
               type="button"
               className={`geometry-canvas__guide-button${activeTools.has("h") ? " geometry-canvas__guide-button--selected" : ""}`}
               onClick={() => toggleTool("h")}
-              title="Ligne horizontale"
-              aria-label="Ligne horizontale"
+              title={t("ui.geometry.horizontal_line")}
+              aria-label={t("ui.geometry.horizontal_line")}
               aria-pressed={activeTools.has("h")}
             >
               <HorizontalLineGuideIcon size={18} />
@@ -469,8 +470,8 @@ export const GeometryToolStage = forwardRef<GeometryToolStageHandle, GeometryToo
               type="button"
               className={`geometry-canvas__guide-button${activeTools.has("grid") ? " geometry-canvas__guide-button--selected" : ""}`}
               onClick={() => toggleTool("grid")}
-              title="Grille 3×3"
-              aria-label="Grille 3×3"
+              title={t("ui.geometry.grid")}
+              aria-label={t("ui.geometry.grid")}
               aria-pressed={activeTools.has("grid")}
             >
               <ThirdsGuideIcon size={18} />

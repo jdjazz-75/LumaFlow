@@ -10,6 +10,7 @@
 <div class="layout">
   <aside class="sidebar">
     <a class="brand" href="../index.html">LumaFlow</a>
+    <div class="lang-switch"><strong>FR</strong><span class="sep">/</span><a href="../en/workflow/index.html">EN</a></div>
     <nav>
       <ul class="nav-main">
         <li><a href="../index.html">Présentation</a></li>
@@ -24,8 +25,8 @@
         <li><a href="../workflow/bleach-bypass.html">Bleach Bypass</a></li>
         <li><a href="../workflow/color-splash.html">Color Splash</a></li>
         <li><a href="../workflow/monochrome.html">Monochrome</a></li>
-        <li><a href="../workflow/bw.html">B&W</a></li>
-        <li><a href="../workflow/light.html">Light</a></li>
+        <li><a href="../workflow/bw.html">N&B</a></li>
+        <li><a href="../workflow/light.html">Lumière</a></li>
         <li><a href="../workflow/vignettage.html">Vignettage</a></li>
       </ul>
     </nav>
@@ -33,8 +34,8 @@
   <main class="content">
     <article>
 <h1 id="4-d-tail-des-tapes-du-workflow">4. Détail des étapes du workflow</h1>
-<p>Cette section détaille, ligne par ligne, <strong>ce que fait précisément chaque vignette</strong> puis <strong>chaque réglage manuel</strong> accessible dans le Zoom de la ligne. Les réglages manuels sont regroupés exactement comme dans l'interface (accordéon « Réglages manuels » du Zoom) : Intensité / Tonalité / Couleur / Texture &amp; Grain pour Film, Bleach Bypass, Monochrome et B&amp;W (B&amp;W ajoute un groupe Filtre) ; Exposition &amp; Tonalité / Couleur / Texture &amp; Netteté / Halo &amp; Douceur / Finition pour Light.</p>
-<p><strong>Note de méthode sur les images avant/après</strong> : chaque réglage manuel est illustré isolément — le curseur est poussé à une valeur extrême sur une base fixe (un preset neutre ou un preset de référence selon le réglage), toutes les autres valeurs restant à leur défaut, pour que l'image montre uniquement la contribution de CE réglage précis, sans la mélanger à celle des autres. <strong>Bleach Bypass</strong> et <strong>B&amp;W</strong> partagent exactement le même moteur et les mêmes identifiants de réglages que <strong>Film</strong> (<code>lumaflow/addons/builtin/film.py</code>, un seul module pour les trois lignes) : plutôt que dupliquer des images rigoureusement identiques pixel pour pixel sous un autre titre, la page Bleach Bypass renvoie vers les illustrations de la page Film, et la page B&amp;W n'illustre que les 2 réglages qui lui sont propres (le filtre coloré). Deux réglages de la ligne Light (<code>hsl_saturation_scale</code>/<code>hsl_luminance_scale</code>) sont signalés sans image : à ce jour, aucun preset livré ne renseigne les tables internes qu'ils sont censés moduler, ils sont donc inertes quel que soit le preset sélectionné (réservés à un futur look calibré par teinte) — un avant/après serait trompeur puisqu'il ne montrerait jamais aucune différence.</p>
+<p>Cette section détaille, ligne par ligne, <strong>ce que fait précisément chaque vignette</strong> puis <strong>chaque réglage manuel</strong> accessible dans le Zoom de la ligne. Les réglages manuels sont regroupés exactement comme dans l'interface (accordéon « Réglages manuels » du Zoom) : Intensité / Tonalité / Couleur / Texture &amp; Grain pour Film, Bleach Bypass, Monochrome et N&amp;B (N&amp;B ajoute un groupe Filtre) ; Exposition &amp; Tonalité / Couleur / Texture &amp; Netteté / Halo &amp; Douceur / Finition pour Lumière.</p>
+<p><strong>Note de méthode sur les images avant/après</strong> : chaque réglage manuel est illustré isolément — le curseur est poussé à une valeur extrême sur une base fixe (un preset neutre ou un preset de référence selon le réglage), toutes les autres valeurs restant à leur défaut, pour que l'image montre uniquement la contribution de CE réglage précis, sans la mélanger à celle des autres. <strong>Bleach Bypass</strong> et <strong>N&amp;B</strong> partagent exactement le même moteur et les mêmes identifiants de réglages que <strong>Film</strong> (<code>lumaflow/addons/builtin/film.py</code>, un seul module pour les trois lignes) : plutôt que dupliquer des images rigoureusement identiques pixel pour pixel sous un autre titre, la page Bleach Bypass renvoie vers les illustrations de la page Film, et la page N&amp;B n'illustre que les 2 réglages qui lui sont propres (le filtre coloré). Deux réglages de la ligne Lumière (<code>hsl_saturation_scale</code>/<code>hsl_luminance_scale</code>) sont signalés sans image : à ce jour, aucun preset livré ne renseigne les tables internes qu'ils sont censés moduler, ils sont donc inertes quel que soit le preset sélectionné (réservés à un futur look calibré par teinte) — un avant/après serait trompeur puisqu'il ne montrerait jamais aucune différence.</p>
     </article>
   </main>
 </div>

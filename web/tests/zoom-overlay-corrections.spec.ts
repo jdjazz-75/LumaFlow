@@ -5,8 +5,16 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { pinFrenchLocale } from "./helpers/locale";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// i18n phase 0 (2026-09-03, garde-fou) -- cette suite sélectionne par texte français ; épingler
+// la locale avant CHAQUE test, indépendamment du describe qui le contient (voir tests/helpers/
+// locale.ts).
+test.beforeEach(async ({ page }) => {
+  await pinFrenchLocale(page);
+});
 
 /**
  * Persistent regression guard for a bug class that has already recurred THREE times: Geometry/
@@ -117,7 +125,7 @@ test.describe("Zoom overlay corrections -- Geometry/Cadrage/Masque Sujet", () =>
   test("Geometry: le cadre wrapper est confiné dans le stage ET pixel-identique à la photo, centré", async ({ page }) => {
     await openFilmZoom(page);
     await zoomIn(page, 8);
-    await page.getByRole("switch", { name: "Geometry" }).click();
+    await page.getByRole("switch", { name: "Géométrie" }).click();
     await waitForStagePhotoLoaded(page, ".geometry-canvas__photo");
     await page.waitForTimeout(300);
 
@@ -211,7 +219,7 @@ test.describe("Zoom overlay corrections -- Geometry/Cadrage/Masque Sujet", () =>
     page,
   }) => {
     await openTestImage(page);
-    const lightRow = await navigateToRow(page, "Light");
+    const lightRow = await navigateToRow(page, "Lumière");
     await lightRow.locator(".vignette-card").first().dblclick();
     await waitForPaneImagesLoaded(page);
 

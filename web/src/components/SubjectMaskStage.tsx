@@ -5,6 +5,7 @@
 import type { RefObject, PointerEvent as ReactPointerEvent } from "react";
 import "./CropCanvas.css";
 import "./SubjectMaskStage.css";
+import { t } from "../i18n";
 
 // Subject/background boundary editor (feature 047, User Stories 3/4). Modeled directly on
 // CropToolStage.tsx: same fractionFromPointer math (photo-rect-relative, letterboxing-aware), same
@@ -214,7 +215,7 @@ export function SubjectMaskControls({
   return (
     <div className="subject-mask-stage__controls">
       <div className="subject-mask-stage__control-row">
-        <span className="subject-mask-stage__control-label">Adoucissement</span>
+        <span className="subject-mask-stage__control-label">{t("ui.mask.feather")}</span>
         <input
           type="range"
           min={0}
@@ -230,11 +231,11 @@ export function SubjectMaskControls({
         className={`subject-mask-stage__invert-button${invert ? " subject-mask-stage__invert-button--on" : ""}`}
         onClick={onInvertToggle}
       >
-        Inverser
+        {t("ui.mask.invert")}
       </button>
       {onClearZone && (
         <button type="button" className="subject-mask-stage__invert-button" onClick={onClearZone}>
-          Toute l'image
+          {t("ui.mask.whole_image")}
         </button>
       )}
     </div>

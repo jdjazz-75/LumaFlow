@@ -7,6 +7,7 @@ import type { PresetEntry } from "../lib/api";
 import { LogoGlyph, PresetsIcon } from "./icons";
 import { HeaderMenu } from "./HeaderMenu";
 import { PresetSelector } from "./PresetSelector";
+import { t } from "../i18n";
 
 type HeaderBarProps = {
   presets: PresetEntry[];
@@ -45,7 +46,7 @@ export function HeaderBar({
       </div>
       <div className="header-preset-group">
         <PresetsIcon size={16} color="var(--t1)" />
-        <span className="header-preset-label">Preset</span>
+        <span className="header-preset-label">{t("ui.header.preset")}</span>
         <PresetSelector presets={presets} activePath={activePresetPath} onSelect={onSelectPreset} />
       </div>
       <div className="spacer" />

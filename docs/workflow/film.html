@@ -10,6 +10,7 @@
 <div class="layout">
   <aside class="sidebar">
     <a class="brand" href="../index.html">LumaFlow</a>
+    <div class="lang-switch"><strong>FR</strong><span class="sep">/</span><a href="../en/workflow/film.html">EN</a></div>
     <nav>
       <ul class="nav-main">
         <li><a href="../index.html">Présentation</a></li>
@@ -24,8 +25,8 @@
         <li><a href="../workflow/bleach-bypass.html">Bleach Bypass</a></li>
         <li><a href="../workflow/color-splash.html">Color Splash</a></li>
         <li><a href="../workflow/monochrome.html">Monochrome</a></li>
-        <li><a href="../workflow/bw.html">B&W</a></li>
-        <li><a href="../workflow/light.html">Light</a></li>
+        <li><a href="../workflow/bw.html">N&B</a></li>
+        <li><a href="../workflow/light.html">Lumière</a></li>
         <li><a href="../workflow/vignettage.html">Vignettage</a></li>
       </ul>
     </nav>
@@ -33,7 +34,7 @@
   <main class="content">
     <article>
 <h1 id="4-1-film">4.1 Film</h1>
-<p><strong>Moteur</strong> : un moteur de gradation paramétrique générique (espace HSL, courbe de tons à 3 zones, saturation/teinte/luminance par plage de teinte nommée, virage colorimétrique ombres/hautes lumières, balance des blancs, clarté/netteté, grain, écrêtage des noirs) piloté par une « calibration » déclarative par preset. Ce même moteur alimente aussi les lignes <strong>Bleach Bypass</strong> et <strong>B&amp;W</strong> (§4.2, §4.5) — seul l'ensemble de presets diffère d'une ligne à l'autre.</p>
+<p><strong>Moteur</strong> : un moteur de gradation paramétrique générique (espace HSL, courbe de tons à 3 zones, saturation/teinte/luminance par plage de teinte nommée, virage colorimétrique ombres/hautes lumières, balance des blancs, clarté/netteté, grain, écrêtage des noirs) piloté par une « calibration » déclarative par preset. Ce même moteur alimente aussi les lignes <strong>Bleach Bypass</strong> et <strong>N&amp;B</strong> (§4.2, §4.5) — seul l'ensemble de presets diffère d'une ligne à l'autre.</p>
 <h2 id="vignettes">Vignettes</h2>
 <div class="table-wrap"><table>
 <thead><tr><th>Vignette</th><th>Effet</th></tr></thead>
@@ -45,8 +46,8 @@
 <tr><td><strong>Pro Neg. Std</strong></td><td>Contraste et hautes lumières abaissés, ombres ouvertes ; désaturation large et homogène (−8 à −10 % sur presque toutes les teintes, la peau étant la plus protégée), grain quasi imperceptible. Une base neutre et malléable plutôt qu'un rendu stylisé.</td></tr>
 <tr><td><strong>Eterna</strong></td><td>Très plat (contraste −32, hautes lumières −35, ombres +25 largement ouvertes), fortement désaturé (×0,68), virage cinéma ombres cyan-sarcelle (200°) / hautes lumières orangées (40°), légèrement flouté (netteté −2). Le rendu « log » cinéma, volontairement inachevé à la sortie.</td></tr>
 <tr><td><strong>Classic Negative</strong></td><td>Contraste marqué (+22), ombres approfondies, verts/cyans atténués, refroidie (−70K) avec une pointe de vert (teinte −6), virage ombres cyan-vert (185°) / hautes lumières ambrées (48°), clarté renforcée. Rendu punché à caractère « négatif grand public ».</td></tr>
-<tr><td><strong>Rizzle Clicks</strong></td><td>Basé sur Classic Negative : clarté fortement réduite (halo/flou marqué), grain fort et fin, Dynamic Range 400 (hautes lumières protégées, ombres ouvertes), Color Chrome Effect fort (couleurs saturées approfondies), teinte froide (balance des blancs 4000K).</td></tr>
-<tr><td><strong>Glacier Blue</strong></td><td>Basé sur Classic Negative : ombres relevées, saturation nettement réduite, sans grain, Dynamic Range 200, Color Chrome Blue (ciel/eau spécifiquement approfondis), teinte froide et légèrement verte. Le rendu glacé, épuré, annoncé par son nom.</td></tr>
+<tr><td><strong>Rizzle Clicks</strong></td><td>Basé sur Classic Negative : clarté fortement réduite (halo/flou marqué), grain fort et fin, Plage dynamique 400 (hautes lumières protégées, ombres ouvertes), Color Chrome Effect fort (couleurs saturées approfondies), teinte froide (balance des blancs 4000K).</td></tr>
+<tr><td><strong>Glacier Blue</strong></td><td>Basé sur Classic Negative : ombres relevées, saturation nettement réduite, sans grain, Plage dynamique 200, Color Chrome Blue (ciel/eau spécifiquement approfondis), teinte froide et légèrement verte. Le rendu glacé, épuré, annoncé par son nom.</td></tr>
 </tbody></table></div>
 <h2 id="r-glages-manuels">Réglages manuels</h2>
 <h3 id="intensit">Intensité</h3>
@@ -72,9 +73,9 @@
 </ul>
 <p class="figure"><img src="../screenshots/reglages/film/black_clip.png" alt="Noir minimal" loading="lazy"></p>
 <ul>
-<li><strong>Dynamic Range</strong> (<code>dynamic_range</code>, Off/DR200/DR400) — protège conjointement les hautes lumières et ouvre les ombres (composé à partir des réglages de tonalité ci-dessus), pour un rendu plus plat et proche d'un profil « log ».</li>
+<li><strong>Plage dynamique</strong> (<code>dynamic_range</code>, Off/DR200/DR400) — protège conjointement les hautes lumières et ouvre les ombres (composé à partir des réglages de tonalité ci-dessus), pour un rendu plus plat et proche d'un profil « log ».</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/film/dynamic_range.png" alt="Dynamic Range" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/film/dynamic_range.png" alt="Plage dynamique" loading="lazy"></p>
 <h3 id="couleur">Couleur</h3>
 <ul>
 <li><strong>Saturation globale</strong> (<code>global_saturation</code>, ×0..2) — multiplie la saturation de l'image entière.</li>
@@ -101,13 +102,13 @@
 </ul>
 <p class="figure"><img src="../screenshots/reglages/film/split_tone_scale.png" alt="Virage coloré" loading="lazy"></p>
 <ul>
-<li><strong>Col. Chr. Effect</strong> (<code>color_chrome_effect</code>, Off/Weak/Strong) — approfondit/protège les pixels les plus saturés et les plus lumineux de l'image, relativement au reste de cette même image. L'effet ne cible que le haut du classement (percentile) de saturation/luminosité <em>propre à chaque image</em> — sur une photo dont les couleurs sont déjà toutes proches en intensité (comme la photo d'exemple utilisée pour les autres réglages), la plage réellement ciblée est trop étroite pour se voir ; illustré ici sur une grille de teintes à plusieurs niveaux de vivacité, où seule la rangée la plus saturée/lumineuse (en haut) est visiblement assombrie/désaturée, les rangées plus ternes restant inchangées.</li>
+<li><strong>Effet Color Chrome</strong> (<code>color_chrome_effect</code>, Off/Weak/Strong) — approfondit/protège les pixels les plus saturés et les plus lumineux de l'image, relativement au reste de cette même image. L'effet ne cible que le haut du classement (percentile) de saturation/luminosité <em>propre à chaque image</em> — sur une photo dont les couleurs sont déjà toutes proches en intensité (comme la photo d'exemple utilisée pour les autres réglages), la plage réellement ciblée est trop étroite pour se voir ; illustré ici sur une grille de teintes à plusieurs niveaux de vivacité, où seule la rangée la plus saturée/lumineuse (en haut) est visiblement assombrie/désaturée, les rangées plus ternes restant inchangées.</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/film/color_chrome_effect.png" alt="Col. Chr. Effect" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/film/color_chrome_effect.png" alt="Effet Color Chrome" loading="lazy"></p>
 <ul>
-<li><strong>Col. Chr. Blue</strong> (<code>color_chrome_blue</code>, Off/Weak/Strong) — même mécanisme, restreint aux teintes bleu/cyan (ciel, eau). Sur la même grille : seules les cases bleu/cyan de la rangée la plus vive changent, toutes les autres teintes (rouge, orange, jaune, vert, magenta) restent identiques — la restriction de teinte de ce réglage, bien visible en comparaison directe.</li>
+<li><strong>Color Chrome Bleu</strong> (<code>color_chrome_blue</code>, Off/Weak/Strong) — même mécanisme, restreint aux teintes bleu/cyan (ciel, eau). Sur la même grille : seules les cases bleu/cyan de la rangée la plus vive changent, toutes les autres teintes (rouge, orange, jaune, vert, magenta) restent identiques — la restriction de teinte de ce réglage, bien visible en comparaison directe.</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/film/color_chrome_blue.png" alt="Col. Chr. Blue" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/film/color_chrome_blue.png" alt="Color Chrome Bleu" loading="lazy"></p>
 <h3 id="texture-grain">Texture &amp; Grain</h3>
 <ul>
 <li><strong>Clarté</strong> (<code>clarity</code>, -100..100) — contraste local à rayon large (masque flou sur la luminance) ; négatif = adoucit/brume, positif = accentue la texture des tons moyens.</li>
@@ -122,15 +123,15 @@
 </ul>
 <p class="figure"><img src="../screenshots/reglages/film/grain_std.png" alt="Grain" loading="lazy"></p>
 <h3 id="r-glages-sp-cifiques-au-rendu-noir-et-blanc">Réglages spécifiques au rendu noir et blanc</h3>
-<p>Deux réglages n'ont d'effet que sur un look déjà converti en niveaux de gris (Acros et les presets de la ligne B&amp;W, §4.5) — sans effet sur Film/Bleach Bypass tant qu'aucun filtre B&amp;W n'est actif :</p>
+<p>Deux réglages n'ont d'effet que sur un look déjà converti en niveaux de gris (Acros et les presets de la ligne N&amp;B, §4.5) — sans effet sur Film/Bleach Bypass tant qu'aucun filtre N&amp;B n'est actif :</p>
 <ul>
-<li><strong>Mono Colour WC</strong> (<code>mono_color_wc</code>, -20..20) — virage chaud/froid appliqué à l'image déjà grise (distinct de la Température, qui agit avant la conversion).</li>
+<li><strong>Mono Couleur WC</strong> (<code>mono_color_wc</code>, -20..20) — virage chaud/froid appliqué à l'image déjà grise (distinct de la Température, qui agit avant la conversion).</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/film/mono_color_wc.png" alt="Mono Colour WC" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/film/mono_color_wc.png" alt="Mono Couleur WC" loading="lazy"></p>
 <ul>
-<li><strong>Mono Colour MG</strong> (<code>mono_color_mg</code>, -20..20) — virage vert/magenta appliqué à l'image déjà grise.</li>
+<li><strong>Mono Couleur MG</strong> (<code>mono_color_mg</code>, -20..20) — virage vert/magenta appliqué à l'image déjà grise.</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/film/mono_color_mg.png" alt="Mono Colour MG" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/film/mono_color_mg.png" alt="Mono Couleur MG" loading="lazy"></p>
     </article>
   </main>
 </div>

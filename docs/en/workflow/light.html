@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Light — LumaFlow</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="../index.html">LumaFlow</a>
+    <div class="lang-switch"><a href="../../workflow/light.html">FR</a><span class="sep">/</span><strong>EN</strong></div>
+    <nav>
+      <ul class="nav-main">
+        <li><a href="../index.html">Overview</a></li>
+        <li><a href="../installation.html">Installation</a></li>
+        <li><a href="../features.html">Features</a></li>
+        <li><a href="../batch.html">Batch processing</a></li>
+        <li><a href="../workflow/index.html">Workflow</a></li>
+      </ul>
+      <div class="nav-section-label">Workflow steps</div>
+      <ul class="nav-workflow">
+        <li><a href="../workflow/film.html">Film</a></li>
+        <li><a href="../workflow/bleach-bypass.html">Bleach Bypass</a></li>
+        <li><a href="../workflow/color-splash.html">Color Splash</a></li>
+        <li><a href="../workflow/monochrome.html">Monochrome</a></li>
+        <li><a href="../workflow/bw.html">B&W</a></li>
+        <li><a href="../workflow/light.html" class="active">Light</a></li>
+        <li><a href="../workflow/vignetting.html">Vignetting</a></li>
+      </ul>
+    </nav>
+  </aside>
+  <main class="content">
+    <article>
+<h1 id="4-6-light">4.6 Light</h1>
+<p><strong>Engine</strong>: exposure, contrast and a 4-zone tone curve (Blacks/Shadows/Highlights/Whites, each zone being a cosine-weighted window around its own luminance center), color/toning, 3-radius texture/detail, bloom, an edge-protected smoothing ("Softness"), grain and vignetting — all independently adjustable across a <strong>subject</strong> and a <strong>background</strong> defined by a polygon outline drawn with the mouse.</p>
+<h2 id="thumbnails">Thumbnails</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Thumbnail</th><th>Effect</th></tr></thead>
+<tbody>
+<tr><td><strong>Neutral</strong></td><td>No transformation.</td></tr>
+<tr><td><strong>Balance</strong></td><td>A subtle setting: slight overexposure (+15), markedly raised shadows, lowered highlights — a gentle rebalancing of the dynamic range, with no color or texture added.</td></tr>
+<tr><td><strong>Low Key</strong></td><td>Dark and contrasty: strong underexposure, marked contrast, deepened blacks/shadows (with black-point clipping), highlights and whites barely touched (bright accents survive); slight desaturation, cold cast, blue-cyan toning in the shadows and a subtle orange toning in the highlights; boosted clarity/texture/sharpness, pronounced dark vignetting, visible grain. The classic dark, "lived-in" look.</td></tr>
+<tr><td><strong>High Key</strong></td><td>Bright and airy: strong overexposure, reduced contrast, widely raised shadows, a raised black floor (never pure black — the "milky" look proper to high key); slight desaturation, warm pastel cast, golden toning in the shadows and highlights; slightly reduced clarity/texture (more softness), brightening vignetting (not darkening), minimal grain.</td></tr>
+<tr><td><strong>Dramatic</strong></td><td>Very strong contrast (this preset's dominant setting), exposure and shadows barely touched on purpose (an earlier, too-dark version crushed the look rather than energizing it), raised whites for a crisp glint against deep blacks; moderate desaturation, cold cast, teal toning (195°) in the shadows / orange toning (35°) in the highlights — a classic cinematic "teal & orange"; clarity/texture/sharpness at maximum, the strongest vignetting and grain of the 5 presets. The "movie poster" look.</td></tr>
+<tr><td><strong>Soft</strong></td><td>Soft and low-contrast: raised shadows, highlights and whites slightly lowered, a raised black floor — a compressed, hazy tonal range; slight desaturation, warm cast; clarity/texture/sharpness all negative (no accentuation mechanism active); the only preset to enable a real <strong>bloom</strong> (warm glow diffused from bright areas) and an edge-protected smoothing (softens flat areas, preserves crisp edges); minimal grain.</td></tr>
+</tbody></table></div>
+<h2 id="manual-settings">Manual settings</h2>
+<h3 id="exposure-tone">Exposure &amp; Tone</h3>
+<ul>
+<li><strong>Strength</strong> (<code>intensity</code>, 0..1) — blends the graded result with the original image.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/intensity.png" alt="Strength" loading="lazy"></p>
+<ul>
+<li><strong>Exposure</strong> (<code>exposure</code>, -100..100) — multiplicative light gain (±2 EV across the whole range), applied before everything else.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/exposure.png" alt="Exposure" loading="lazy"></p>
+<ul>
+<li><strong>Contrast</strong> (<code>contrast</code>, -100..100) — pushes luminance away from (positive) or pulls it toward (negative) its pivot.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/contrast.png" alt="Contrast" loading="lazy"></p>
+<ul>
+<li><strong>Contrast pivot</strong> (<code>contrast_pivot</code>, 0.2..0.8) — the luminance value around which contrast pivots: lower, and bright tones move more; higher, and it's the dark tones.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/contrast_pivot.png" alt="Contrast pivot" loading="lazy"></p>
+<ul>
+<li><strong>Blacks</strong> (<code>blacks</code>, -100..100) — the darkest zone of the 4-zone curve (center 0.00).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/blacks.png" alt="Blacks" loading="lazy"></p>
+<ul>
+<li><strong>Shadows</strong> (<code>shadows</code>, -100..100) — the dark zone (center 0.28).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/shadows.png" alt="Shadows" loading="lazy"></p>
+<ul>
+<li><strong>Highlights</strong> (<code>highlights</code>, -100..100) — the bright zone (center 0.72).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/highlights.png" alt="Highlights" loading="lazy"></p>
+<ul>
+<li><strong>Whites</strong> (<code>whites</code>, -100..100) — the brightest zone of the curve (center 1.00).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/whites.png" alt="Whites" loading="lazy"></p>
+<ul>
+<li><strong>Black point</strong> (<code>black_point</code>, 0..0.10) — crushes near-black tones toward pure black.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/black_point.png" alt="Black point" loading="lazy"></p>
+<ul>
+<li><strong>Black floor</strong> (<code>black_floor</code>, 0..0.10) — conversely, raises pure black toward a matte/washed-out gray (the "never quite black" look of High Key).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/black_floor.png" alt="Black floor" loading="lazy"></p>
+<h3 id="colour">Colour</h3>
+<ul>
+<li><strong>Saturation</strong> (<code>saturation</code>, ×0..2) — global saturation multiplier.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/saturation.png" alt="Saturation" loading="lazy"></p>
+<ul>
+<li><strong>Temperature</strong> (<code>temperature</code>, -1000..1000).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/temperature.png" alt="Temperature" loading="lazy"></p>
+<ul>
+<li><strong>Tint</strong> (<code>tint</code>, -20..20).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/tint.png" alt="Tint" loading="lazy"></p>
+<ul>
+<li><strong>Shadow tint (hue)</strong> (<code>split_shadow_hue</code>, 0..360°) — the color blended into the dark tones.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/split_shadow_hue.png" alt="Shadow tint (hue)" loading="lazy"></p>
+<ul>
+<li><strong>Shadow tint (strength)</strong> (<code>split_shadow_strength</code>, 0..20%) — intensity of that blend.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/split_shadow_strength.png" alt="Shadow tint (strength)" loading="lazy"></p>
+<ul>
+<li><strong>Highlight tint (hue)</strong> (<code>split_highlight_hue</code>, 0..360°).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/split_highlight_hue.png" alt="Highlight tint (hue)" loading="lazy"></p>
+<ul>
+<li><strong>Highlight tint (strength)</strong> (<code>split_highlight_strength</code>, 0..20%).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/split_highlight_strength.png" alt="Highlight tint (strength)" loading="lazy"></p>
+<ul>
+<li><strong>HSL saturation</strong> (<code>hsl_saturation_scale</code>, ×0..2) and <strong>HSL luminance</strong> (<code>hsl_luminance_scale</code>, ×0..2) — meant to amplify/reduce per-hue saturation/luminance adjustments specific to the selected look, on the same principle as Film (§4.1). <strong>Not illustrated here</strong>: as of today, none of the 6 shipped presets populate these internal tables — both sliders are therefore inert regardless of the preset, reserved for a future hue-calibrated look.</li>
+</ul>
+<h3 id="texture-sharpness">Texture &amp; Sharpness</h3>
+<ul>
+<li><strong>Clarity</strong> (<code>clarity</code>, -100..100) — wide-radius local contrast.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/clarity.png" alt="Clarity" loading="lazy"></p>
+<ul>
+<li><strong>Texture</strong> (<code>texture</code>, -100..100) — medium-radius detail, finer than Clarity.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/texture.png" alt="Texture" loading="lazy"></p>
+<ul>
+<li><strong>Sharpness</strong> (<code>sharpness</code>, -100..100) — fine accentuation (1 px radius).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/sharpness.png" alt="Sharpness" loading="lazy"></p>
+<ul>
+<li><strong>Dehaze</strong> (<code>dehaze</code>, -100..100) — a combined correction (local contrast + black-point recentering + saturation), an approximation of dehazing rather than a physical simulation.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/dehaze.png" alt="Dehaze" loading="lazy"></p>
+<h3 id="bloom-softness">Bloom &amp; Softness</h3>
+<ul>
+<li><strong>Bloom (threshold)</strong> (<code>bloom_threshold</code>, 0..1) — the luminance above which a pixel contributes to the diffused glow.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/bloom_threshold.png" alt="Bloom (threshold)" loading="lazy"></p>
+<ul>
+<li><strong>Bloom (amount)</strong> (<code>bloom_amount</code>, 0..50%) — opacity of the glow, blended in Lighten mode.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/bloom_amount.png" alt="Bloom (amount)" loading="lazy"></p>
+<ul>
+<li><strong>Bloom (radius)</strong> (<code>bloom_radius</code>, 0..5% of the width) — spread of the blur that sources the glow.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/bloom_radius.png" alt="Bloom (radius)" loading="lazy"></p>
+<ul>
+<li><strong>Bloom (warmth)</strong> (<code>bloom_warmth</code>, -500..500) — warms/cools the glow's own color, independently of the general Temperature.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/bloom_warmth.png" alt="Bloom (warmth)" loading="lazy"></p>
+<ul>
+<li><strong>Softness (amount)</strong> (<code>soft_detail_amount</code>, 0..50%) — strength of a blur blended across the whole image.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/soft_detail_amount.png" alt="Softness (amount)" loading="lazy"></p>
+<ul>
+<li><strong>Softness (radius)</strong> (<code>soft_detail_radius</code>, 0..8 px) — the radius of that blur.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/soft_detail_radius.png" alt="Softness (radius)" loading="lazy"></p>
+<ul>
+<li><strong>Edge protection</strong> (<code>edge_protection</code>, 0..100%) — resistance of detected crisp edges to the Softness blur: higher means flat areas smooth out further while edges (eyes, object boundaries) stay crisp.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/edge_protection.png" alt="Edge protection" loading="lazy"></p>
+<h3 id="finishing">Finishing</h3>
+<ul>
+<li><strong>Vignetting</strong> (<code>vignette</code>, -100..100) — radial darkening (negative) or brightening (positive) of the edges.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/vignette.png" alt="Vignetting" loading="lazy"></p>
+<ul>
+<li><strong>Grain</strong> (<code>grain</code>, 0..0.05).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/light/grain.png" alt="Grain" loading="lazy"></p>
+<h2 id="subject-background-mask">Subject/Background Mask</h2>
+<p>A polygon outline (vertices movable with the mouse, clickable edge midpoints to insert a new vertex, up to 32 vertices, feathered edge) splits the image into two regions. Of the 32 settings above, <strong>19</strong> become independently adjustable for the Subject and the Background (exposure, contrast, blacks/shadows/highlights/whites, black point, black floor, temperature, tint, the strength of both tints, clarity, texture, sharpness, dehaze, saturation, and both HSL scales); the <strong>other 13</strong> — contrast pivot, the hue of both tints, the entire Bloom &amp; Softness group, and all of Finishing (vignetting, grain) — stay global, applied once on the composited image, never split by the mask. With no outline drawn, the Background setting applies to the whole image.</p>
+<p><img src="../../screenshots/reglages/light/masque_sujet_fond.png" alt="Subject/Background Mask" loading="lazy"> <em>Example: an outline covering the left half of the photo, with Subject Exposure at +60 and Background Exposure at −60 — an extreme case to make the split obvious.</em></p>
+    </article>
+  </main>
+</div>
+</body>
+</html>

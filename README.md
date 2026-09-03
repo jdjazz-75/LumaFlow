@@ -1,166 +1,350 @@
-# LumaFlow
+# LumaFlow Photo
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+### A local, non-destructive photo editor built around a visual light-table workflow.
 
-**Votre table lumineuse, réinventée.** La retouche photo redevient un terrain de jeu.
+**Explore looks. Compare them instantly. Fine-tune what you like. Keep your originals untouched.**
 
-> 📖 **Documentation complète** : **[jdjazz-75.github.io/LumaFlow](https://jdjazz-75.github.io/LumaFlow/)**
-> — la version illustrée, avec captures d'écran et avant/après de chaque réglage.
+[![License: MIT](https://img.shields.io/github/license/jdjazz-75/LumaFlow)](LICENSE)
+![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB)
+![Local](https://img.shields.io/badge/processing-100%25%20local-success)
+![RAW](https://img.shields.io/badge/RAW-CR2%20%7C%20NEF%20%7C%20ARW-orange)
 
----
+<p align="center">
+  <img src="docs/screenshots/00-lumaflow.png" alt="LumaFlow Photo interface" width="100%">
+</p>
 
-## 1. Présentation
-
-Posez votre photo sur la table. Faites défiler les pellicules du bout du doigt — Film, Lumière,
-Vignettage — et regardez chaque style prendre vie sous vos yeux. Ce qui vous plaît, gardez-le. Ce
-qui ne vous plaît pas, oubliez-le : l'original repose intact, juste en dessous, prêt à recommencer
-à l'infini.
-
-![LumaFlow — la table lumineuse, avec ses pellicules Film, Bleach Bypass et Color Splash](docs/screenshots/00-lumaflow.png)
-
-**L'esprit de la table lumineuse**
-
-- **Zéro risque, liberté totale** — votre photo d'origine est intouchable. Testez, annulez,
-  recommencez à volonté : elle ne change jamais.
-- **De nouvelles pellicules arrivent, la table s'agrandit** — le tiroir de styles n'est jamais
-  clos ; il s'enrichit avec le temps, sans jamais bousculer les habitudes déjà prises.
-- **Tout se voit avant de se décider** — chaque étape montre son effet sous forme de vignettes, en
-  un coup d'œil. Un clic applique le style ; la loupe ouvre une vue détaillée pour peaufiner chaque
-  curseur.
-- **Votre style, dupliqué en un clic** — une recette, mille photos. Sauvegardez vos réglages une
-  fois, réutilisez-les partout.
-- **Et pour mille photos, un seul geste** — le traitement par lot applique un preset à une liste
-  entière d'images pendant que vous faites autre chose : progression en direct, journal détaillé,
-  et un fichier en erreur n'arrête jamais les autres.
-
-**⚡ 100 % local. 0 % cloud.** Vos photos ne quittent jamais votre ordinateur. Pas d'upload, pas de
-compte, pas d'attente — tout tourne en local, dès le lancement.
-
-→ [Page Présentation](https://jdjazz-75.github.io/LumaFlow/)
+<p align="center">
+  <a href="https://jdjazz-75.github.io/LumaFlow/en/">📖 Illustrated documentation (English)</a>
+  ·
+  <a href="https://jdjazz-75.github.io/LumaFlow/">📖 Documentation illustrée (Français)</a>
+  ·
+  <a href="https://github.com/jdjazz-75/LumaFlow/issues">🐛 Issues & feedback</a>
+</p>
 
 ---
 
-## 2. Installation et exécution
+## What is LumaFlow?
 
-**Prérequis** : **Python 3.11 ou supérieur** (avec `pip`) et **Node.js** (avec `npm`, utilisé pour
-construire l'interface web).
+LumaFlow reimagines photo editing as a **digital light table**.
 
-### Démarrage rapide (recommandé)
+Instead of opening panels full of controls before knowing what you want, you browse visual alternatives first: film looks, black & white treatments, lighting variations, color effects, vignettes and more.
 
-Deux scripts à la racine du dépôt installent les dépendances puis lancent le serveur en une seule
-étape :
+See the result. Pick what works. Then open the detailed view only when you want to fine-tune it.
 
-| Terminal                    | Commande                |
-| --------------------------- | ----------------------- |
-| PowerShell                  | `./install-and-run.ps1` |
-| Invite de commandes (cmd)   | `install-and-run.bat`   |
+The original image is never modified.
 
-Ils vérifient Python/Node, installent le paquet Python en mode éditable, construisent l'interface
-web, puis lancent le serveur — qui ouvre automatiquement votre navigateur sur
-`http://127.0.0.1:8000`. La fenêtre de terminal reste occupée tant que le serveur tourne ;
-`Ctrl+C` pour l'arrêter.
+**No cloud. No account. No upload. Your photos stay on your computer.**
 
-### Installation manuelle
+---
+
+## Why LumaFlow?
+
+### 🎞 Visual-first editing
+
+Each processing step is presented as a horizontal strip of visual alternatives.
+
+You can compare different interpretations of your image before touching a slider.
+
+### 🔍 Before / after editing
+
+Open any step in the Zoom view to get a large before/after comparator, optical zoom, panning and detailed controls.
+
+### 🧪 Non-destructive workflow
+
+Experiment freely.
+
+Your source image remains untouched, so you can try, undo and rebuild a look without risking the original.
+
+### 📷 RAW support
+
+LumaFlow can open common camera RAW formats directly:
+
+- Canon `.cr2`
+- Nikon `.nef`
+- Sony `.arw`
+
+RAW decoding and demosaicing are handled locally.
+
+### 🧾 Reusable recipes
+
+Save an entire editing configuration as a `.json` recipe and apply it to another image.
+
+This makes it easy to keep a consistent look across a complete photo series.
+
+### ⚡ Batch processing
+
+Apply a recipe to a whole list of images without opening them individually.
+
+Each batch can use its own:
+
+- source files;
+- recipe;
+- destination folder.
+
+A failed image does not stop the rest of the batch.
+
+### 🔒 Local by design
+
+LumaFlow runs entirely on your machine.
+
+```text
+Your photo
+    ↓
+LumaFlow on your computer
+    ↓
+Your exported photo
+
+No cloud upload.
+No online account.
+No remote processing.
+```
+
+---
+
+## See it in action
+
+### Light-table interface
+
+Browse processing steps and visual presets directly from the main interface.
+
+### Film strip workflow
+
+<p align="center">
+  <img src="docs/screenshots/02-filmstrip.png" alt="LumaFlow film strip workflow" width="90%">
+</p>
+
+Each step exposes its available looks as a scrollable strip.
+
+### Detailed editing
+
+<p align="center">
+  <img src="docs/screenshots/03-zoom-film.png" alt="LumaFlow detailed film editing" width="90%">
+</p>
+
+Use the Zoom view for before/after comparison and detailed adjustments.
+
+➡️ See the full illustrated documentation: [English](https://jdjazz-75.github.io/LumaFlow/en/) · [Français](https://jdjazz-75.github.io/LumaFlow/)
+
+---
+
+## Editing workflow
+
+The standard LumaFlow pipeline contains nine processing stages.
+
+| Stage | Purpose |
+|---|---|
+| **Geometry** | Manual rotation and free four-corner perspective correction |
+| **Framing** | Free cropping with composition guides |
+| **Film** | Film rendering and grain |
+| **Bleach Bypass** | Desaturated negative / bleach-bypass looks |
+| **Color Splash** | Preserve or replace selected color ranges |
+| **Monochrome** | Single-hue luminance colorization |
+| **B&W** | Black & white simulations and color-filter effects |
+| **Light** | Exposure, contrast, tone curve, glow, texture and subject/background adjustments |
+| **Vignette** | Interactive edge darkening and vignette geometry |
+
+The workflow is configurable rather than hard-coded, so stages can evolve without redesigning the application around them.
+
+➡️ Explore every processing stage: [English](https://jdjazz-75.github.io/LumaFlow/en/workflow/) · [Français](https://jdjazz-75.github.io/LumaFlow/workflow/)
+
+---
+
+## Quick start
+
+### Requirements
+
+You currently need:
+
+- **Python 3.11+**
+- `pip`
+- **Node.js**
+- `npm`
+
+Clone the repository:
+
+```bash
+git clone https://github.com/jdjazz-75/LumaFlow.git
+cd LumaFlow
+```
+
+### Windows — easiest way
+
+Two launch scripts are provided at the root of the repository.
+
+With PowerShell:
 
 ```powershell
+./install-and-run.ps1
+```
+
+Or with Command Prompt:
+
+```cmd
+install-and-run.bat
+```
+
+The script checks the required tools, installs the Python package, builds the web interface and starts LumaFlow.
+
+Your browser should then open:
+
+```text
+http://127.0.0.1:8000
+```
+
+Press `Ctrl+C` in the terminal to stop the application.
+
+---
+
+## Manual installation
+
+Install the Python package:
+
+```bash
 pip install -e .
+```
+
+Build the frontend:
+
+```bash
 cd web
 npm install
 npm run build
 cd ..
+```
+
+Start LumaFlow:
+
+```bash
 lumaflow
 ```
 
-### Mode développement
+Then open:
 
-```powershell
-# Terminal 1 — API FastAPI seule (sans servir le build web)
+```text
+http://127.0.0.1:8000
+```
+
+➡️ Detailed installation guide: [English](https://jdjazz-75.github.io/LumaFlow/en/installation.html) · [Français](https://jdjazz-75.github.io/LumaFlow/installation.html)
+
+---
+
+## Development mode
+
+Run the FastAPI backend:
+
+```bash
 lumaflow-api
+```
 
-# Terminal 2 — serveur de développement Vite (rechargement à chaud)
+In another terminal, start the Vite development server:
+
+```bash
 cd web
 npm run dev
 ```
 
-→ [Page Installation — détails, cas particuliers et reconstruction du front](https://jdjazz-75.github.io/LumaFlow/installation.html)
+This gives you frontend hot reload while keeping the API running separately.
 
 ---
 
-## 3. Fonctionnalités
+## Keyboard navigation
 
-- **Interface « table lumineuse »** — en haut : le logo, un sélecteur de preset et le menu ☰
-  (Ouvrir/Exporter une photo, Enregistrer/Ouvrir une recette, Lot, Préférences). Au centre : la
-  **pellicule**, une colonne verticale d'étapes de traitement, chacune affichant ses vignettes en
-  défilement horizontal. En bas : une barre de statut (miniature et métadonnées de la source,
-  pastilles de navigation, précédent/suivant) et un rappel des raccourcis clavier.
-- **Application immédiate** — un simple clic sur une vignette sélectionne et applique le preset,
-  sans ouvrir de vue détaillée.
-- **Mode Zoom** — un grand comparateur Avant / Après avec poignée déplaçable, zoom optique et
-  panoramique, et un panneau de réglages (curseurs, roues de teinte, interrupteurs) propre à
-  l'étape en cours. Chaque réglage peut être réinitialisé, appliqué (aperçu) ou validé.
-- **Corrections croisées Geometry / Cadrage** — depuis le Zoom de n'importe quelle étape visible,
-  deux interrupteurs donnent accès à la rotation / correction de perspective et au recadrage sans
-  quitter la ligne en cours d'édition.
-- **Édition interactive à la souris** — directement sur l'aperçu : poignée de rotation et 4 coins
-  de perspective (Geometry), poignées de cadre avec guide de composition (Cadrage), tracé
-  polygonal du masque sujet/arrière-plan (Light), forme du vignettage (centre, rayons, rotation).
-- **Recettes** — sauvegardez l'intégralité des réglages appliqués dans un fichier `.json` et
-  réappliquez-les à une autre photo ; les incompatibilités (proportions, valeurs hors bornes,
-  vignette désactivée depuis) produisent des avertissements non bloquants, jamais un échec.
-  Le preset affiché dans le sélecteur d'en-tête est **automatiquement réappliqué à chaque nouvelle
-  photo ouverte** : enchaîner les images d'une même série les développe toutes dans le même style,
-  sans avoir à re-sélectionner quoi que ce soit. « Nouveau » revient à l'image neutre.
-- **Traitement par lot** — applique une recette à   des listes entières d'images, sans en ouvrir 
-  aucune. Chaque **lot** associe une sélection multiple de fichiers (mêmes formats que l'ouverture
-  d'une photo, RAW compris), un preset `.json` et un dossier de sortie ; on en empile autant que 
-  voulu, avec des presets et des destinations différents.
-- **Photos RAW** — en plus du JPEG/PNG, LumaFlow ouvre directement les fichiers Canon (`.cr2`),
-  Nikon (`.nef`) et Sony (`.arw`) : décodage et dématriçage via `rawpy`, balance des blancs
-  appliquée dès le décodage, développement initial sûr, orientation EXIF respectée.
-- **Préférences** — 4 onglets : Général (couleur d'accentuation, dossiers par défaut, qualité JPEG),
-  Workflow (activation/réordonnancement des vignettes, import/export de `config_workflow.json`),
-  Lignes (espacement, marges, opacité des lignes inactives), Vignettes (couleurs des aides de
-  guidage, bornes du zoom optique).
+LumaFlow is designed to be browsable quickly from the keyboard.
 
-**Raccourcis clavier** : ↑/↓ changer d'étape · ←/→ changer de vignette · Espace, double-clic ou
-icône loupe pour ouvrir le Zoom · Échap pour fermer · clic sur une ligne assombrie pour y revenir.
-
-→ [Page Fonctionnalités — captures d'écran et description complète](https://jdjazz-75.github.io/LumaFlow/fonctionnalites.html)
-→ [Page Traitement par lot — le détail complet](https://jdjazz-75.github.io/LumaFlow/lot.html)
+| Key | Action |
+|---|---|
+| `↑` / `↓` | Previous / next processing stage |
+| `←` / `→` | Previous / next visual preset |
+| `Space` | Open detailed Zoom view |
+| Double click | Open detailed Zoom view |
+| `Esc` | Close detailed view |
 
 ---
 
-## 4. Workflow
+## Recipes and batch workflows
 
-Le pipeline standard est défini dans `config_workflow.json` (jamais codé en dur) et comprend
-**9 étapes**. Deux d'entre elles — **Geometry** et **Cadrage** — ne s'affichent pas comme des
-lignes de la pellicule mais restent éditables depuis n'importe quelle autre étape ; les 7 lignes
-suivantes sont directement visibles et navigables :
+Once you have created a look you like, save it as a recipe.
 
-| # | Étape | Rôle |
+A recipe captures the editing configuration so it can be reused on another photograph or applied to a whole series.
+
+For larger collections, Batch mode lets you queue several groups of images with different recipes and output destinations.
+
+<p align="center">
+  <img src="docs/screenshots/07-lot.png" alt="LumaFlow batch processing" width="90%">
+</p>
+
+➡️ Batch processing documentation: [English](https://jdjazz-75.github.io/LumaFlow/en/batch.html) · [Français](https://jdjazz-75.github.io/LumaFlow/lot.html)
+
+---
+
+## Documentation
+
+The complete illustrated documentation contains screenshots, detailed explanations and before/after examples for individual settings, available in **English** and **French**.
+
+**📖 English: https://jdjazz-75.github.io/LumaFlow/en/**
+**📖 Français : https://jdjazz-75.github.io/LumaFlow/**
+
+Useful sections:
+
+| Section | English | Français |
 |---|---|---|
-| — | **Geometry** | Rotation manuelle et correction de perspective libre à 4 coins |
-| — | **Cadrage (Framing)** | Recadrage libre avec guides de composition |
-| 1 | **[Film](https://jdjazz-75.github.io/LumaFlow/workflow/film.html)** | Rendu et grain argentique — moteur de gradation paramétrique partagé par les looks Fujifilm |
-| 2 | **[Bleach Bypass](https://jdjazz-75.github.io/LumaFlow/workflow/bleach-bypass.html)** | Même moteur, presets de négatifs désaturés type bleach-bypass |
-| 3 | **[Color Splash](https://jdjazz-75.github.io/LumaFlow/workflow/color-splash.html)** | Désature l'image sauf jusqu'à 3 plages de teinte conservées — ou **substitue** ces plages par d'autres couleurs |
-| 4 | **[Monochrome](https://jdjazz-75.github.io/LumaFlow/workflow/monochrome.html)** | Duotone : supprime la couleur puis colorise la luminance avec une teinte unique |
-| 5 | **[B&W](https://jdjazz-75.github.io/LumaFlow/workflow/bw.html)** | Simulations noir et blanc alternatives (filtres colorés, émulations Kodak/Ilford) |
-| 6 | **[Light](https://jdjazz-75.github.io/LumaFlow/workflow/light.html)** | Exposition et contraste, courbe de tons, halo, texture, split sujet/fond par masque |
-| 7 | **[Vignettage](https://jdjazz-75.github.io/LumaFlow/workflow/vignettage.html)** | Assombrissement des bords, forme éditable à l'écran |
-
-Le détail de **chaque vignette** et de **chaque réglage manuel** de chaque ligne — avec les images
-avant/après illustrant isolément la contribution de chaque curseur — n'est pas repris ici :
-il vit dans la documentation HTML, dont c'est le format naturel.
-
-→ [Détail des étapes du workflow](https://jdjazz-75.github.io/LumaFlow/workflow/index.html)
+| Overview | [Overview](https://jdjazz-75.github.io/LumaFlow/en/) | [Présentation](https://jdjazz-75.github.io/LumaFlow/) |
+| Installation | [Installation](https://jdjazz-75.github.io/LumaFlow/en/installation.html) | [Installation](https://jdjazz-75.github.io/LumaFlow/installation.html) |
+| Features | [Features](https://jdjazz-75.github.io/LumaFlow/en/features.html) | [Fonctionnalités](https://jdjazz-75.github.io/LumaFlow/fonctionnalites.html) |
+| Batch processing | [Batch processing](https://jdjazz-75.github.io/LumaFlow/en/batch.html) | [Traitement par lot](https://jdjazz-75.github.io/LumaFlow/lot.html) |
+| Workflow details | [Workflow](https://jdjazz-75.github.io/LumaFlow/en/workflow/) | [Workflow](https://jdjazz-75.github.io/LumaFlow/workflow/) |
 
 ---
 
-## Licence
+## Project status
 
-Ce projet est distribué sous licence **MIT** — voir le fichier [LICENSE](LICENSE). En résumé :
-usage, modification, distribution et intégration dans un projet propriétaire sont libres, à
-condition de conserver la mention de copyright et la licence.
+LumaFlow is still evolving.
 
+The current goal is to explore a different approach to photo editing: **make visual exploration the starting point of the workflow rather than the final step.**
 
+Feedback is especially useful around:
+
+- usability and workflow;
+- RAW compatibility;
+- film and photographic looks;
+- performance;
+- batch processing;
+- missing editing tools;
+- Windows, Linux and macOS compatibility.
+
+Found a bug or have an idea?
+
+➡️ [Open an issue](https://github.com/jdjazz-75/LumaFlow/issues)
+
+---
+
+## Contributing
+
+Contributions, bug reports and ideas are welcome.
+
+If you want to contribute:
+
+1. Fork the repository.
+2. Create a branch for your change.
+3. Test your changes.
+4. Open a pull request explaining what you changed and why.
+
+Even if you don't write code, feedback from photographers is valuable.
+
+---
+
+## License
+
+LumaFlow is distributed under the **MIT License**.
+
+You are free to use, modify and distribute the project subject to the terms of the [LICENSE](LICENSE) file.
+
+---
+
+## Support the project
+
+If you find LumaFlow interesting, **⭐ starring the repository helps other photographers and developers discover it.**
+
+And if you try it, feedback is even more useful:
+
+👉 [github.com/jdjazz-75/LumaFlow/issues](https://github.com/jdjazz-75/LumaFlow/issues)

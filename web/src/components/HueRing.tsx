@@ -3,6 +3,7 @@
 // de Color Splash pour définir les intervalles de teinte conservés.
 
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { t } from "../i18n";
 import "./HueRing.css";
 
 // Circular hue-range selector (feature 046) -- the representation chosen over a linear slider
@@ -140,7 +141,7 @@ export function HueRing({ handles, onHueChange }: HueRingProps) {
       })}
       {activeHandles.length === 0 && (
         <text className="hue-ring__empty" x={CENTER} y={CENTER} textAnchor="middle" dominantBaseline="middle">
-          Aucun intervalle actif
+          {t("zoom.no_active_interval")}
         </text>
       )}
     </svg>

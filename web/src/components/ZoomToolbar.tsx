@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from "react";
 import type { ZoomBounds } from "../lib/zoomFit";
+import { t } from "../i18n";
 
 type ZoomToolbarProps = {
   zoomPercent: number;
@@ -32,8 +33,8 @@ export function ZoomToolbar({ zoomPercent, zoomBounds, onZoomIn, onZoomOut, onZo
 
   return (
     <div className="zoom-overlay__optical-zoom">
-      <span className="zoom-overlay__optical-zoom-label">Zoom</span>
-      <button type="button" className="zoom-overlay__optical-zoom-button" onClick={onZoomOut} aria-label="Zoom arrière">
+      <span className="zoom-overlay__optical-zoom-label">{t("ui.zoom.optical")}</span>
+      <button type="button" className="zoom-overlay__optical-zoom-button" onClick={onZoomOut} aria-label={t("ui.zoom.out")}>
         −
       </button>
       <input
@@ -45,7 +46,7 @@ export function ZoomToolbar({ zoomPercent, zoomBounds, onZoomIn, onZoomOut, onZo
         value={zoomPercent}
         onChange={(event) => onZoomChange(Number(event.target.value))}
       />
-      <button type="button" className="zoom-overlay__optical-zoom-button" onClick={onZoomIn} aria-label="Zoom avant">
+      <button type="button" className="zoom-overlay__optical-zoom-button" onClick={onZoomIn} aria-label={t("ui.zoom.in")}>
         +
       </button>
       <input
@@ -58,11 +59,11 @@ export function ZoomToolbar({ zoomPercent, zoomBounds, onZoomIn, onZoomOut, onZo
         onKeyDown={(event) => {
           if (event.key === "Enter") event.currentTarget.blur();
         }}
-        aria-label="Pourcentage de zoom"
+        aria-label={t("ui.zoom.percent")}
       />
       <span className="zoom-overlay__optical-zoom-percent-sign">%</span>
       <button type="button" className="zoom-overlay__optical-zoom-fit" onClick={onFit}>
-        Ajuster
+        {t("ui.zoom.fit")}
       </button>
     </div>
   );

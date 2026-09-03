@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vignetting — LumaFlow</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="../index.html">LumaFlow</a>
+    <div class="lang-switch"><a href="../../workflow/vignettage.html">FR</a><span class="sep">/</span><strong>EN</strong></div>
+    <nav>
+      <ul class="nav-main">
+        <li><a href="../index.html">Overview</a></li>
+        <li><a href="../installation.html">Installation</a></li>
+        <li><a href="../features.html">Features</a></li>
+        <li><a href="../batch.html">Batch processing</a></li>
+        <li><a href="../workflow/index.html">Workflow</a></li>
+      </ul>
+      <div class="nav-section-label">Workflow steps</div>
+      <ul class="nav-workflow">
+        <li><a href="../workflow/film.html">Film</a></li>
+        <li><a href="../workflow/bleach-bypass.html">Bleach Bypass</a></li>
+        <li><a href="../workflow/color-splash.html">Color Splash</a></li>
+        <li><a href="../workflow/monochrome.html">Monochrome</a></li>
+        <li><a href="../workflow/bw.html">B&W</a></li>
+        <li><a href="../workflow/light.html">Light</a></li>
+        <li><a href="../workflow/vignetting.html" class="active">Vignetting</a></li>
+      </ul>
+    </nav>
+  </aside>
+  <main class="content">
+    <article>
+<h1 id="4-7-vignetting">4.7 Vignetting</h1>
+<p><strong>Engine</strong>: a shape (ellipse or band), positioned/sized/rotated in a frame centered on itself, defines a spared "inner" zone; outside it, the image is progressively darkened (or brightened), the transition softened by blur and shaped by a progressivity curve.</p>
+<h2 id="thumbnails">Thumbnails</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Thumbnail</th><th>Effect</th></tr></thead>
+<tbody>
+<tr><td><strong>Neutral</strong></td><td>No transformation.</td></tr>
+<tr><td><strong>Round central</strong></td><td>Centered ellipse covering about 85% of the frame (equal radii), darkening up to 35% toward the corners/edges, soft transition (12% feather), moderate progressivity curve. The classic circular vignette.</td></tr>
+<tr><td><strong>Linear</strong></td><td>A clear horizontal band covering the central 60% of the height, darkening up to 30% on the top/bottom bands (20% each), the same transition softness. A "letterbox" effect darkened at top and bottom.</td></tr>
+</tbody></table></div>
+<h2 id="manual-settings">Manual settings</h2>
+<p>10 settings in total; 8 are shared by both shapes (Strength, Progressivity, Centre X/Y, Rotation, Feather), 2 are specific to the ellipse (Radius X/Y) and 2 to the band (Top/bottom offset).</p>
+<ul>
+<li><strong>Strength</strong> (<code>intensity</code>, 0..1) — maximum strength of the darkening outside the shape.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/vignette/intensity.png" alt="Strength" loading="lazy"></p>
+<ul>
+<li><strong>Progressivity</strong> (<code>progressivity</code>, 0..1) — shapes the transition curve: lower, the cutoff is sharper/more abrupt; higher, the gradient is more gradual.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/vignette/progressivity.png" alt="Progressivity" loading="lazy"></p>
+<ul>
+<li><strong>Centre X</strong> (<code>center_x</code>, -0.5..1.5) — horizontal position of the shape's center (0.5 = center of the image; the range deliberately extends past [0,1] to allow decentering the shape up to half off-frame).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/vignette/center_x.png" alt="Centre X" loading="lazy"></p>
+<ul>
+<li><strong>Centre Y</strong> (<code>center_y</code>, -0.5..1.5) — vertical position of the center, same convention.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/vignette/center_y.png" alt="Centre Y" loading="lazy"></p>
+<ul>
+<li><strong>Radius X</strong> (<code>radius_x</code>, 0.05..2.0) — half-width of the ellipse (Round central only).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/vignette/radius_x.png" alt="Radius X" loading="lazy"></p>
+<ul>
+<li><strong>Radius Y</strong> (<code>radius_y</code>, 0.05..2.0) — half-height of the ellipse (Round central only).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/vignette/radius_y.png" alt="Radius Y" loading="lazy"></p>
+<ul>
+<li><strong>Rotation</strong> (<code>rotation_angle</code>, -180..180°) — rotates the shape around its center (no visible effect on a perfect circle — illustrated here on an elongated ellipse to make the rotation perceptible).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/vignette/rotation_angle.png" alt="Rotation" loading="lazy"></p>
+<ul>
+<li><strong>Feather width</strong> (<code>feather_width</code>, 0..40% of the image's smaller dimension) — width of the transition blur: 0 = sharp edge, higher values = a very soft, spread-out transition.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/vignette/feather_width.png" alt="Feather width" loading="lazy"></p>
+<ul>
+<li><strong>Top offset</strong> (<code>top_offset</code>, 0.05..1.5, Linear only) — distance from the center to the top edge of the clear band: smaller means the darkened band at the top is wider.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/vignette/top_offset.png" alt="Top offset" loading="lazy"></p>
+<ul>
+<li><strong>Bottom offset</strong> (<code>bottom_offset</code>, 0.05..1.5, Linear only) — the same setting for the bottom edge.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/vignette/bottom_offset.png" alt="Bottom offset" loading="lazy"></p>
+    </article>
+  </main>
+</div>
+</body>
+</html>

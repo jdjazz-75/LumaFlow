@@ -5,6 +5,7 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { hexToHsl, hslToHex } from "../lib/color";
 import "./PreferenceColorPicker.css";
+import { t } from "../i18n";
 
 // Same "compass" hue+saturation disc as ColorWheel.tsx (angle = hue, distance from center =
 // saturation), extended with a lightness slider for the Préférences color pickers (guide
@@ -111,7 +112,7 @@ export function PreferenceColorPicker({ label, value, onChange }: PreferenceColo
         </div>
         <div className="pref-color-picker__controls">
           <label className="pref-color-picker__lightness-row">
-            <span>Luminosité</span>
+            <span>{t("ui.prefs.lightness")}</span>
             <input
               type="range"
               min={0}
