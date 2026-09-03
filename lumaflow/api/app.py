@@ -287,6 +287,9 @@ class VignetteStateOut(BaseModel):
 
 class RowSpecOut(BaseModel):
     label: str
+    # config_workflow.json's stable row identifier -- the key the web UI dispatches on (i18n
+    # phase 1, 2026-09-03), so a translated `label` never changes behaviour. See RowSpec.
+    identifier: str = ""
     short_description: str
     vignette_labels: list[str]
     selected_vignette_identifier: str | None
@@ -297,6 +300,7 @@ class RowSpecOut(BaseModel):
 def _row_spec_out(row: RowSpec, row_index: int) -> RowSpecOut:
     return RowSpecOut(
         label=row.label,
+        identifier=row.identifier,
         short_description=row.short_description,
         vignette_labels=list(row.vignette_labels),
         selected_vignette_identifier=row.selected_vignette_identifier,
@@ -358,7 +362,9 @@ def open_image_endpoint(session_id: str, body: OpenImageIn) -> list[RowSpecOut]:
     try:
         open_image(session, Path(body.path))
     except ImageIOError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=400, detail={"category": exc.category.value, "message": str(exc)}
+        ) from exc
     return [_row_spec_out(row, index) for index, row in enumerate(refresh_workflow(session))]
 
 
@@ -775,7 +781,10 @@ def export_image_endpoint(session_id: str, body: ExportImageIn) -> ExportImageOu
     if dest_path.exists() and not body.force:
         raise HTTPException(
             status_code=409,
-            detail="Destination already exists; retry with force=true to overwrite",
+            detail={
+                "category": "destination_exists",
+                "message": "Cette destination existe déjà ; relancez avec force=true pour l'écraser.",
+            },
         )
     # A fresh full-resolution render, not session.image_session.pixels --
     # that field is now the (downscaled) interactive preview, see
@@ -802,7 +811,9 @@ def export_image_endpoint(session_id: str, body: ExportImageIn) -> ExportImageOu
             jpeg_subsampling=subsampling,
         )
     except ImageIOError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=400, detail={"category": exc.category.value, "message": str(exc)}
+        ) from exc
     return ExportImageOut(ok=True)
 
 
@@ -823,6 +834,9 @@ class PreferencesOut(BaseModel):
     guide_limit_color: str
     guide_overlay_color: str
     accent_color: str
+    # Langue de l'IHM (i18n phase 6). Défaut côté modèle pour qu'un PUT émis par un frontend
+    # antérieur (sans ce champ) reste accepté plutôt que rejeté en 422.
+    ui_language: str = "fr"
     presets_directory: str | None = None
     open_image_directory: str | None = None
     export_image_directory: str | None = None
@@ -843,6 +857,7 @@ def _preferences_out(prefs: UIPreferences) -> PreferencesOut:
         guide_limit_color=prefs.guide_limit_color,
         guide_overlay_color=prefs.guide_overlay_color,
         accent_color=prefs.accent_color,
+        ui_language=prefs.ui_language,
         presets_directory=prefs.presets_directory,
         open_image_directory=prefs.open_image_directory,
         export_image_directory=prefs.export_image_directory,
@@ -870,6 +885,7 @@ def put_preferences_endpoint(body: PreferencesOut) -> PreferencesOut:
         guide_limit_color=body.guide_limit_color,
         guide_overlay_color=body.guide_overlay_color,
         accent_color=body.accent_color,
+        ui_language=body.ui_language,
         presets_directory=body.presets_directory,
         open_image_directory=body.open_image_directory,
         export_image_directory=body.export_image_directory,
@@ -938,7 +954,10 @@ def save_recipe_endpoint(session_id: str, body: SaveRecipeIn) -> SaveRecipeOut:
     if dest_path.exists() and not body.force:
         raise HTTPException(
             status_code=409,
-            detail="Destination already exists; retry with force=true to overwrite",
+            detail={
+                "category": "destination_exists",
+                "message": "Cette destination existe déjà ; relancez avec force=true pour l'écraser.",
+            },
         )
     try:
         save_recipe(recipe, dest_path)
@@ -1372,7 +1391,12 @@ def start_batch_run_endpoint(body: BatchRunStartIn) -> BatchRunOut:
     except batch_runs.BatchValidationError as exc:
         raise HTTPException(
             status_code=400,
-            detail={"category": "invalid_batch", "message": str(exc), "batch_index": exc.batch_index},
+            detail={
+                "category": "invalid_batch",
+                "code": exc.code,
+                "message": str(exc),
+                "batch_index": exc.batch_index,
+            },
         ) from exc
     except batch_runs.BatchAlreadyRunning as exc:
         raise HTTPException(

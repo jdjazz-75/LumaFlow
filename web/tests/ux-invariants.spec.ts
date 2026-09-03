@@ -6,8 +6,16 @@ import { test, expect, type Page, type Response } from "@playwright/test";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { pinFrenchLocale } from "./helpers/locale";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// i18n phase 0 (2026-09-03, garde-fou) -- cette suite sélectionne par texte français ; épingler
+// la locale avant CHAQUE test, indépendamment du describe qui le contient (voir tests/helpers/
+// locale.ts).
+test.beforeEach(async ({ page }) => {
+  await pinFrenchLocale(page);
+});
 
 /**
  * End-to-end verification of feature 050 (UX polish): selection/error visual distinction (US1),
@@ -63,7 +71,9 @@ function rowLocator(page: Page, rowLabel: string) {
   return page.locator(".filmstrip-row", { has: page.locator(".filmstrip-row__name", { hasText: rowLabel }) });
 }
 
-const VISIBLE_ROW_ORDER = ["Film", "Bleach Bypass", "Color Splash", "Monochrome", "B&W", "Light", "Vignettage"];
+// i18n phase 3 (2026-09-03) : les libellés harmonisés en français sont ceux affichés --
+// "B&W" -> "N&B", "Light" -> "Lumière" (voir web/src/i18n/fr.json's row.bw.label/row.light.label).
+const VISIBLE_ROW_ORDER = ["Film", "Bleach Bypass", "Color Splash", "Monochrome", "N&B", "Lumière", "Vignettage"];
 
 async function navigateToRow(page: Page, rowLabel: string) {
   const filmstrip = page.locator(".filmstrip");
@@ -127,7 +137,7 @@ test.describe("UX polish -- US1: état de sélection sans ambiguïté", () => {
     await openTestImage(page);
 
     const boxShadows: string[] = [];
-    for (const label of ["Film", "Light", "Vignettage"]) {
+    for (const label of ["Film", "Lumière", "Vignettage"]) {
       const row = await navigateToRow(page, label);
       const target = row.locator(".vignette-card").nth(1);
       await target.click();

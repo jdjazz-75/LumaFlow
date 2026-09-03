@@ -5,10 +5,14 @@
 import { forwardRef, type MouseEvent } from "react";
 import "./VignetteCard.css";
 import type { VignetteState } from "../lib/api";
-import { vignetteDisplayText } from "../lib/filmstrip";
 import { ZoomIcon } from "./icons";
+import { t } from "../i18n";
+import { presetLabel } from "../i18n/backend";
 
 type VignetteCardProps = {
+  /** The owning row's RowSpec.identifier -- scopes the preset-name lookup so two rows may name
+  the same identifier differently (i18n phase 3). */
+  rowIdentifier: string;
   identifier: string;
   state: VignetteState | undefined;
   selected: boolean;
@@ -21,7 +25,7 @@ type VignetteCardProps = {
 // the selected vignette (keyboard arrow nav previously moved the selection without ever
 // scrolling the horizontal strip to reveal it).
 export const VignetteCard = forwardRef<HTMLButtonElement, VignetteCardProps>(function VignetteCard(
-  { identifier, state, selected, imageSrc, onClick, onZoom },
+  { rowIdentifier, identifier, state, selected, imageSrc, onClick, onZoom },
   ref,
 ) {
   const status = state?.status ?? "pending";
@@ -47,21 +51,26 @@ export const VignetteCard = forwardRef<HTMLButtonElement, VignetteCardProps>(fun
       ref={ref}
       type="button"
       className={`vignette-card${selected ? " vignette-card--selected" : ""}${isError ? " vignette-card--error" : ""}`}
+      // Raw, locale-independent identifier -- distinct from the (now possibly translated,
+      // i18n phase 3) caption text below. Exists purely for tooling/tests: a persisted recipe's
+      // `thumbnail_identifier` never changes with locale (D5), so a test that wants to compare a
+      // selection against the saved recipe must read THIS, not the caption's innerText.
+      data-identifier={identifier}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
     >
       <span className="vignette-card__image">
         {status === "ready" && <img src={imageSrc} alt="" />}
-        {status === "error" && <span className="vignette-card__error">Error</span>}
+        {status === "error" && <span className="vignette-card__error">{t("ui.vignette.error")}</span>}
       </span>
       <span className="vignette-card__caption">
-        <span className="vignette-card__caption-text">{vignetteDisplayText(identifier)}</span>
+        <span className="vignette-card__caption-text">{presetLabel(rowIdentifier, identifier)}</span>
         {onZoom && status === "ready" && (
           <span
             role="button"
             tabIndex={-1}
             className="vignette-card__zoom"
-            title="Agrandir"
+            title={t("ui.vignette.zoom")}
             onClick={handleZoomButtonClick}
           >
             <ZoomIcon />

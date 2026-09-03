@@ -1,0 +1,1026 @@
+{
+  "_meta": {
+    "locale": "fr",
+    "name": "Français",
+    "_note": "Catalogue de libellés de l'IHM. Clé = identifiant technique stable (jamais le texte source, cf. I18N-PLAN.md D6). `max` = budget de longueur en caractères pour une zone contrainte, vérifié par web/tests/i18n-budgets.test.mjs sur les DEUX catalogues."
+  },
+  "ui.loading": {
+    "t": "Chargement…"
+  },
+  "ui.action.open_ellipsis": {
+    "t": "Ouvrir…"
+  },
+  "ui.action.export_ellipsis": {
+    "t": "Exporter…"
+  },
+  "ui.action.browse": {
+    "t": "Parcourir…"
+  },
+  "ui.action.cancel": {
+    "t": "Annuler"
+  },
+  "ui.action.validate": {
+    "t": "Valider"
+  },
+  "ui.action.close": {
+    "t": "Fermer"
+  },
+  "ui.action.reset": {
+    "t": "Réinitialiser"
+  },
+  "ui.action.apply": {
+    "t": "Appliquer"
+  },
+  "ui.action.applying": {
+    "t": "Application…"
+  },
+  "ui.header.preset": {
+    "t": "Preset"
+  },
+  "ui.header.menu": {
+    "t": "Menu"
+  },
+  "ui.preset.new": {
+    "t": "Nouveau",
+    "max": 22
+  },
+  "ui.menu.photo": {
+    "t": "Photo"
+  },
+  "ui.menu.presets": {
+    "t": "Presets"
+  },
+  "ui.menu.open": {
+    "t": "Ouvrir"
+  },
+  "ui.menu.export": {
+    "t": "Exporter"
+  },
+  "ui.menu.batch": {
+    "t": "Lot"
+  },
+  "ui.menu.preferences": {
+    "t": "Préférences"
+  },
+  "ui.status.previous_step": {
+    "t": "Étape précédente"
+  },
+  "ui.status.next_step": {
+    "t": "Valider · étape suivante"
+  },
+  "ui.vignette.zoom": {
+    "t": "Agrandir"
+  },
+  "ui.vignette.error": {
+    "t": "Erreur",
+    "max": 16
+  },
+  "ui.placeholder.open_an_image": {
+    "t": "Ouvrez une image (bouton «Ouvrir») pour commencer."
+  },
+  "ui.busy.opening_image": {
+    "t": "Ouverture de l'image…"
+  },
+  "ui.busy.saving_recipe": {
+    "t": "Sauvegarde de la recette…"
+  },
+  "ui.busy.loading_recipe": {
+    "t": "Chargement de la recette…"
+  },
+  "ui.busy.resetting": {
+    "t": "Réinitialisation…"
+  },
+  "ui.busy.exporting": {
+    "t": "Export en cours…"
+  },
+  "ui.warning.parameter_corrections": {
+    "t": "Certains réglages hors bornes ont été automatiquement corrigés :"
+  },
+  "ui.warning.disabled_vignettes": {
+    "t": "Certaines vignettes ont été désactivées depuis l'enregistrement de cette recette et ont été remplacées par le réglage neutre de leur ligne :"
+  },
+  "ui.shortcuts.short": {
+    "t": "Flèches : naviguer · Espace, double-clic ou l'icône loupe : Zoom · Échap : fermer · Cliquez une ligne assombrie pour y revenir"
+  },
+  "ui.shortcuts.full": {
+    "t": "Flèches Haut/Bas : changer d'étape · Flèches Gauche/Droite : changer de vignette · Espace, double-clic ou l'icône loupe sur une vignette : ouvrir le Zoom · Échap : fermer un menu ou le Zoom · Cliquez une ligne assombrie pour y revenir"
+  },
+  "ui.tool.move": {
+    "t": "Déplacer"
+  },
+  "ui.tool.rotate": {
+    "t": "Rotation"
+  },
+  "ui.tool.resize": {
+    "t": "Redimensionner"
+  },
+  "ui.geometry.distortion": {
+    "t": "Distorsion"
+  },
+  "ui.geometry.vertical_line": {
+    "t": "Ligne verticale"
+  },
+  "ui.geometry.horizontal_line": {
+    "t": "Ligne horizontale"
+  },
+  "ui.geometry.grid": {
+    "t": "Grille 3×3"
+  },
+  "ui.crop.preview_badge": {
+    "t": "Aperçu du recadrage · cliquer pour reprendre l'édition"
+  },
+  "ui.crop.mirror_horizontal": {
+    "t": "Miroir horizontal"
+  },
+  "ui.crop.mirror_vertical": {
+    "t": "Miroir vertical"
+  },
+  "ui.mask.feather": {
+    "t": "Adoucissement"
+  },
+  "ui.mask.invert": {
+    "t": "Inverser"
+  },
+  "ui.mask.whole_image": {
+    "t": "Toute l'image"
+  },
+  "ui.zoom.optical": {
+    "t": "Zoom"
+  },
+  "ui.zoom.in": {
+    "t": "Zoom avant"
+  },
+  "ui.zoom.out": {
+    "t": "Zoom arrière"
+  },
+  "ui.zoom.fit": {
+    "t": "Ajuster"
+  },
+  "ui.zoom.percent": {
+    "t": "Pourcentage de zoom"
+  },
+  "ui.prefs.title": {
+    "t": "Préférences"
+  },
+  "ui.prefs.category.general": {
+    "t": "Général",
+    "max": 18
+  },
+  "ui.prefs.category.workflow": {
+    "t": "Workflow",
+    "max": 18
+  },
+  "ui.prefs.category.lines": {
+    "t": "Lignes",
+    "max": 18
+  },
+  "ui.prefs.category.vignettes": {
+    "t": "Vignettes",
+    "max": 18
+  },
+  "ui.prefs.increase": {
+    "t": "Augmenter {label}"
+  },
+  "ui.prefs.decrease": {
+    "t": "Diminuer {label}"
+  },
+  "ui.prefs.lightness": {
+    "t": "Luminosité"
+  },
+  "ui.prefs.general.group.language": {
+    "t": "Langue"
+  },
+  "ui.prefs.general.group.appearance": {
+    "t": "Apparence"
+  },
+  "ui.prefs.general.group.paths": {
+    "t": "Chemins"
+  },
+  "ui.prefs.general.group.export": {
+    "t": "Export"
+  },
+  "ui.prefs.general.ui_language": {
+    "t": "Langue de l'interface",
+    "max": 44
+  },
+  "ui.prefs.general.accent_color": {
+    "t": "Couleur d'accentuation",
+    "max": 44
+  },
+  "ui.prefs.general.open_image_directory": {
+    "t": "Dossier d'ouverture des photos",
+    "max": 44
+  },
+  "ui.prefs.general.export_image_directory": {
+    "t": "Dossier d'exportation des photos",
+    "max": 44
+  },
+  "ui.prefs.general.presets_directory": {
+    "t": "Dossier des presets",
+    "max": 44
+  },
+  "ui.prefs.general.export_jpeg_quality": {
+    "t": "Qualité JPEG par défaut",
+    "max": 44
+  },
+  "ui.prefs.general.unset": {
+    "t": "(non défini)"
+  },
+  "ui.prefs.lines.group.row": {
+    "t": "Ligne"
+  },
+  "ui.prefs.lines.group.vignettes": {
+    "t": "Vignettes"
+  },
+  "ui.prefs.lines.row_spacing_px": {
+    "t": "Espacement entre les lignes",
+    "max": 44
+  },
+  "ui.prefs.lines.attenuated_opacity_percent": {
+    "t": "Opacité des lignes inactives",
+    "max": 44
+  },
+  "ui.prefs.lines.row_horizontal_margin_px": {
+    "t": "Marge latérale des lignes",
+    "max": 44
+  },
+  "ui.prefs.lines.vignette_margin_px": {
+    "t": "Marge verticale",
+    "max": 44
+  },
+  "ui.prefs.vignettes.group.guides": {
+    "t": "Couleurs des aides"
+  },
+  "ui.prefs.vignettes.group.zoom": {
+    "t": "Zoom"
+  },
+  "ui.prefs.vignettes.guide_limit_color": {
+    "t": "Couleur des limites de guidage",
+    "max": 44
+  },
+  "ui.prefs.vignettes.guide_overlay_color": {
+    "t": "Couleur des overlays de guidage",
+    "max": 44
+  },
+  "ui.prefs.vignettes.zoom_min_percent": {
+    "t": "Zoom minimum",
+    "max": 44
+  },
+  "ui.prefs.vignettes.zoom_max_percent": {
+    "t": "Zoom maximum",
+    "max": 44
+  },
+  "ui.prefs.workflow.move_up": {
+    "t": "▲ Monter"
+  },
+  "ui.prefs.workflow.move_down": {
+    "t": "▼ Descendre"
+  },
+  "ui.batch.title": {
+    "t": "Traitement par lot"
+  },
+  "ui.batch.global_progress": {
+    "t": "Progression globale"
+  },
+  "ui.batch.empty": {
+    "t": "Aucun lot. Ajoutez un lot, puis choisissez ses images, son preset et son répertoire de sortie."
+  },
+  "ui.batch.block_name": {
+    "t": "Lot {index}"
+  },
+  "ui.batch.remove": {
+    "t": "Supprimer ce lot"
+  },
+  "ui.batch.remove_numbered": {
+    "t": "Supprimer le lot {index}"
+  },
+  "ui.batch.field.files": {
+    "t": "Fichiers"
+  },
+  "ui.batch.field.preset": {
+    "t": "Preset"
+  },
+  "ui.batch.field.output": {
+    "t": "Sortie"
+  },
+  "ui.batch.files_selected.one": {
+    "t": "{count} fichier sélectionné"
+  },
+  "ui.batch.files_selected.other": {
+    "t": "{count} fichiers sélectionnés"
+  },
+  "ui.batch.unset": {
+    "t": "Non renseigné"
+  },
+  "ui.batch.add": {
+    "t": "+ Ajouter un lot"
+  },
+  "ui.batch.log": {
+    "t": "Journal"
+  },
+  "ui.batch.log_idle": {
+    "t": "Le journal se remplira pendant l'exécution."
+  },
+  "ui.batch.run": {
+    "t": "Exécuter"
+  },
+  "ui.batch.stop": {
+    "t": "Arrêter"
+  },
+  "ui.batch.success.one": {
+    "t": "{count} réussite"
+  },
+  "ui.batch.success.other": {
+    "t": "{count} réussites"
+  },
+  "ui.batch.error.one": {
+    "t": "{count} échec"
+  },
+  "ui.batch.error.other": {
+    "t": "{count} échecs"
+  },
+  "ui.batch.counts": {
+    "t": "{successes}, {errors}"
+  },
+  "ui.batch.summary.running": {
+    "t": "{progress} — {counts}"
+  },
+  "ui.batch.summary.stopped": {
+    "t": "Arrêté à {progress} — {counts}"
+  },
+  "ui.batch.summary.done": {
+    "t": "Terminé — {counts}"
+  },
+  "zoom.before": {
+    "t": "AVANT"
+  },
+  "zoom.after": {
+    "t": "APRÈS"
+  },
+  "zoom.active": {
+    "t": "Actif"
+  },
+  "zoom.feather": {
+    "t": "Adoucissement"
+  },
+  "zoom.intensity": {
+    "t": "Intensité"
+  },
+  "zoom.color": {
+    "t": "Couleur"
+  },
+  "zoom.replacement_color": {
+    "t": "Couleur de remplacement"
+  },
+  "zoom.global_settings": {
+    "t": "Réglages globaux",
+    "max": 26
+  },
+  "zoom.dynamic_aids": {
+    "t": "Aides dynamiques"
+  },
+  "zoom.subject_mask": {
+    "t": "Masque sujet"
+  },
+  "zoom.application_zone": {
+    "t": "Zone d'application"
+  },
+  "zoom.application_zone_of": {
+    "t": "Zone d'application — {label}"
+  },
+  "zoom.zone_of": {
+    "t": "Zone — {label}"
+  },
+  "zoom.no_active_interval": {
+    "t": "Aucun intervalle actif"
+  },
+  "zoom.no_manual_settings": {
+    "t": "Aucun réglage manuel disponible pour cette ligne."
+  },
+  "zoom.correction.geometry": {
+    "t": "Géométrie"
+  },
+  "zoom.correction.framing": {
+    "t": "Cadrage"
+  },
+  "zoom.region.global": {
+    "t": "Global"
+  },
+  "zoom.region.subject": {
+    "t": "Sujet"
+  },
+  "zoom.region.background": {
+    "t": "Fond"
+  },
+  "zoom.wheel.tint": {
+    "t": "Teinte"
+  },
+  "zoom.wheel.split_shadow": {
+    "t": "Virage ombres"
+  },
+  "zoom.wheel.split_highlight": {
+    "t": "Virage hautes lumières"
+  },
+  "zoom.filter_color.yellow": {
+    "t": "Jaune"
+  },
+  "zoom.filter_color.red": {
+    "t": "Rouge"
+  },
+  "zoom.filter_color.green": {
+    "t": "Vert"
+  },
+  "zoom.filter_color.blue": {
+    "t": "Bleu"
+  },
+  "zoom.filter_intensity.light": {
+    "t": "Léger"
+  },
+  "zoom.filter_intensity.medium": {
+    "t": "Modéré"
+  },
+  "zoom.filter_intensity.dark": {
+    "t": "Foncé"
+  },
+  "group.intensity": {
+    "t": "Intensité",
+    "max": 26
+  },
+  "group.tone": {
+    "t": "Tonalité",
+    "max": 26
+  },
+  "group.color": {
+    "t": "Couleur",
+    "max": 26
+  },
+  "group.filter": {
+    "t": "Filtre",
+    "max": 26
+  },
+  "group.texture_grain": {
+    "t": "Texture & Grain",
+    "max": 26
+  },
+  "group.exposure_tone": {
+    "t": "Exposition & Tonalité",
+    "max": 26
+  },
+  "group.texture_sharpness": {
+    "t": "Texture & Netteté",
+    "max": 26
+  },
+  "group.bloom_softness": {
+    "t": "Halo & Douceur",
+    "max": 26
+  },
+  "group.finishing": {
+    "t": "Finition",
+    "max": 26
+  },
+  "row.geometry.label": {
+    "t": "Géométrie",
+    "max": 18
+  },
+  "row.geometry.description": {
+    "t": "Recadrage et redressement"
+  },
+  "row.framing.label": {
+    "t": "Cadrage",
+    "max": 18
+  },
+  "row.framing.description": {
+    "t": "Cadrage libre et aides à la composition"
+  },
+  "row.film.label": {
+    "t": "Film",
+    "max": 18
+  },
+  "row.film.description": {
+    "t": "Rendu et grain argentique"
+  },
+  "row.bleach_bypass.label": {
+    "t": "Bleach Bypass",
+    "max": 18
+  },
+  "row.bleach_bypass.description": {
+    "t": "Bleach bypass et négatifs désaturés"
+  },
+  "row.color_splash.label": {
+    "t": "Color Splash",
+    "max": 18
+  },
+  "row.color_splash.description": {
+    "t": "Noir et blanc + couleur(s) conservée(s), ou substitution de couleur"
+  },
+  "row.monochrome.label": {
+    "t": "Monochrome",
+    "max": 18
+  },
+  "row.monochrome.description": {
+    "t": "Colorisation duotone (grayscale + teinte unique)"
+  },
+  "row.bw.label": {
+    "t": "N&B",
+    "max": 18
+  },
+  "row.bw.description": {
+    "t": "Filtres et simulations noir et blanc alternatives"
+  },
+  "row.light.label": {
+    "t": "Lumière",
+    "max": 18
+  },
+  "row.light.description": {
+    "t": "Exposition et contraste"
+  },
+  "row.vignette.label": {
+    "t": "Vignettage",
+    "max": 18
+  },
+  "row.vignette.description": {
+    "t": "Assombrissement des bords"
+  },
+  "preset.neutral": {
+    "t": "Neutre",
+    "max": 16
+  },
+  "preset.Rouge": {
+    "t": "Rouge",
+    "max": 16
+  },
+  "preset.Orange": {
+    "t": "Orange",
+    "max": 16
+  },
+  "preset.Jaune": {
+    "t": "Jaune",
+    "max": 16
+  },
+  "preset.Vert": {
+    "t": "Vert",
+    "max": 16
+  },
+  "preset.Bleu": {
+    "t": "Bleu",
+    "max": 16
+  },
+  "preset.Violet": {
+    "t": "Violet",
+    "max": 16
+  },
+  "preset.Sepia": {
+    "t": "Sépia",
+    "max": 16
+  },
+  "preset.Substitution": {
+    "t": "Substitution",
+    "max": 16
+  },
+  "preset.Low Key": {
+    "t": "Low Key",
+    "max": 16
+  },
+  "preset.High Key": {
+    "t": "High Key",
+    "max": 16
+  },
+  "preset.Soft": {
+    "t": "Doux",
+    "max": 16
+  },
+  "preset.Balance": {
+    "t": "Équilibre",
+    "max": 16
+  },
+  "preset.Dramatique": {
+    "t": "Dramatique",
+    "max": 16
+  },
+  "preset.Round Central": {
+    "t": "Ronde centrée",
+    "max": 16
+  },
+  "preset.Linear Top+Bottom": {
+    "t": "Linéaire",
+    "max": 16
+  },
+  "preset.Acros + Yellow": {
+    "t": "Acros + Jaune",
+    "max": 16
+  },
+  "preset.Acros + Red": {
+    "t": "Acros + Rouge",
+    "max": 16
+  },
+  "preset.Acros + Green": {
+    "t": "Acros + Vert",
+    "max": 16
+  },
+  "preset.Acros + Blue": {
+    "t": "Acros + Bleu",
+    "max": 16
+  },
+  "overlay.thirds": {
+    "t": "Règle des tiers"
+  },
+  "overlay.golden_section": {
+    "t": "Nombre d'or"
+  },
+  "overlay.golden_triangles": {
+    "t": "Triangles d'or"
+  },
+  "overlay.golden_spiral": {
+    "t": "Spirale d'or"
+  },
+  "overlay.center_lines": {
+    "t": "Lignes vers le centre"
+  },
+  "overlay.diagonal": {
+    "t": "Diagonale"
+  },
+  "overlay.pyramid": {
+    "t": "Pyramide"
+  },
+  "overlay.compound_curve": {
+    "t": "Courbe composée"
+  },
+  "overlay.symmetry": {
+    "t": "Symétrie"
+  },
+  "param.intensity": {
+    "t": "Intensité",
+    "max": 34
+  },
+  "param.exposure": {
+    "t": "Exposition",
+    "max": 34
+  },
+  "param.contrast": {
+    "t": "Contraste",
+    "max": 34
+  },
+  "param.contrast_pivot": {
+    "t": "Pivot de contraste",
+    "max": 34
+  },
+  "param.highlights": {
+    "t": "Hautes lumières",
+    "max": 34
+  },
+  "param.shadows": {
+    "t": "Ombres",
+    "max": 34
+  },
+  "param.blacks": {
+    "t": "Noirs",
+    "max": 34
+  },
+  "param.whites": {
+    "t": "Blancs",
+    "max": 34
+  },
+  "param.black_point": {
+    "t": "Point noir",
+    "max": 34
+  },
+  "param.black_floor": {
+    "t": "Plancher de noir",
+    "max": 34
+  },
+  "param.black_clip": {
+    "t": "Noir minimal (écrêtage)",
+    "max": 34
+  },
+  "param.dynamic_range": {
+    "t": "Plage dynamique",
+    "max": 34
+  },
+  "param.saturation": {
+    "t": "Saturation",
+    "max": 34
+  },
+  "param.global_saturation": {
+    "t": "Saturation globale",
+    "max": 34
+  },
+  "param.original_saturation": {
+    "t": "Saturation originale",
+    "max": 34
+  },
+  "param.hsl_saturation_scale": {
+    "t": "Saturation HSL",
+    "max": 34
+  },
+  "param.hsl_luminance_scale": {
+    "t": "Luminance HSL",
+    "max": 34
+  },
+  "param.temperature": {
+    "t": "Température",
+    "max": 34
+  },
+  "param.temperature_shift": {
+    "t": "Température apparente",
+    "max": 34
+  },
+  "param.tint": {
+    "t": "Teinte",
+    "max": 34
+  },
+  "param.tint_magenta": {
+    "t": "Teinte vert-magenta",
+    "max": 34
+  },
+  "param.tint_saturation": {
+    "t": "Saturation de la teinte",
+    "max": 34
+  },
+  "param.hue": {
+    "t": "Teinte de colorisation",
+    "max": 34
+  },
+  "param.force": {
+    "t": "Force de colorisation",
+    "max": 34
+  },
+  "param.split_tone_scale": {
+    "t": "Virage coloré",
+    "max": 34
+  },
+  "param.split_shadow_hue": {
+    "t": "Virage ombres (teinte)",
+    "max": 34
+  },
+  "param.split_shadow_strength": {
+    "t": "Virage ombres (force)",
+    "max": 34
+  },
+  "param.split_highlight_hue": {
+    "t": "Virage hautes lumières (teinte)",
+    "max": 34
+  },
+  "param.split_highlight_strength": {
+    "t": "Virage hautes lumières (force)",
+    "max": 34
+  },
+  "param.clarity": {
+    "t": "Clarté",
+    "max": 34
+  },
+  "param.texture": {
+    "t": "Texture",
+    "max": 34
+  },
+  "param.sharpness": {
+    "t": "Netteté",
+    "max": 34
+  },
+  "param.dehaze": {
+    "t": "Voile atmosphérique",
+    "max": 34
+  },
+  "param.grain": {
+    "t": "Grain",
+    "max": 34
+  },
+  "param.grain_std": {
+    "t": "Grain",
+    "max": 34
+  },
+  "param.vignette": {
+    "t": "Vignettage",
+    "max": 34
+  },
+  "param.bloom_threshold": {
+    "t": "Halo (seuil)",
+    "max": 34
+  },
+  "param.bloom_amount": {
+    "t": "Halo (intensité)",
+    "max": 34
+  },
+  "param.bloom_radius": {
+    "t": "Halo (rayon)",
+    "max": 34
+  },
+  "param.bloom_warmth": {
+    "t": "Halo (chaleur)",
+    "max": 34
+  },
+  "param.soft_detail_amount": {
+    "t": "Douceur (intensité)",
+    "max": 34
+  },
+  "param.soft_detail_radius": {
+    "t": "Douceur (rayon)",
+    "max": 34
+  },
+  "param.edge_protection": {
+    "t": "Protection des contours",
+    "max": 34
+  },
+  "param.filter_color": {
+    "t": "Filtre",
+    "max": 34
+  },
+  "param.filter_intensity": {
+    "t": "Intensité du filtre",
+    "max": 34
+  },
+  "param.color_chrome_effect": {
+    "t": "Effet Color Chrome",
+    "max": 34
+  },
+  "param.color_chrome_blue": {
+    "t": "Color Chrome Bleu",
+    "max": 34
+  },
+  "param.mono_color_wc": {
+    "t": "Mono Couleur WC",
+    "max": 34
+  },
+  "param.mono_color_mg": {
+    "t": "Mono Couleur MG",
+    "max": 34
+  },
+  "param.background_desaturation": {
+    "t": "Désaturation du fond",
+    "max": 34
+  },
+  "param.saturation_threshold": {
+    "t": "Seuil de saturation",
+    "max": 34
+  },
+  "param.crop_x": {
+    "t": "X",
+    "max": 34
+  },
+  "param.crop_y": {
+    "t": "Y",
+    "max": 34
+  },
+  "param.crop_width": {
+    "t": "Largeur",
+    "max": 34
+  },
+  "param.crop_height": {
+    "t": "Hauteur",
+    "max": 34
+  },
+  "param.rotation_angle": {
+    "t": "Rotation",
+    "max": 34
+  },
+  "param.center_x": {
+    "t": "Centre X",
+    "max": 34
+  },
+  "param.center_y": {
+    "t": "Centre Y",
+    "max": 34
+  },
+  "param.radius_x": {
+    "t": "Rayon X",
+    "max": 34
+  },
+  "param.radius_y": {
+    "t": "Rayon Y",
+    "max": 34
+  },
+  "param.top_offset": {
+    "t": "Décalage haut",
+    "max": 34
+  },
+  "param.bottom_offset": {
+    "t": "Décalage bas",
+    "max": 34
+  },
+  "param.feather_width": {
+    "t": "Largeur d'adoucissement",
+    "max": 34
+  },
+  "param.progressivity": {
+    "t": "Progressivité",
+    "max": 34
+  },
+  "param.mask_point_count": {
+    "t": "Nombre de sommets",
+    "max": 34
+  },
+  "param.mask_feather": {
+    "t": "Adoucissement du contour",
+    "max": 34
+  },
+  "param.mask_invert": {
+    "t": "Inverser le contour",
+    "max": 34
+  },
+  "param.dyn.range": {
+    "t": "Intervalle {index}",
+    "max": 34
+  },
+  "param.dyn.range_enabled": {
+    "t": "Intervalle {index} actif",
+    "max": 34
+  },
+  "param.dyn.range_boost": {
+    "t": "Intensité couleur {index}",
+    "max": 34
+  },
+  "param.dyn.replacement": {
+    "t": "Remplacement {index}",
+    "max": 34
+  },
+  "param.dyn.replacement_enabled": {
+    "t": "Remplacement {index} actif",
+    "max": 34
+  },
+  "param.dyn.replacement_boost": {
+    "t": "Intensité remplacement {index}",
+    "max": 34
+  },
+  "param.dyn.zone_vertex_count": {
+    "t": "Zone {index} — nombre de sommets",
+    "max": 34
+  },
+  "param.dyn.zone_feather": {
+    "t": "Zone {index} — adoucissement",
+    "max": 34
+  },
+  "param.dyn.zone_invert": {
+    "t": "Zone {index} — inverser",
+    "max": 34
+  },
+  "param.dyn.zone_vertex": {
+    "t": "Zone {index} — sommet {vertex} ({axis})"
+  },
+  "param.dyn.vertex": {
+    "t": "Sommet {vertex} ({axis})",
+    "max": 34
+  },
+  "param.dyn.region": {
+    "t": "{label} ({region})",
+    "max": 34
+  },
+  "error.preview_render_failed": {
+    "t": "Échec du rendu de l'aperçu"
+  },
+  "error.no_space_left": {
+    "t": "Espace disque insuffisant pour terminer l'opération."
+  },
+  "error.permission_denied": {
+    "t": "Accès refusé à ce fichier ou dossier. Vérifiez les autorisations."
+  },
+  "error.file_not_found": {
+    "t": "Fichier ou dossier introuvable à cet emplacement."
+  },
+  "error.unreadable_image": {
+    "t": "Ce fichier image est corrompu ou illisible."
+  },
+  "error.unexpected": {
+    "t": "Une erreur inattendue s'est produite. Réessayez ou choisissez un autre fichier."
+  },
+  "error.recipe.unsupported_schema_version": {
+    "t": "Cette recette utilise une version de schéma non supportée."
+  },
+  "error.recipe.unsupported_schema_version_detail": {
+    "t": "{message} (version reçue : « {version} »)"
+  },
+  "error.recipe.missing_addon": {
+    "t": "Cette recette référence un ou plusieurs addons introuvables dans la configuration actuelle."
+  },
+  "error.recipe.missing_addon_detail": {
+    "t": "{message} ({ids})"
+  },
+  "error.recipe.unreadable_file": {
+    "t": "Ce fichier de recette est illisible ou corrompu."
+  },
+  "error.recipe.application_error": {
+    "t": "Cette recette n'a pas pu être appliquée à l'image active."
+  },
+  "error.destination_exists": {
+    "t": "Cette destination existe déjà."
+  },
+  "error.unsupported_format": {
+    "t": "Ce format d'image n'est pas pris en charge. Utilisez un fichier JPEG ou PNG."
+  },
+  "error.raw_not_decodable": {
+    "t": "Ce fichier RAW n'a pas pu être décodé."
+  },
+  "error.batch.already_running": {
+    "t": "Un traitement par lot est déjà en cours."
+  },
+  "error.batch.no_batches": {
+    "t": "Aucun lot à exécuter."
+  },
+  "error.batch.empty_batch": {
+    "t": "Ce lot ne contient aucun fichier."
+  },
+  "error.batch.preset_not_found": {
+    "t": "Le preset de ce lot est introuvable."
+  },
+  "error.batch.output_dir_not_found": {
+    "t": "Le répertoire de sortie de ce lot est introuvable."
+  }
+}

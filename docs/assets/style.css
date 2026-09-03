@@ -57,8 +57,37 @@ body {
   font-weight: 700;
   color: var(--amber);
   text-decoration: none;
-  margin-bottom: 24px;
+  margin-bottom: 4px;
   letter-spacing: 0.02em;
+}
+
+/* FR/EN language switch (2026-09-03): a plain two-item toggle under the brand, mirroring the
+same "identifier stays stable, only the label is translated" split used across the app itself --
+each site tree (docs/ vs docs/en/) is a full static mirror, this is just the cross-link between
+them. Kept deliberately quiet (small, muted) so it doesn't compete with the nav below it. */
+.lang-switch {
+  margin-bottom: 20px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.lang-switch a {
+  color: var(--t3);
+  text-decoration: none;
+}
+
+.lang-switch a:hover {
+  color: var(--t1);
+}
+
+.lang-switch strong {
+  color: var(--t2);
+  font-weight: 600;
+}
+
+.lang-switch .sep {
+  color: var(--t3);
+  padding: 0 4px;
 }
 
 .sidebar nav ul {

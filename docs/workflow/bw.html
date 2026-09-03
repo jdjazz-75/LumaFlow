@@ -3,13 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>B&W — LumaFlow</title>
+<title>N&B — LumaFlow</title>
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
 <div class="layout">
   <aside class="sidebar">
     <a class="brand" href="../index.html">LumaFlow</a>
+    <div class="lang-switch"><strong>FR</strong><span class="sep">/</span><a href="../en/workflow/bw.html">EN</a></div>
     <nav>
       <ul class="nav-main">
         <li><a href="../index.html">Présentation</a></li>
@@ -24,15 +25,15 @@
         <li><a href="../workflow/bleach-bypass.html">Bleach Bypass</a></li>
         <li><a href="../workflow/color-splash.html">Color Splash</a></li>
         <li><a href="../workflow/monochrome.html">Monochrome</a></li>
-        <li><a href="../workflow/bw.html" class="active">B&W</a></li>
-        <li><a href="../workflow/light.html">Light</a></li>
+        <li><a href="../workflow/bw.html" class="active">N&B</a></li>
+        <li><a href="../workflow/light.html">Lumière</a></li>
         <li><a href="../workflow/vignettage.html">Vignettage</a></li>
       </ul>
     </nav>
   </aside>
   <main class="content">
     <article>
-<h1 id="4-5-b-w">4.5 B&amp;W</h1>
+<h1 id="4-5-b-w">4.5 N&amp;B</h1>
 <p><strong>Moteur</strong> : identique à Film (§4.1) — même module <code>film.py</code>. Chaque preset non-neutre bascule sur la conversion en niveaux de gris à pondération R/G/B personnalisée (au lieu de la luminance HSL standard), avec un grain souvent dépendant de la profondeur de ton (plus marqué dans les ombres).</p>
 <h2 id="vignettes">Vignettes</h2>
 <div class="table-wrap"><table>
@@ -40,13 +41,13 @@
 <tbody>
 <tr><td><strong>Neutre</strong></td><td>Aucune transformation.</td></tr>
 <tr><td><strong>Acros</strong></td><td>Conversion en niveaux de gris panchromatique (pondération 30/59/11, proche de la perception humaine), contraste marqué (+30), ombres creusées, grain fin renforcé spécifiquement dans les ombres (signature Acros : propre dans les hautes lumières, granuleux dans les ombres).</td></tr>
-<tr><td><strong>Acros + Yellow</strong></td><td>Base Acros, pondération repondérée pour équilibrer rouge et vert (bleu réduit) — équivalent d'un filtre jaune : assombrit modérément le ciel bleu, rendu naturel de peau/feuillage.</td></tr>
-<tr><td><strong>Acros + Red</strong></td><td>Base Acros, rouge fortement dominant — équivalent d'un filtre rouge : assombrit fortement ciel et feuillage, éclaircit les sujets rouges/chauds ; rendu dramatique, ciel contrasté.</td></tr>
-<tr><td><strong>Acros + Green</strong></td><td>Base Acros, vert dominant — équivalent d'un filtre vert : éclaircit feuillage et sujets verts, assombrit le rouge ; bonne séparation des teintes de peau sur fond végétal.</td></tr>
-<tr><td><strong>Acros + Blue</strong></td><td>Base Acros, bleu fortement dominant — équivalent d'un filtre bleu : éclaircit ciel/eau/brume, assombrit les tons chauds (peau, rouge/orange) ; rendu inhabituel, « froid ».</td></tr>
-<tr><td><strong>Kodak T-MAX 3200</strong></td><td>Base Acros, ombres nettement rouvertes, grain fort et gros (le trait caractéristique d'une pellicule haute sensibilité poussée), Dynamic Range 400, virage gris légèrement froid/vert, balance des blancs source légèrement froide à dominante magenta. Évoque une prise de vue Kodak T-MAX P3200 en basse lumière.</td></tr>
+<tr><td><strong>Acros + Jaune</strong></td><td>Base Acros, pondération repondérée pour équilibrer rouge et vert (bleu réduit) — équivalent d'un filtre jaune : assombrit modérément le ciel bleu, rendu naturel de peau/feuillage.</td></tr>
+<tr><td><strong>Acros + Rouge</strong></td><td>Base Acros, rouge fortement dominant — équivalent d'un filtre rouge : assombrit fortement ciel et feuillage, éclaircit les sujets rouges/chauds ; rendu dramatique, ciel contrasté.</td></tr>
+<tr><td><strong>Acros + Vert</strong></td><td>Base Acros, vert dominant — équivalent d'un filtre vert : éclaircit feuillage et sujets verts, assombrit le rouge ; bonne séparation des teintes de peau sur fond végétal.</td></tr>
+<tr><td><strong>Acros + Bleu</strong></td><td>Base Acros, bleu fortement dominant — équivalent d'un filtre bleu : éclaircit ciel/eau/brume, assombrit les tons chauds (peau, rouge/orange) ; rendu inhabituel, « froid ».</td></tr>
+<tr><td><strong>Kodak T-MAX 3200</strong></td><td>Base Acros, ombres nettement rouvertes, grain fort et gros (le trait caractéristique d'une pellicule haute sensibilité poussée), Plage dynamique 400, virage gris légèrement froid/vert, balance des blancs source légèrement froide à dominante magenta. Évoque une prise de vue Kodak T-MAX P3200 en basse lumière.</td></tr>
 <tr><td><strong>Kodak Tri-X</strong></td><td>Base Acros, ombres rouvertes, clarté au maximum du moteur (texture/contraste local très marqué), grain fort et gros, balance des blancs source réchauffée. Le rendu granuleux et « punché » caractéristique du photojournalisme Tri-X.</td></tr>
-<tr><td><strong>Ilford FP4</strong></td><td>Base neutre (pondération proche de Rec.601, contraste doux), ombres légèrement creusées, clarté renforcée, grain léger et gros (doux), Dynamic Range 200, balance des blancs source réchauffée avec une pointe de vert. Un noir et blanc classique, fin et mesuré.</td></tr>
+<tr><td><strong>Ilford FP4</strong></td><td>Base neutre (pondération proche de Rec.601, contraste doux), ombres légèrement creusées, clarté renforcée, grain léger et gros (doux), Plage dynamique 200, balance des blancs source réchauffée avec une pointe de vert. Un noir et blanc classique, fin et mesuré.</td></tr>
 </tbody></table></div>
 <h2 id="r-glages-manuels">Réglages manuels</h2>
 <h3 id="intensit">Intensité</h3>
@@ -72,9 +73,9 @@
 </ul>
 <p class="figure"><img src="../screenshots/reglages/film/black_clip.png" alt="Noir minimal" loading="lazy"></p>
 <ul>
-<li><strong>Dynamic Range</strong> (<code>dynamic_range</code>, Off/DR200/DR400) — protège conjointement les hautes lumières et ouvre les ombres (composé à partir des réglages de tonalité ci-dessus), pour un rendu plus plat et proche d'un profil « log ».</li>
+<li><strong>Plage dynamique</strong> (<code>dynamic_range</code>, Off/DR200/DR400) — protège conjointement les hautes lumières et ouvre les ombres (composé à partir des réglages de tonalité ci-dessus), pour un rendu plus plat et proche d'un profil « log ».</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/film/dynamic_range.png" alt="Dynamic Range" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/film/dynamic_range.png" alt="Plage dynamique" loading="lazy"></p>
 <h3 id="couleur">Couleur</h3>
 <ul>
 <li><strong>Saturation globale</strong> (<code>global_saturation</code>, ×0..2) — multiplie la saturation de l'image entière.</li>
@@ -101,13 +102,13 @@
 </ul>
 <p class="figure"><img src="../screenshots/reglages/film/split_tone_scale.png" alt="Virage coloré" loading="lazy"></p>
 <ul>
-<li><strong>Col. Chr. Effect</strong> (<code>color_chrome_effect</code>, Off/Weak/Strong) — approfondit/protège les pixels les plus saturés et les plus lumineux de l'image, relativement au reste de cette même image. L'effet ne cible que le haut du classement (percentile) de saturation/luminosité <em>propre à chaque image</em> — sur une photo dont les couleurs sont déjà toutes proches en intensité (comme la photo d'exemple utilisée pour les autres réglages), la plage réellement ciblée est trop étroite pour se voir ; illustré ici sur une grille de teintes à plusieurs niveaux de vivacité, où seule la rangée la plus saturée/lumineuse (en haut) est visiblement assombrie/désaturée, les rangées plus ternes restant inchangées.</li>
+<li><strong>Effet Color Chrome</strong> (<code>color_chrome_effect</code>, Off/Weak/Strong) — approfondit/protège les pixels les plus saturés et les plus lumineux de l'image, relativement au reste de cette même image. L'effet ne cible que le haut du classement (percentile) de saturation/luminosité <em>propre à chaque image</em> — sur une photo dont les couleurs sont déjà toutes proches en intensité (comme la photo d'exemple utilisée pour les autres réglages), la plage réellement ciblée est trop étroite pour se voir ; illustré ici sur une grille de teintes à plusieurs niveaux de vivacité, où seule la rangée la plus saturée/lumineuse (en haut) est visiblement assombrie/désaturée, les rangées plus ternes restant inchangées.</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/film/color_chrome_effect.png" alt="Col. Chr. Effect" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/film/color_chrome_effect.png" alt="Effet Color Chrome" loading="lazy"></p>
 <ul>
-<li><strong>Col. Chr. Blue</strong> (<code>color_chrome_blue</code>, Off/Weak/Strong) — même mécanisme, restreint aux teintes bleu/cyan (ciel, eau). Sur la même grille : seules les cases bleu/cyan de la rangée la plus vive changent, toutes les autres teintes (rouge, orange, jaune, vert, magenta) restent identiques — la restriction de teinte de ce réglage, bien visible en comparaison directe.</li>
+<li><strong>Color Chrome Bleu</strong> (<code>color_chrome_blue</code>, Off/Weak/Strong) — même mécanisme, restreint aux teintes bleu/cyan (ciel, eau). Sur la même grille : seules les cases bleu/cyan de la rangée la plus vive changent, toutes les autres teintes (rouge, orange, jaune, vert, magenta) restent identiques — la restriction de teinte de ce réglage, bien visible en comparaison directe.</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/film/color_chrome_blue.png" alt="Col. Chr. Blue" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/film/color_chrome_blue.png" alt="Color Chrome Bleu" loading="lazy"></p>
 <h3 id="texture-grain">Texture &amp; Grain</h3>
 <ul>
 <li><strong>Clarté</strong> (<code>clarity</code>, -100..100) — contraste local à rayon large (masque flou sur la luminance) ; négatif = adoucit/brume, positif = accentue la texture des tons moyens.</li>
@@ -122,18 +123,18 @@
 </ul>
 <p class="figure"><img src="../screenshots/reglages/film/grain_std.png" alt="Grain" loading="lazy"></p>
 <h3 id="r-glages-sp-cifiques-au-rendu-noir-et-blanc">Réglages spécifiques au rendu noir et blanc</h3>
-<p>Deux réglages n'ont d'effet que sur un look déjà converti en niveaux de gris (Acros et les presets de la ligne B&amp;W, §4.5) — sans effet sur Film/Bleach Bypass tant qu'aucun filtre B&amp;W n'est actif :</p>
+<p>Deux réglages n'ont d'effet que sur un look déjà converti en niveaux de gris (Acros et les presets de la ligne N&amp;B, §4.5) — sans effet sur Film/Bleach Bypass tant qu'aucun filtre N&amp;B n'est actif :</p>
 <ul>
-<li><strong>Mono Colour WC</strong> (<code>mono_color_wc</code>, -20..20) — virage chaud/froid appliqué à l'image déjà grise (distinct de la Température, qui agit avant la conversion).</li>
+<li><strong>Mono Couleur WC</strong> (<code>mono_color_wc</code>, -20..20) — virage chaud/froid appliqué à l'image déjà grise (distinct de la Température, qui agit avant la conversion).</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/film/mono_color_wc.png" alt="Mono Colour WC" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/film/mono_color_wc.png" alt="Mono Couleur WC" loading="lazy"></p>
 <ul>
-<li><strong>Mono Colour MG</strong> (<code>mono_color_mg</code>, -20..20) — virage vert/magenta appliqué à l'image déjà grise.</li>
+<li><strong>Mono Couleur MG</strong> (<code>mono_color_mg</code>, -20..20) — virage vert/magenta appliqué à l'image déjà grise.</li>
 </ul>
-<p class="figure"><img src="../screenshots/reglages/film/mono_color_mg.png" alt="Mono Colour MG" loading="lazy"></p>
+<p class="figure"><img src="../screenshots/reglages/film/mono_color_mg.png" alt="Mono Couleur MG" loading="lazy"></p>
 <h3 id="filtre">Filtre</h3>
 <ul>
-<li><strong>Filtre</strong> (<code>filter_color</code>, Aucun/Yellow/Red/Green/Blue) — superpose un filtre coloré façon Wratten, en forçant la conversion en niveaux de gris même sur un look couleur : plus un canal reçoit de poids, plus les sujets de cette couleur apparaissent clairs, et les sujets de la couleur opposée, sombres.</li>
+<li><strong>Filtre</strong> (<code>filter_color</code>, Aucun/Jaune/Rouge/Vert/Bleu) — superpose un filtre coloré façon Wratten, en forçant la conversion en niveaux de gris même sur un look couleur : plus un canal reçoit de poids, plus les sujets de cette couleur apparaissent clairs, et les sujets de la couleur opposée, sombres.</li>
 </ul>
 <p class="figure"><img src="../screenshots/reglages/bw/filter_color.png" alt="Filtre" loading="lazy"></p>
 <ul>

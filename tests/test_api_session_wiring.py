@@ -243,7 +243,12 @@ def test_open_image_with_unsupported_bmp_file_returns_unchanged_generic_message(
     Image.new("RGB", (10, 8), color=(50, 100, 200)).save(bmp_path, format="BMP")
     response = client.post(f"/sessions/{session_id}/open", json={"path": str(bmp_path)})
     assert response.status_code == 400
-    assert "Format d'image non pris en charge" in response.json()["detail"]
+    # i18n phase 4 (2026-09-03): /sessions/{id}/open now sends a structured
+    # {category, message} body (ImageIOError.category), not a flat string -- see api.ts's
+    # StructuredErrorDetail / errorMessages.ts's CATEGORY_KEYS.
+    detail = response.json()["detail"]
+    assert detail["category"] == "unsupported_format"
+    assert "Format d'image non pris en charge" in detail["message"]
 
 
 # --- RAW decoding (052) ---
@@ -1155,6 +1160,8 @@ def test_put_preferences_persists_and_is_read_back(client, isolated_preferences_
         "open_image_directory": None,
         "export_image_directory": None,
         "workflow_config_source_path": None,
+        # i18n phase 6 (2026-09-03): langue de l'IHM, round-trippée comme tout autre champ.
+        "ui_language": "en",
     }
     put_response = client.put("/preferences", json=payload)
     assert put_response.status_code == 200

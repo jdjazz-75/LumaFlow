@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monochrome — LumaFlow</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="../index.html">LumaFlow</a>
+    <div class="lang-switch"><a href="../../workflow/monochrome.html">FR</a><span class="sep">/</span><strong>EN</strong></div>
+    <nav>
+      <ul class="nav-main">
+        <li><a href="../index.html">Overview</a></li>
+        <li><a href="../installation.html">Installation</a></li>
+        <li><a href="../features.html">Features</a></li>
+        <li><a href="../batch.html">Batch processing</a></li>
+        <li><a href="../workflow/index.html">Workflow</a></li>
+      </ul>
+      <div class="nav-section-label">Workflow steps</div>
+      <ul class="nav-workflow">
+        <li><a href="../workflow/film.html">Film</a></li>
+        <li><a href="../workflow/bleach-bypass.html">Bleach Bypass</a></li>
+        <li><a href="../workflow/color-splash.html">Color Splash</a></li>
+        <li><a href="../workflow/monochrome.html" class="active">Monochrome</a></li>
+        <li><a href="../workflow/bw.html">B&W</a></li>
+        <li><a href="../workflow/light.html">Light</a></li>
+        <li><a href="../workflow/vignetting.html">Vignetting</a></li>
+      </ul>
+    </nav>
+  </aside>
+  <main class="content">
+    <article>
+<h1 id="4-4-monochrome">4.4 Monochrome</h1>
+<p><strong>Engine</strong>: a true single-hue duotone — the source image is first desaturated then converted to luminance (Rec.709), a tone curve is applied to it, and this grayscale luminance is then recolorized with ONE single hue/saturation (not a multi-point gradient table: a 5-control-point design was considered then dropped in favor of this simpler mechanism, judged sufficient). The colorized result is finally blended with pure gray according to a colorization "Strength".</p>
+<h2 id="thumbnails">Thumbnails</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Thumbnail</th><th>Effect</th></tr></thead>
+<tbody>
+<tr><td><strong>Neutral</strong></td><td>No transformation.</td></tr>
+<tr><td><strong>Red</strong></td><td>Brick/terracotta duotone (hue ≈3°).</td></tr>
+<tr><td><strong>Sepia</strong></td><td>Classic brown/sepia duotone (hue ≈42°), the most iconic of the group.</td></tr>
+<tr><td><strong>Yellow</strong></td><td>Olive-yellow duotone (hue ≈55°).</td></tr>
+<tr><td><strong>Green</strong></td><td>Sage/olive-green duotone, the least saturated of the group (hue ≈108°).</td></tr>
+<tr><td><strong>Blue</strong></td><td>Deep blue duotone, clearly the most saturated of the group (hue ≈223°).</td></tr>
+<tr><td><strong>Purple</strong></td><td>Mauve-purple duotone (hue ≈275°).</td></tr>
+</tbody></table></div>
+<p>The 6 presets share the same template — full desaturation of the source (100% gray base), 70% colorization strength, a slight contrast boost, light grain — and differ only by the hue and saturation of the coloring.</p>
+<h2 id="manual-settings">Manual settings</h2>
+<h3 id="strength">Strength</h3>
+<ul>
+<li><strong>Strength</strong> (<code>intensity</code>, 0..1) — blends the result with the original image (0 = no effect).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/monochrome/intensity.png" alt="Strength" loading="lazy"></p>
+<ul>
+<li><strong>Colorization strength</strong> (<code>force</code>, 0..100) — proportion of color blended onto the gray base: at 0, the image stays pure grayscale; at 100, the colorization is fully applied.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/monochrome/force.png" alt="Strength" loading="lazy"></p>
+<h3 id="tone">Tone</h3>
+<ul>
+<li><strong>Contrast</strong> (<code>contrast</code>, -100..100).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/monochrome/contrast.png" alt="Contrast" loading="lazy"></p>
+<ul>
+<li><strong>Shadows</strong> (<code>shadows</code>, -100..100).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/monochrome/shadows.png" alt="Shadows" loading="lazy"></p>
+<ul>
+<li><strong>Highlights</strong> (<code>highlights</code>, -100..100).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/monochrome/highlights.png" alt="Highlights" loading="lazy"></p>
+<ul>
+<li><strong>Black point</strong> (<code>black_point</code>, 0..0.10) — black point clipping, applied last.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/monochrome/black_point.png" alt="Black point" loading="lazy"></p>
+<h3 id="colour">Colour</h3>
+<ul>
+<li><strong>Colorization hue</strong> (<code>hue</code>, 0..360°) — the duotone's color itself; also adjustable via a dedicated color wheel in addition to the numeric slider.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/monochrome/hue.png" alt="Hue" loading="lazy"></p>
+<ul>
+<li><strong>Tint saturation</strong> (<code>tint_saturation</code>, 0..100) — intensity of the colorization.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/monochrome/tint_saturation.png" alt="Tint saturation" loading="lazy"></p>
+<ul>
+<li><strong>Original saturation</strong> (<code>original_saturation</code>, ×0..2) — how much of the source photo's color is re-injected before the luminance extraction: at 0 (default for every preset), a pure duotone; beyond that, the original color shows through beneath the colorization.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/monochrome/original_saturation.png" alt="Original saturation" loading="lazy"></p>
+<ul>
+<li><strong>Apparent temperature</strong> (<code>temperature_shift</code>, -1000..1000) — a warm/cool toning applied after the colorization.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/monochrome/temperature_shift.png" alt="Apparent temperature" loading="lazy"></p>
+<ul>
+<li><strong>Green–magenta tint</strong> (<code>tint_magenta</code>, -20..20).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/monochrome/tint_magenta.png" alt="Green–magenta tint" loading="lazy"></p>
+<h3 id="texture-grain">Texture &amp; Grain</h3>
+<ul>
+<li><strong>Clarity</strong> (<code>clarity</code>, -100..100).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/monochrome/clarity.png" alt="Clarity" loading="lazy"></p>
+<ul>
+<li><strong>Sharpness</strong> (<code>sharpness</code>, -100..100).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/monochrome/sharpness.png" alt="Sharpness" loading="lazy"></p>
+<ul>
+<li><strong>Grain</strong> (<code>grain</code>, 0..0.05).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/monochrome/grain.png" alt="Grain" loading="lazy"></p>
+<ul>
+<li><strong>Vignetting</strong> (<code>vignette</code>, -100..100) — radial darkening (negative) or brightening (positive) of the edges, specific to this row (distinct from the Vignetting row, §4.7).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/monochrome/vignette.png" alt="Vignetting" loading="lazy"></p>
+    </article>
+  </main>
+</div>
+</body>
+</html>

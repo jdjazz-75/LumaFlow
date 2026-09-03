@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Film — LumaFlow</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="../index.html">LumaFlow</a>
+    <div class="lang-switch"><a href="../../workflow/film.html">FR</a><span class="sep">/</span><strong>EN</strong></div>
+    <nav>
+      <ul class="nav-main">
+        <li><a href="../index.html">Overview</a></li>
+        <li><a href="../installation.html">Installation</a></li>
+        <li><a href="../features.html">Features</a></li>
+        <li><a href="../batch.html">Batch processing</a></li>
+        <li><a href="../workflow/index.html">Workflow</a></li>
+      </ul>
+      <div class="nav-section-label">Workflow steps</div>
+      <ul class="nav-workflow">
+        <li><a href="../workflow/film.html" class="active">Film</a></li>
+        <li><a href="../workflow/bleach-bypass.html">Bleach Bypass</a></li>
+        <li><a href="../workflow/color-splash.html">Color Splash</a></li>
+        <li><a href="../workflow/monochrome.html">Monochrome</a></li>
+        <li><a href="../workflow/bw.html">B&W</a></li>
+        <li><a href="../workflow/light.html">Light</a></li>
+        <li><a href="../workflow/vignetting.html">Vignetting</a></li>
+      </ul>
+    </nav>
+  </aside>
+  <main class="content">
+    <article>
+<h1 id="4-1-film">4.1 Film</h1>
+<p><strong>Engine</strong>: a generic parametric grading engine (HSL space, 3-zone tone curve, saturation/hue/luminance per named hue range, shadow/highlight color toning, white balance, clarity/sharpness, grain, black clipping) driven by a per-preset declarative "calibration". This same engine also powers the <strong>Bleach Bypass</strong> and <strong>B&amp;W</strong> rows (§4.2, §4.5) — only the preset set differs from one row to another.</p>
+<h2 id="thumbnails">Thumbnails</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Thumbnail</th><th>Effect</th></tr></thead>
+<tbody>
+<tr><td><strong>Neutral</strong></td><td>No transformation — exact passthrough.</td></tr>
+<tr><td><strong>Classic Chrome</strong></td><td>Matte, desaturated palette (saturation ×0.78, reds/greens/magenta muted), cooled (−100K), shadows lightly tinted blue-cyan (215°) and highlights barely golden (45°), fine grain. The characteristic desaturated "documentary" look.</td></tr>
+<tr><td><strong>Velvia</strong></td><td>Strong contrast (+28), heavily boosted saturation (×1.32 — greens, blues and reds pumped), greens/blues shifted slightly toward yellow-green/cyan, deep shadows, cooled (−150K). Vivid, punchy rendering, geared toward landscape/nature.</td></tr>
+<tr><td><strong>Astia</strong></td><td>Soft contrast (−10), compressed highlights, open shadows; slight warmth (+150K) and a targeted boost of skin tones (orange), very fine grain. The classic "soft portrait" look.</td></tr>
+<tr><td><strong>Pro Neg. Std</strong></td><td>Lowered contrast and highlights, open shadows; broad, even desaturation (−8 to −10% across almost every hue, with skin the most protected), nearly imperceptible grain. A neutral, malleable base rather than a stylized look.</td></tr>
+<tr><td><strong>Eterna</strong></td><td>Very flat (contrast −32, highlights −35, shadows +25 widely opened), heavily desaturated (×0.68), cinematic toning with teal shadows (200°) / orange highlights (40°), slightly blurred (sharpness −2). The cinema "log" look, deliberately unfinished straight out of camera.</td></tr>
+<tr><td><strong>Classic Negative</strong></td><td>Strong contrast (+22), deepened shadows, muted greens/cyans, cooled (−70K) with a touch of green (tint −6), shadow toning cyan-green (185°) / highlight toning amber (48°), boosted clarity. A punchy look with a "consumer negative" character.</td></tr>
+<tr><td><strong>Rizzle Clicks</strong></td><td>Based on Classic Negative: heavily reduced clarity (strong glow/blur), strong fine grain, Dynamic Range 400 (protected highlights, open shadows), strong Color Chrome Effect (deepened saturated colors), cool tint (4000K white balance).</td></tr>
+<tr><td><strong>Glacier Blue</strong></td><td>Based on Classic Negative: raised shadows, markedly reduced saturation, no grain, Dynamic Range 200, Color Chrome Blue (sky/water specifically deepened), cool and slightly green tint. The icy, clean look its name suggests.</td></tr>
+</tbody></table></div>
+<h2 id="manual-settings">Manual settings</h2>
+<h3 id="strength">Strength</h3>
+<ul>
+<li><strong>Strength</strong> (<code>intensity</code>, 0..1) — blends the graded result with the original image (or, for a black-and-white look, with its grayscale conversion): 0 = no effect, 1 = full effect.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/intensity.png" alt="Strength" loading="lazy"></p>
+<h3 id="tone">Tone</h3>
+<ul>
+<li><strong>Contrast</strong> (<code>contrast</code>, -100..100) — increases (positive) or reduces (negative) the gap between shadows and highlights around mid-gray.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/contrast.png" alt="Contrast" loading="lazy"></p>
+<ul>
+<li><strong>Highlights</strong> (<code>highlights</code>, -100..100) — brightens/hardens (positive) or compresses/protects (negative) the bright-tone zone.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/highlights.png" alt="Highlights" loading="lazy"></p>
+<ul>
+<li><strong>Shadows</strong> (<code>shadows</code>, -100..100) — brightens/opens (positive) or darkens/deepens (negative) the dark-tone zone.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/shadows.png" alt="Shadows" loading="lazy"></p>
+<ul>
+<li><strong>Black clipping</strong> (<code>black_clip</code>, 0..0.10) — raises the black point: near-black tones are progressively crushed toward pure black.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/black_clip.png" alt="Black clipping" loading="lazy"></p>
+<ul>
+<li><strong>Dynamic Range</strong> (<code>dynamic_range</code>, Off/DR200/DR400) — jointly protects highlights and opens shadows (composited from the tone settings above), for a flatter rendering closer to a "log" profile.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/dynamic_range.png" alt="Dynamic Range" loading="lazy"></p>
+<h3 id="colour">Colour</h3>
+<ul>
+<li><strong>Global saturation</strong> (<code>global_saturation</code>, ×0..2) — multiplies the saturation of the whole image.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/global_saturation.png" alt="Global saturation" loading="lazy"></p>
+<ul>
+<li><strong>HSL saturation</strong> (<code>hsl_saturation_scale</code>, ×0..2) — amplifies or reduces the per-hue saturation corrections already built into the selected look (here Classic Chrome, which mutes magenta/red/green/blue); at 0, this component of the look disappears.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/hsl_saturation_scale.png" alt="HSL saturation" loading="lazy"></p>
+<ul>
+<li><strong>HSL luminance</strong> (<code>hsl_luminance_scale</code>, ×0..2) — amplifies or reduces the look's per-hue luminance corrections (here Astia, which slightly brightens skin/orange tones).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/hsl_luminance_scale.png" alt="HSL luminance" loading="lazy"></p>
+<ul>
+<li><strong>Temperature</strong> (<code>temperature</code>, -1000..1000) — warms (positive) or cools (negative) the white balance (an approximation, not a Planckian calculation).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/temperature.png" alt="Temperature" loading="lazy"></p>
+<ul>
+<li><strong>Tint</strong> (<code>tint</code>, -20..20) — pushes toward magenta (positive) or green (negative).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/tint.png" alt="Tint" loading="lazy"></p>
+<ul>
+<li><strong>Split toning</strong> (<code>split_tone_scale</code>, ×0..2) — amplifies or reduces the strength of the shadow/highlight color toning already defined by the look (here Classic Chrome: blue-cyan shadows, golden highlights); at 0, the toning disappears.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/split_tone_scale.png" alt="Split toning" loading="lazy"></p>
+<ul>
+<li><strong>Color Chrome Effect</strong> (<code>color_chrome_effect</code>, Off/Weak/Strong) — deepens/protects the most saturated and brightest pixels of the image, relative to the rest of that same image. The effect only targets the top of the saturation/brightness ranking (percentile) <em>specific to each image</em> — on a photo whose colors are already all close in intensity (like the sample photo used for the other settings), the actually-targeted range is too narrow to see; illustrated here on a grid of hues at several vividness levels, where only the most saturated/brightest row (at the top) is visibly darkened/desaturated, with the duller rows left unchanged.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/color_chrome_effect.png" alt="Color Chrome Effect" loading="lazy"></p>
+<ul>
+<li><strong>Color Chrome Blue</strong> (<code>color_chrome_blue</code>, Off/Weak/Strong) — same mechanism, restricted to blue/cyan hues (sky, water). On the same grid: only the blue/cyan cells of the brightest row change, while every other hue (red, orange, yellow, green, magenta) stays identical — this setting's hue restriction, clearly visible in a direct comparison.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/color_chrome_blue.png" alt="Color Chrome Blue" loading="lazy"></p>
+<h3 id="texture-grain">Texture &amp; Grain</h3>
+<ul>
+<li><strong>Clarity</strong> (<code>clarity</code>, -100..100) — wide-radius local contrast (blurred mask on luminance); negative = softens/hazes, positive = accentuates mid-tone texture.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/clarity.png" alt="Clarity" loading="lazy"></p>
+<ul>
+<li><strong>Sharpness</strong> (<code>sharpness</code>, -100..100) — fine detail accentuation (tight-radius, per-channel blurred mask); negative = blur, positive = sharpness.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/sharpness.png" alt="Sharpness" loading="lazy"></p>
+<ul>
+<li><strong>Grain</strong> (<code>grain_std</code>, 0..0.05) — adds deterministic film grain (same image, same grain on every render).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/grain_std.png" alt="Grain" loading="lazy"></p>
+<h3 id="settings-specific-to-black-and-white-rendering">Settings specific to black-and-white rendering</h3>
+<p>Two settings only take effect on a look already converted to grayscale (Acros and the B&amp;W row's presets, §4.5) — with no effect on Film/Bleach Bypass unless a B&amp;W filter is active:</p>
+<ul>
+<li><strong>Mono Colour WC</strong> (<code>mono_color_wc</code>, -20..20) — a warm/cool toning applied to the already-gray image (distinct from Temperature, which acts before the conversion).</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/mono_color_wc.png" alt="Mono Colour WC" loading="lazy"></p>
+<ul>
+<li><strong>Mono Colour MG</strong> (<code>mono_color_mg</code>, -20..20) — a green/magenta toning applied to the already-gray image.</li>
+</ul>
+<p class="figure"><img src="../../screenshots/reglages/film/mono_color_mg.png" alt="Mono Colour MG" loading="lazy"></p>
+    </article>
+  </main>
+</div>
+</body>
+</html>

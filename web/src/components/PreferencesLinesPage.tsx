@@ -4,6 +4,7 @@
 
 import type { Preferences } from "../lib/api";
 import { PreferencesNumericRow } from "./PreferencesNumericRow";
+import { t } from "../i18n";
 
 /* Bounds mirror lumaflow/persistence/preferences.py -- kept in sync by hand
 (no shared schema between the Python and TS sides yet). */
@@ -16,11 +17,13 @@ const BOUNDS = {
 
 type NumericField = keyof typeof BOUNDS;
 
-const FIELDS: { key: NumericField; label: string; suffix: string; group: "Ligne" | "Vignettes" }[] = [
-  { key: "row_spacing_px", label: "Espacement entre les lignes", suffix: "px", group: "Ligne" },
-  { key: "attenuated_opacity_percent", label: "Opacité des lignes inactives", suffix: "%", group: "Ligne" },
-  { key: "row_horizontal_margin_px", label: "Marge latérale des lignes", suffix: "px", group: "Ligne" },
-  { key: "vignette_margin_px", label: "Marge verticale", suffix: "px", group: "Vignettes" },
+const GROUPS = ["row", "vignettes"] as const;
+
+const FIELDS: { key: NumericField; suffix: string; group: (typeof GROUPS)[number] }[] = [
+  { key: "row_spacing_px", suffix: "px", group: "row" },
+  { key: "attenuated_opacity_percent", suffix: "%", group: "row" },
+  { key: "row_horizontal_margin_px", suffix: "px", group: "row" },
+  { key: "vignette_margin_px", suffix: "px", group: "vignettes" },
 ];
 
 type PreferencesLinesPageProps = {
@@ -31,15 +34,15 @@ type PreferencesLinesPageProps = {
 export function PreferencesLinesPage({ prefs, onChange }: PreferencesLinesPageProps) {
   return (
     <div className="prefs-groups">
-      {(["Ligne", "Vignettes"] as const).map((group) => (
+      {GROUPS.map((group) => (
         <div key={group} className="prefs-group">
-          <div className="prefs-group-title">{group}</div>
+          <div className="prefs-group-title">{t(`ui.prefs.lines.group.${group}`)}</div>
           {FIELDS.filter((field) => field.group === group).map((field) => {
             const [min, max] = BOUNDS[field.key];
             return (
               <PreferencesNumericRow
                 key={field.key}
-                label={field.label}
+                label={t(`ui.prefs.lines.${field.key}`)}
                 value={prefs[field.key]}
                 min={min}
                 max={max}

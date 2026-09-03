@@ -16,26 +16,32 @@ surfaces as a TypeScript error here rather than silently at render time. */
 // from, matching by construction.
 const BASE_URL = import.meta.env.DEV ? "http://127.0.0.1:8000" : "";
 
-/** A blocking recipe-load failure's structured detail (feature 048) -- one of four categories,
-each carrying a fixed non-technical `message` distinct
-from the other three (SC-001), plus category-specific `details`. Most other endpoints still
-raise a plain string `detail`; ApiError.category/details stay undefined for those. */
-export type RecipeLoadErrorDetail = {
-  category: "missing_addon" | "unsupported_schema_version" | "unreadable_file" | "application_error";
+/** A structured error body from ANY endpoint (i18n phase 4, 2026-09-03) -- generalizes the
+recipe-load shape above (feature 048) to image open/export (ImageIOError.category), batch
+validation (BatchValidationError.code) and the destination-exists conflict. `category` is always
+a stable machine-readable string; `code`/`batch_index`/other fields are category-specific extras.
+`message` is the backend's own French text, used as errorMessages.ts's repli when the active
+locale's catalog does not recognize `category` (D3's addon-label pattern, applied to errors). */
+export type StructuredErrorDetail = {
+  category: string;
   message: string;
-  details: Record<string, unknown>;
+  code?: string;
+  batch_index?: number | null;
+  details?: Record<string, unknown>;
 };
 
 export class ApiError extends Error {
   status: number;
-  category?: RecipeLoadErrorDetail["category"];
+  category?: string;
+  code?: string;
   details?: Record<string, unknown>;
-  constructor(status: number, detail: string | RecipeLoadErrorDetail) {
+  constructor(status: number, detail: string | StructuredErrorDetail) {
     super(typeof detail === "string" ? detail : detail.message);
     this.status = status;
     if (typeof detail !== "string") {
       this.category = detail.category;
-      this.details = detail.details;
+      this.code = detail.code;
+      this.details = detail.details ?? (detail.batch_index !== undefined ? { batch_index: detail.batch_index } : undefined);
     }
   }
 }
@@ -47,7 +53,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!response.ok) {
     const body = await response.json().catch(() => ({ detail: response.statusText }));
-    const detail: string | RecipeLoadErrorDetail = body.detail ?? response.statusText;
+    const detail: string | StructuredErrorDetail = body.detail ?? response.statusText;
     throw new ApiError(response.status, detail);
   }
   return response.json() as Promise<T>;
@@ -61,6 +67,10 @@ export type VignetteState = {
 
 export type RowSpec = {
   label: string;
+  /** config_workflow.json's stable row identifier ("film", "bleach_bypass", "color_splash"...).
+  Added 2026-09-03 (i18n phase 1) -- every per-row behaviour keys off THIS, never off `label`,
+  which is a display string and becomes locale-dependent. */
+  identifier: string;
   short_description: string;
   vignette_labels: string[];
   selected_vignette_identifier: string | null;
@@ -94,6 +104,11 @@ export type Preferences = {
   guide_limit_color: string;
   guide_overlay_color: string;
   accent_color: string;
+  /** Langue de l'IHM (i18n phase 6, 2026-09-03) : "fr" | "en". Typée `string` et non `Locale`
+  parce que c'est ce que le serveur renvoie -- `setLocale` valide et retombe sur le français pour
+  toute valeur inconnue, plutôt que de faire échouer le typage sur un fichier écrit par une
+  version ultérieure. */
+  ui_language: string;
   presets_directory: string | null;
   open_image_directory: string | null;
   export_image_directory: string | null;

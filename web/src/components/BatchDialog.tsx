@@ -7,6 +7,7 @@ import "./BatchDialog.css";
 import * as api from "../lib/api";
 import { describeError } from "../lib/errorMessages";
 import { BatchIcon, CloseIcon } from "./icons";
+import { t, tn } from "../i18n";
 
 /** One batch being defined in the window. `id` is a purely local React key -- the backend never
 sees it; a batch is identified there by its POSITION in the submitted list. */
@@ -155,10 +156,10 @@ export function BatchDialog({ drafts, onDraftsChange, runId, onRunIdChange, onCl
         <div className="batch-header">
           <div className="batch-title">
             <BatchIcon size={18} />
-            Traitement par lot
+            {t("ui.batch.title")}
           </div>
           <div className="batch-global">
-            <span className="batch-global__label">Progression globale</span>
+            <span className="batch-global__label">{t("ui.batch.global_progress")}</span>
             <div
               className="batch-gauge-h"
               role="progressbar"
@@ -176,9 +177,7 @@ export function BatchDialog({ drafts, onDraftsChange, runId, onRunIdChange, onCl
 
         <div className="batch-blocks">
           {drafts.length === 0 && (
-            <div className="batch-empty">
-              Aucun lot. Ajoutez un lot, puis choisissez ses images, son preset et son répertoire de sortie.
-            </div>
+            <div className="batch-empty">{t("ui.batch.empty")}</div>
           )}
 
           {drafts.map((draft, index) => {
@@ -188,12 +187,12 @@ export function BatchDialog({ drafts, onDraftsChange, runId, onRunIdChange, onCl
               <div className="batch-block" key={draft.id}>
                 <div className="batch-block__body">
                   <div className="batch-block__header">
-                    <span className="batch-block__name">Lot {index + 1}</span>
+                    <span className="batch-block__name">{t("ui.batch.block_name", { index: index + 1 })}</span>
                     <button
                       type="button"
                       className="batch-block__remove"
-                      title="Supprimer ce lot"
-                      aria-label={`Supprimer le lot ${index + 1}`}
+                      title={t("ui.batch.remove")}
+                      aria-label={t("ui.batch.remove_numbered", { index: index + 1 })}
                       disabled={running}
                       onClick={() => onDraftsChange(drafts.filter((item) => item.id !== draft.id))}
                     >
@@ -202,12 +201,8 @@ export function BatchDialog({ drafts, onDraftsChange, runId, onRunIdChange, onCl
                   </div>
 
                   <BatchField
-                    label="Fichiers"
-                    value={
-                      draft.files.length > 0
-                        ? `${draft.files.length} fichier${draft.files.length > 1 ? "s" : ""} sélectionné${draft.files.length > 1 ? "s" : ""}`
-                        : null
-                    }
+                    label={t("ui.batch.field.files")}
+                    value={draft.files.length > 0 ? tn("ui.batch.files_selected", draft.files.length) : null}
                     title={draft.files.join("\n")}
                     disabled={running}
                     onBrowse={() =>
@@ -218,7 +213,7 @@ export function BatchDialog({ drafts, onDraftsChange, runId, onRunIdChange, onCl
                     }
                   />
                   <BatchField
-                    label="Preset"
+                    label={t("ui.batch.field.preset")}
                     value={draft.presetPath ? baseName(draft.presetPath) : null}
                     title={draft.presetPath ?? ""}
                     disabled={running}
@@ -230,7 +225,7 @@ export function BatchDialog({ drafts, onDraftsChange, runId, onRunIdChange, onCl
                     }
                   />
                   <BatchField
-                    label="Sortie"
+                    label={t("ui.batch.field.output")}
                     value={draft.outputDir}
                     title={draft.outputDir ?? ""}
                     disabled={running}
@@ -263,18 +258,18 @@ export function BatchDialog({ drafts, onDraftsChange, runId, onRunIdChange, onCl
             disabled={running}
             onClick={() => onDraftsChange([...drafts, newBatchDraft()])}
           >
-            + Ajouter un lot
+            {t("ui.batch.add")}
           </button>
         </div>
 
         <div className="batch-log-section">
           <div className="batch-log-header">
-            <span className="batch-log-title">Journal</span>
+            <span className="batch-log-title">{t("ui.batch.log")}</span>
             {run && <span className="batch-log-summary">{summarize(run)}</span>}
           </div>
           <div className="batch-log" ref={logRef}>
             {!run || run.log.length === 0 ? (
-              <div className="batch-log__idle">Le journal se remplira pendant l'exécution.</div>
+              <div className="batch-log__idle">{t("ui.batch.log_idle")}</div>
             ) : (
               run.log.map((entry) => (
                 <div
@@ -299,15 +294,15 @@ export function BatchDialog({ drafts, onDraftsChange, runId, onRunIdChange, onCl
 
         <div className="batch-actions">
           <button type="button" className="batch-btn" onClick={onClose}>
-            Fermer
+            {t("ui.action.close")}
           </button>
           {running ? (
             <button type="button" className="batch-btn batch-btn--primary" onClick={handleStop}>
-              Arrêter
+              {t("ui.batch.stop")}
             </button>
           ) : (
             <button type="button" className="batch-btn batch-btn--primary" onClick={handleRun} disabled={!canRun}>
-              Exécuter
+              {t("ui.batch.run")}
             </button>
           )}
         </div>
@@ -317,10 +312,14 @@ export function BatchDialog({ drafts, onDraftsChange, runId, onRunIdChange, onCl
 }
 
 function summarize(run: api.BatchRun): string {
-  const counts = `${run.success_count} réussite${run.success_count > 1 ? "s" : ""}, ${run.error_count} échec${run.error_count > 1 ? "s" : ""}`;
-  if (run.state === "running") return `${run.done}/${run.total} — ${counts}`;
-  if (run.state === "stopped") return `Arrêté à ${run.done}/${run.total} — ${counts}`;
-  return `Terminé — ${counts}`;
+  const counts = t("ui.batch.counts", {
+    successes: tn("ui.batch.success", run.success_count),
+    errors: tn("ui.batch.error", run.error_count),
+  });
+  const progress = `${run.done}/${run.total}`;
+  if (run.state === "running") return t("ui.batch.summary.running", { progress, counts });
+  if (run.state === "stopped") return t("ui.batch.summary.stopped", { progress, counts });
+  return t("ui.batch.summary.done", { counts });
 }
 
 type BatchFieldProps = {
@@ -339,10 +338,10 @@ function BatchField({ label, value, title, disabled, onBrowse }: BatchFieldProps
         className={value ? "batch-field__value" : "batch-field__value batch-field__value--empty"}
         title={title}
       >
-        {value ?? "Non renseigné"}
+        {value ?? t("ui.batch.unset")}
       </span>
       <button type="button" className="batch-browse-btn" disabled={disabled} onClick={onBrowse}>
-        Parcourir…
+        {t("ui.action.browse")}
       </button>
     </div>
   );

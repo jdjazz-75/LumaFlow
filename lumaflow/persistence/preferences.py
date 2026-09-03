@@ -9,6 +9,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 _VALID_POSITIONS = {"left", "top"}
+# Langue de l'IHM (i18n phase 6, 2026-09-03). Doit rester synchronise avec web/src/i18n/
+# index.ts's LOCALES -- ajouter une locale = ajouter son code ici ET un catalogue la-bas.
+_VALID_LANGUAGES = {"fr", "en"}
 _HEX_COLOR_PATTERN = re.compile(r"^#[0-9A-Fa-f]{6}$")
 
 # Bounds for the layout preferences below -- generous enough for real use,
@@ -48,6 +51,10 @@ DEFAULT_GUIDE_OVERLAY_COLOR = "#FFFFFF"
 # valeur que l'ambre actuellement codé en dur (tokens.css's --amber) pour un rendu inchangé tant
 # que l'utilisateur ne personnalise pas.
 DEFAULT_ACCENT_COLOR = "#E3A75E"
+# Le francais reste la langue de reference du produit (et le repli de tout catalogue
+# incomplet, cf. web/src/i18n/index.ts's FALLBACK_LOCALE) -- une preferences.json anterieure
+# a l'i18n n'a pas ce champ et retombe donc sur le comportement d'avant, a l'identique.
+DEFAULT_UI_LANGUAGE = "fr"
 
 
 @dataclass
@@ -64,6 +71,10 @@ class UIPreferences:
     guide_limit_color: str = DEFAULT_GUIDE_LIMIT_COLOR
     guide_overlay_color: str = DEFAULT_GUIDE_OVERLAY_COLOR
     accent_color: str = DEFAULT_ACCENT_COLOR
+    # Préférences > Général (2026-09-03): "fr" | "en". Validée contre _VALID_LANGUAGES au
+    # chargement, comme menu_position l'est contre _VALID_POSITIONS -- une valeur inconnue
+    # (fichier écrit par une version ultérieure) retombe sur le français plutôt que de casser.
+    ui_language: str = DEFAULT_UI_LANGUAGE
     # Header preset combobox (2026-08-05) -- absolute path to the folder scanned by GET /presets.
     # None until the user picks one in Préférences > Général (no default location).
     presets_directory: str | None = None
@@ -151,6 +162,9 @@ def load_preferences(path: Path) -> UIPreferences:
         guide_limit_color = _hex_color(data.get("guide_limit_color"), DEFAULT_GUIDE_LIMIT_COLOR)
         guide_overlay_color = _hex_color(data.get("guide_overlay_color"), DEFAULT_GUIDE_OVERLAY_COLOR)
         accent_color = _hex_color(data.get("accent_color"), DEFAULT_ACCENT_COLOR)
+        ui_language = data.get("ui_language", DEFAULT_UI_LANGUAGE)
+        if ui_language not in _VALID_LANGUAGES:
+            ui_language = DEFAULT_UI_LANGUAGE
         return UIPreferences(
             menu_position=position,
             menu_collapsed=collapsed,
@@ -164,6 +178,7 @@ def load_preferences(path: Path) -> UIPreferences:
             guide_limit_color=guide_limit_color,
             guide_overlay_color=guide_overlay_color,
             accent_color=accent_color,
+            ui_language=ui_language,
             presets_directory=_optional_dir(data.get("presets_directory")),
             open_image_directory=_optional_dir(data.get("open_image_directory")),
             export_image_directory=_optional_dir(data.get("export_image_directory")),
@@ -190,6 +205,7 @@ def save_preferences(prefs: UIPreferences, path: Path) -> None:
             "guide_limit_color": prefs.guide_limit_color,
             "guide_overlay_color": prefs.guide_overlay_color,
             "accent_color": prefs.accent_color,
+            "ui_language": prefs.ui_language,
             "presets_directory": prefs.presets_directory,
             "open_image_directory": prefs.open_image_directory,
             "export_image_directory": prefs.export_image_directory,

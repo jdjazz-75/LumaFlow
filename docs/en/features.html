@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Features — LumaFlow</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html">LumaFlow</a>
+    <div class="lang-switch"><a href="../fonctionnalites.html">FR</a><span class="sep">/</span><strong>EN</strong></div>
+    <nav>
+      <ul class="nav-main">
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="installation.html">Installation</a></li>
+        <li><a href="features.html" class="active">Features</a></li>
+        <li><a href="batch.html">Batch processing</a></li>
+        <li><a href="workflow/index.html">Workflow</a></li>
+      </ul>
+      <div class="nav-section-label">Workflow steps</div>
+      <ul class="nav-workflow">
+        <li><a href="workflow/film.html">Film</a></li>
+        <li><a href="workflow/bleach-bypass.html">Bleach Bypass</a></li>
+        <li><a href="workflow/color-splash.html">Color Splash</a></li>
+        <li><a href="workflow/monochrome.html">Monochrome</a></li>
+        <li><a href="workflow/bw.html">B&W</a></li>
+        <li><a href="workflow/light.html">Light</a></li>
+        <li><a href="workflow/vignetting.html">Vignetting</a></li>
+      </ul>
+    </nav>
+  </aside>
+  <main class="content">
+    <article>
+<h1 id="3-features">3. Features</h1>
+<h2 id="3-1-general-interface">3.1 General interface</h2>
+<h3 class="section-title">At the top</h3>
+<p>The logo, a <strong>preset</strong> selector (a previously saved recipe — "New" resets to the neutral settings), and the main menu (☰), which groups Open/Export a photo, Open/Export a recipe, and Preferences.</p>
+<p>Once a photo is open, the central area becomes the <strong>filmstrip</strong>: a vertical column of processing steps, each showing its available thumbnails in a horizontal scroll.</p>
+<p class="figure"><img src="../screenshots/02-filmstrip.png" alt="Filmstrip with a photo open" loading="lazy"></p>
+<h3 class="section-title">At the bottom</h3>
+<ul>
+<li>a <strong>status bar</strong> with the source photo's thumbnail and metadata (name, dimensions, format), numbered pills to jump directly to any step, and previous/next buttons;</li>
+<li>a reminder of the keyboard shortcuts: Up/Down arrows to change step, Left/Right arrows to change thumbnail within a step, Space/double-click/magnifier icon to open Zoom, Esc to close.</li>
+</ul>
+<h2 id="3-2-the-workflow-9-steps">3.2 The workflow: 9 steps</h2>
+<p>The standard pipeline (defined in <code>config_workflow.json</code>, never hardcoded) has 9 steps. Two of them (<strong>Geometry</strong> and <strong>Framing</strong>) aren't shown as filmstrip rows but stay editable from any other step (see §3.4) — the following 7 rows are directly visible and navigable:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>#</th><th>Step</th><th>Role</th><th>Presets</th></tr></thead>
+<tbody>
+<tr><td>—</td><td><strong>Geometry</strong></td><td>Manual rotation and free 4-corner perspective correction</td><td>(editable only from another step)</td></tr>
+<tr><td>—</td><td><strong>Framing</strong></td><td>Free cropping with composition guides (rule of thirds, golden section/spiral, center lines, diagonal, pyramid, compound curve, symmetry)</td><td>(editable only from another step)</td></tr>
+<tr><td>1</td><td><strong>Film</strong></td><td>Film rendering and grain — parametric grading engine shared by the Fujifilm looks</td><td>Neutral, Velvia, Astia, Pro Neg. Std, Eterna, Classic Negative, Classic Chrome, Rizzle Clicks, Glacier Blue</td></tr>
+<tr><td>2</td><td><strong>Bleach Bypass</strong></td><td>Same engine, desaturated bleach-bypass-style negative presets</td><td>Neutral, Eterna Bleach Bypass, Inky Depths, Titanium, Ecowarrior, Milestone, Loki, Sunset Strip, Quicklime</td></tr>
+<tr><td>3</td><td><strong>Color Splash</strong></td><td>Desaturates the whole image except up to 3 simultaneous hue ranges kept in color, adjustable via a ring-shaped selector</td><td>Neutral, Red, Orange, Yellow, Green, Blue, Purple</td></tr>
+<tr><td>4</td><td><strong>Monochrome</strong></td><td>Duotone: strips all color, then colorizes the luminance with a single tint</td><td>Neutral, Red, Sepia, Yellow, Green, Blue, Purple</td></tr>
+<tr><td>5</td><td><strong>B&amp;W</strong></td><td>Alternative black-and-white simulations (colored filters, Kodak/Ilford emulations)</td><td>Neutral, Acros, Acros + Yellow/Red/Green/Blue, Kodak T-MAX 3200, Kodak Tri-X, Ilford FP4</td></tr>
+<tr><td>6</td><td><strong>Light</strong></td><td>Exposure and contrast — parametric engine (~31 fields), 4-zone tone curve, bloom, protected texture, and a <strong>subject/background split</strong> via a polygon mask</td><td>Neutral, Low Key, Dramatic, Soft, Balance, High Key</td></tr>
+<tr><td>7</td><td><strong>Vignetting</strong></td><td>Edge darkening, shape editable directly on screen</td><td>Neutral, Round central (ellipse), Linear (band)</td></tr>
+</tbody></table></div>
+<p>On each row, a single click on a thumbnail <strong>selects and applies</strong> the corresponding preset immediately — without opening a detailed view. To fine-tune a preset (individual sliders, interactive editing), open its <strong>Zoom</strong>: the magnifier icon at the bottom of the thumbnail, a double-click on the already-active thumbnail, or the Space bar.</p>
+<h2 id="3-3-zoom-mode-comparison-and-detailed-settings">3.3 Zoom mode: comparison and detailed settings</h2>
+<p>Zoom opens a large <strong>Before / After</strong> comparator with a draggable split handle, optical zoom and pan (mouse wheel or click-and-hold zones on the edges), and — on the right — a settings panel grouping the sliders, color wheels and switches specific to the current row's addon.</p>
+<p class="figure"><img src="../screenshots/03-zoom-film.png" alt="Zoom mode on the Film step" loading="lazy"></p>
+<p>Each setting can be <strong>reset</strong>, <strong>applied</strong> (preview without confirming) or <strong>confirmed</strong> (saved to the session). Sliders bounded to 0/1 appear as switches; discrete-choice settings (e.g. a B&amp;W filter's color/strength) appear as labeled buttons rather than raw numeric values.</p>
+<h2 id="3-4-cross-row-corrections-geometry-framing">3.4 Cross-row corrections: Geometry / Framing</h2>
+<p>From the Zoom of <strong>any</strong> visible row (Film, Bleach Bypass, Color Splash, Monochrome, B&amp;W, Light, Vignetting), two switches at the top of the panel — <strong>Geometry</strong> and <strong>Framing</strong> — give access to rotation/perspective correction and cropping without leaving the row you're editing: these are real pipeline steps, executed normally, but the interface makes them accessible as an overlay rather than as separate filmstrip rows.</p>
+<p class="figure"><img src="../screenshots/04-zoom-reglages-manuels.png" alt="Geometry setting enabled from Zoom" loading="lazy"></p>
+<h2 id="3-5-interactive-editing-directly-on-the-image">3.5 Interactive editing directly on the image</h2>
+<p>Several settings are edited with the mouse, directly on the preview, rather than with a slider:</p>
+<ul>
+<li><strong>Geometry</strong>: rotation handle and 4 perspective-correction corners.</li>
+<li><strong>Framing</strong>: frame resize handles, with the chosen composition guide overlaid.</li>
+<li><strong>Subject/Background Mask</strong> (Light step): drawing a polygon outline (vertices, edge midpoints, feather halo) to apply different settings to the subject and the background.</li>
+<li><strong>Vignette shape</strong>: movable center, radii/offsets, rotation — for the ellipse (Round central) as well as the band (Linear).</li>
+</ul>
+<p class="figure"><img src="../screenshots/05-zoom-vignettage.png" alt="Interactive editing of the vignette shape" loading="lazy"></p>
+<h2 id="3-6-recipes-save-load-reapply">3.6 Recipes: save, load, reapply</h2>
+<p>The ☰ &gt; Photo menu gives access to <strong>Open</strong>/<strong>Export</strong> for an image; the ☰ &gt; Presets menu and the header selector give access to <strong>Open</strong>/<strong>Export</strong> for a recipe (a <code>.json</code> file capturing every setting applied).</p>
+<p>Loading a recipe onto a different photo triggers, when needed, non-blocking warnings:</p>
+<ul>
+<li><strong>incompatible proportions</strong> — the recipe was created for a different image aspect ratio; each affected step (Geometry/Framing) is adapted or applied as-is;</li>
+<li><strong>out-of-range settings</strong> — automatically corrected to the nearest valid value;</li>
+<li><strong>a thumbnail disabled since</strong> (via Preferences &gt; Workflow) — replaced with its row's neutral setting.</li>
+</ul>
+<p>The preset shown in the header selector is <strong>automatically reapplied to every newly opened photo</strong>: working through a whole series of images develops all of them in the same style, without having to reselect anything. The selector therefore always describes what is actually applied — the <strong>"New"</strong> entry brings the image back to its neutral state.</p>
+<h2 id="3-7-batch-processing">3.7 Batch processing</h2>
+<p>The ☰ &gt; <strong>Batch</strong> menu opens a dedicated window that applies a recipe to entire lists of images without opening any of them. Each <strong>batch</strong> is a block with three pieces of information — a multi-file selection (same formats as opening a photo, RAW included), a <code>.json</code> preset, an output folder — and you can add as many as you like, with different presets and destinations.</p>
+<p class="figure"><img src="../screenshots/07-lot.png" alt="The batch processing window: two completed batches, progress gauges and a detailed log" loading="lazy"></p>
+<ul>
+<li><strong>Two-scale progress</strong> — a horizontal gauge at the top of the window for the overall progress (across all batches), and a vertical gauge to the right of each block for that batch's own progress, each with its own percentage.</li>
+<li><strong>Log</strong> — one line per image, with the written file's name on success or a plain-language reason on failure; successes and failures are distinguished by symbol as much as by color. It stays available after processing ends.</li>
+<li><strong>A failing file stops nothing</strong> — the faulty image is dropped, and processing moves on to the next one immediately.</li>
+<li><strong>Stop on demand</strong> — while running, "Run" becomes "Stop" and ends processing after the current image.</li>
+<li><strong>Unique output names</strong> — <code>&lt;source&gt;-&lt;preset&gt;-&lt;YY-MM-DD-HH-MM-SS&gt;.&lt;ext&gt;</code>, so a batch never overwrites the result of an earlier one.</li>
+</ul>
+<p>→ <a href="batch.html">Batch processing page — full details</a></p>
+<h2 id="3-8-raw-photos">3.8 RAW photos</h2>
+<p>In addition to JPEG/PNG, LumaFlow opens <strong>Canon (.cr2)</strong>, <strong>Nikon (.nef)</strong> and <strong>Sony (.arw)</strong> RAW files directly: decoding and demosaicing via <code>rawpy</code>, white balance applied at decode time, safe initial development, and EXIF orientation extraction.</p>
+<h2 id="3-9-preferences">3.9 Preferences</h2>
+<p>The ☰ &gt; Preferences menu opens a dialog with 4 tabs:</p>
+<p class="figure"><img src="../screenshots/06-preferences.png" alt="Preferences — General" loading="lazy"></p>
+<ul>
+<li><strong>General</strong>: accent color for the whole interface, default folders (open, export, presets), default export JPEG quality.</li>
+<li><strong>Workflow</strong>: enable/disable and reorder each row's thumbnails (the rows themselves stay fixed); import/export of the <code>config_workflow.json</code> file.</li>
+<li><strong>Rows</strong>: filmstrip spacing and margins, opacity of inactive rows.</li>
+<li><strong>Thumbnails</strong>: colors of the guiding aids (limits/overlays shown during interactive editing) and min/max bounds of the optical zoom.</li>
+</ul>
+<h2 id="3-10-keyboard-shortcuts">3.10 Keyboard shortcuts</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Key</th><th>Action</th></tr></thead>
+<tbody>
+<tr><td>↑ / ↓</td><td>Change step</td></tr>
+<tr><td>← / →</td><td>Change thumbnail within the active step</td></tr>
+<tr><td>Space, double-click, or magnifier icon</td><td>Open Zoom on the active thumbnail</td></tr>
+<tr><td>Esc</td><td>Close a menu or Zoom</td></tr>
+<tr><td>Click on a dimmed row</td><td>Jump back to it directly</td></tr>
+</tbody></table></div>
+<hr>
+    </article>
+  </main>
+</div>
+</body>
+</html>

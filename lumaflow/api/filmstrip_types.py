@@ -101,6 +101,12 @@ class RowSpec:
     """
 
     label: str
+    # config_workflow.json's stable row identifier ("film", "bleach_bypass", "color_splash"...).
+    # Added 2026-09-03 (i18n, phase 1): the web UI used to key its per-row behaviour off `label`
+    # (hidden rows, Zoom slider grouping, cross-row corrections), a convention filmstrip.ts itself
+    # called "fragile-but-established" -- and one that breaks outright the moment a label is
+    # translated. Defaults to "" so no existing construction site is invalidated.
+    identifier: str = ""
     vignette_labels: tuple[str, ...] = ()
     vignette_states: dict[str, VignetteState] = field(default_factory=dict)
     short_description: str = ""

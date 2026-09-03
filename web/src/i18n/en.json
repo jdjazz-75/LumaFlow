@@ -1,0 +1,1026 @@
+{
+  "_meta": {
+    "locale": "en",
+    "name": "English",
+    "_note": "Catalogue de libellés de l'IHM. Clé = identifiant technique stable (jamais le texte source, cf. I18N-PLAN.md D6). `max` = budget de longueur en caractères pour une zone contrainte, vérifié par web/tests/i18n-budgets.test.mjs sur les DEUX catalogues."
+  },
+  "ui.loading": {
+    "t": "Loading…"
+  },
+  "ui.action.open_ellipsis": {
+    "t": "Open…"
+  },
+  "ui.action.export_ellipsis": {
+    "t": "Export…"
+  },
+  "ui.action.browse": {
+    "t": "Browse…"
+  },
+  "ui.action.cancel": {
+    "t": "Cancel"
+  },
+  "ui.action.validate": {
+    "t": "Confirm"
+  },
+  "ui.action.close": {
+    "t": "Close"
+  },
+  "ui.action.reset": {
+    "t": "Reset"
+  },
+  "ui.action.apply": {
+    "t": "Apply"
+  },
+  "ui.action.applying": {
+    "t": "Applying…"
+  },
+  "ui.header.preset": {
+    "t": "Preset"
+  },
+  "ui.header.menu": {
+    "t": "Menu"
+  },
+  "ui.preset.new": {
+    "t": "New",
+    "max": 22
+  },
+  "ui.menu.photo": {
+    "t": "Photo"
+  },
+  "ui.menu.presets": {
+    "t": "Presets"
+  },
+  "ui.menu.open": {
+    "t": "Open"
+  },
+  "ui.menu.export": {
+    "t": "Export"
+  },
+  "ui.menu.batch": {
+    "t": "Batch"
+  },
+  "ui.menu.preferences": {
+    "t": "Preferences"
+  },
+  "ui.status.previous_step": {
+    "t": "Previous step"
+  },
+  "ui.status.next_step": {
+    "t": "Confirm · next step"
+  },
+  "ui.vignette.zoom": {
+    "t": "Enlarge"
+  },
+  "ui.vignette.error": {
+    "t": "Error",
+    "max": 16
+  },
+  "ui.placeholder.open_an_image": {
+    "t": "Open an image (the “Open” button) to get started."
+  },
+  "ui.busy.opening_image": {
+    "t": "Opening image…"
+  },
+  "ui.busy.saving_recipe": {
+    "t": "Saving recipe…"
+  },
+  "ui.busy.loading_recipe": {
+    "t": "Loading recipe…"
+  },
+  "ui.busy.resetting": {
+    "t": "Resetting…"
+  },
+  "ui.busy.exporting": {
+    "t": "Exporting…"
+  },
+  "ui.warning.parameter_corrections": {
+    "t": "Some out-of-range settings were corrected automatically:"
+  },
+  "ui.warning.disabled_vignettes": {
+    "t": "Some thumbnails have been disabled since this recipe was saved, and were replaced by their row's neutral setting:"
+  },
+  "ui.shortcuts.short": {
+    "t": "Arrows: navigate · Space, double-click or the magnifier icon: Zoom · Esc: close · Click a dimmed row to go back to it"
+  },
+  "ui.shortcuts.full": {
+    "t": "Up/Down arrows: change step · Left/Right arrows: change thumbnail · Space, double-click or a thumbnail's magnifier icon: open Zoom · Esc: close a menu or Zoom · Click a dimmed row to go back to it"
+  },
+  "ui.tool.move": {
+    "t": "Move"
+  },
+  "ui.tool.rotate": {
+    "t": "Rotate"
+  },
+  "ui.tool.resize": {
+    "t": "Resize"
+  },
+  "ui.geometry.distortion": {
+    "t": "Distortion"
+  },
+  "ui.geometry.vertical_line": {
+    "t": "Vertical line"
+  },
+  "ui.geometry.horizontal_line": {
+    "t": "Horizontal line"
+  },
+  "ui.geometry.grid": {
+    "t": "3×3 grid"
+  },
+  "ui.crop.preview_badge": {
+    "t": "Crop preview · click to resume editing"
+  },
+  "ui.crop.mirror_horizontal": {
+    "t": "Flip horizontally"
+  },
+  "ui.crop.mirror_vertical": {
+    "t": "Flip vertically"
+  },
+  "ui.mask.feather": {
+    "t": "Feather"
+  },
+  "ui.mask.invert": {
+    "t": "Invert"
+  },
+  "ui.mask.whole_image": {
+    "t": "Whole image"
+  },
+  "ui.zoom.optical": {
+    "t": "Zoom"
+  },
+  "ui.zoom.in": {
+    "t": "Zoom in"
+  },
+  "ui.zoom.out": {
+    "t": "Zoom out"
+  },
+  "ui.zoom.fit": {
+    "t": "Fit"
+  },
+  "ui.zoom.percent": {
+    "t": "Zoom percentage"
+  },
+  "ui.prefs.title": {
+    "t": "Preferences"
+  },
+  "ui.prefs.category.general": {
+    "t": "General",
+    "max": 18
+  },
+  "ui.prefs.category.workflow": {
+    "t": "Workflow",
+    "max": 18
+  },
+  "ui.prefs.category.lines": {
+    "t": "Rows",
+    "max": 18
+  },
+  "ui.prefs.category.vignettes": {
+    "t": "Thumbnails",
+    "max": 18
+  },
+  "ui.prefs.increase": {
+    "t": "Increase {label}"
+  },
+  "ui.prefs.decrease": {
+    "t": "Decrease {label}"
+  },
+  "ui.prefs.lightness": {
+    "t": "Lightness"
+  },
+  "ui.prefs.general.group.language": {
+    "t": "Language"
+  },
+  "ui.prefs.general.group.appearance": {
+    "t": "Appearance"
+  },
+  "ui.prefs.general.group.paths": {
+    "t": "Paths"
+  },
+  "ui.prefs.general.group.export": {
+    "t": "Export"
+  },
+  "ui.prefs.general.ui_language": {
+    "t": "Interface language",
+    "max": 44
+  },
+  "ui.prefs.general.accent_color": {
+    "t": "Accent colour",
+    "max": 44
+  },
+  "ui.prefs.general.open_image_directory": {
+    "t": "Photo open folder",
+    "max": 44
+  },
+  "ui.prefs.general.export_image_directory": {
+    "t": "Photo export folder",
+    "max": 44
+  },
+  "ui.prefs.general.presets_directory": {
+    "t": "Presets folder",
+    "max": 44
+  },
+  "ui.prefs.general.export_jpeg_quality": {
+    "t": "Default JPEG quality",
+    "max": 44
+  },
+  "ui.prefs.general.unset": {
+    "t": "(not set)"
+  },
+  "ui.prefs.lines.group.row": {
+    "t": "Row"
+  },
+  "ui.prefs.lines.group.vignettes": {
+    "t": "Thumbnails"
+  },
+  "ui.prefs.lines.row_spacing_px": {
+    "t": "Spacing between rows",
+    "max": 44
+  },
+  "ui.prefs.lines.attenuated_opacity_percent": {
+    "t": "Inactive row opacity",
+    "max": 44
+  },
+  "ui.prefs.lines.row_horizontal_margin_px": {
+    "t": "Row side margin",
+    "max": 44
+  },
+  "ui.prefs.lines.vignette_margin_px": {
+    "t": "Vertical margin",
+    "max": 44
+  },
+  "ui.prefs.vignettes.group.guides": {
+    "t": "Guide colours"
+  },
+  "ui.prefs.vignettes.group.zoom": {
+    "t": "Zoom"
+  },
+  "ui.prefs.vignettes.guide_limit_color": {
+    "t": "Guide boundary colour",
+    "max": 44
+  },
+  "ui.prefs.vignettes.guide_overlay_color": {
+    "t": "Guide overlay colour",
+    "max": 44
+  },
+  "ui.prefs.vignettes.zoom_min_percent": {
+    "t": "Minimum zoom",
+    "max": 44
+  },
+  "ui.prefs.vignettes.zoom_max_percent": {
+    "t": "Maximum zoom",
+    "max": 44
+  },
+  "ui.prefs.workflow.move_up": {
+    "t": "▲ Up"
+  },
+  "ui.prefs.workflow.move_down": {
+    "t": "▼ Down"
+  },
+  "ui.batch.title": {
+    "t": "Batch processing"
+  },
+  "ui.batch.global_progress": {
+    "t": "Overall progress"
+  },
+  "ui.batch.empty": {
+    "t": "No batch yet. Add one, then choose its images, its preset and its output folder."
+  },
+  "ui.batch.block_name": {
+    "t": "Batch {index}"
+  },
+  "ui.batch.remove": {
+    "t": "Remove this batch"
+  },
+  "ui.batch.remove_numbered": {
+    "t": "Remove batch {index}"
+  },
+  "ui.batch.field.files": {
+    "t": "Files"
+  },
+  "ui.batch.field.preset": {
+    "t": "Preset"
+  },
+  "ui.batch.field.output": {
+    "t": "Output"
+  },
+  "ui.batch.files_selected.one": {
+    "t": "{count} file selected"
+  },
+  "ui.batch.files_selected.other": {
+    "t": "{count} files selected"
+  },
+  "ui.batch.unset": {
+    "t": "Not set"
+  },
+  "ui.batch.add": {
+    "t": "+ Add a batch"
+  },
+  "ui.batch.log": {
+    "t": "Log"
+  },
+  "ui.batch.log_idle": {
+    "t": "The log will fill up while the run is in progress."
+  },
+  "ui.batch.run": {
+    "t": "Run"
+  },
+  "ui.batch.stop": {
+    "t": "Stop"
+  },
+  "ui.batch.success.one": {
+    "t": "{count} success"
+  },
+  "ui.batch.success.other": {
+    "t": "{count} successes"
+  },
+  "ui.batch.error.one": {
+    "t": "{count} failure"
+  },
+  "ui.batch.error.other": {
+    "t": "{count} failures"
+  },
+  "ui.batch.counts": {
+    "t": "{successes}, {errors}"
+  },
+  "ui.batch.summary.running": {
+    "t": "{progress} — {counts}"
+  },
+  "ui.batch.summary.stopped": {
+    "t": "Stopped at {progress} — {counts}"
+  },
+  "ui.batch.summary.done": {
+    "t": "Finished — {counts}"
+  },
+  "zoom.before": {
+    "t": "BEFORE"
+  },
+  "zoom.after": {
+    "t": "AFTER"
+  },
+  "zoom.active": {
+    "t": "On"
+  },
+  "zoom.feather": {
+    "t": "Feather"
+  },
+  "zoom.intensity": {
+    "t": "Strength"
+  },
+  "zoom.color": {
+    "t": "Colour"
+  },
+  "zoom.replacement_color": {
+    "t": "Replacement colour"
+  },
+  "zoom.global_settings": {
+    "t": "Global settings",
+    "max": 26
+  },
+  "zoom.dynamic_aids": {
+    "t": "Dynamic aids"
+  },
+  "zoom.subject_mask": {
+    "t": "Subject mask"
+  },
+  "zoom.application_zone": {
+    "t": "Application zone"
+  },
+  "zoom.application_zone_of": {
+    "t": "Application zone — {label}"
+  },
+  "zoom.zone_of": {
+    "t": "Zone — {label}"
+  },
+  "zoom.no_active_interval": {
+    "t": "No active interval"
+  },
+  "zoom.no_manual_settings": {
+    "t": "No manual settings available for this row."
+  },
+  "zoom.correction.geometry": {
+    "t": "Geometry"
+  },
+  "zoom.correction.framing": {
+    "t": "Framing"
+  },
+  "zoom.region.global": {
+    "t": "Global"
+  },
+  "zoom.region.subject": {
+    "t": "Subject"
+  },
+  "zoom.region.background": {
+    "t": "Background"
+  },
+  "zoom.wheel.tint": {
+    "t": "Tint"
+  },
+  "zoom.wheel.split_shadow": {
+    "t": "Shadow tint"
+  },
+  "zoom.wheel.split_highlight": {
+    "t": "Highlight tint"
+  },
+  "zoom.filter_color.yellow": {
+    "t": "Yellow"
+  },
+  "zoom.filter_color.red": {
+    "t": "Red"
+  },
+  "zoom.filter_color.green": {
+    "t": "Green"
+  },
+  "zoom.filter_color.blue": {
+    "t": "Blue"
+  },
+  "zoom.filter_intensity.light": {
+    "t": "Light"
+  },
+  "zoom.filter_intensity.medium": {
+    "t": "Medium"
+  },
+  "zoom.filter_intensity.dark": {
+    "t": "Dark"
+  },
+  "group.intensity": {
+    "t": "Strength",
+    "max": 26
+  },
+  "group.tone": {
+    "t": "Tone",
+    "max": 26
+  },
+  "group.color": {
+    "t": "Colour",
+    "max": 26
+  },
+  "group.filter": {
+    "t": "Filter",
+    "max": 26
+  },
+  "group.texture_grain": {
+    "t": "Texture & Grain",
+    "max": 26
+  },
+  "group.exposure_tone": {
+    "t": "Exposure & Tone",
+    "max": 26
+  },
+  "group.texture_sharpness": {
+    "t": "Texture & Sharpness",
+    "max": 26
+  },
+  "group.bloom_softness": {
+    "t": "Bloom & Softness",
+    "max": 26
+  },
+  "group.finishing": {
+    "t": "Finishing",
+    "max": 26
+  },
+  "row.geometry.label": {
+    "t": "Geometry",
+    "max": 18
+  },
+  "row.geometry.description": {
+    "t": "Cropping and straightening"
+  },
+  "row.framing.label": {
+    "t": "Framing",
+    "max": 18
+  },
+  "row.framing.description": {
+    "t": "Free cropping and composition guides"
+  },
+  "row.film.label": {
+    "t": "Film",
+    "max": 18
+  },
+  "row.film.description": {
+    "t": "Film rendering and grain"
+  },
+  "row.bleach_bypass.label": {
+    "t": "Bleach Bypass",
+    "max": 18
+  },
+  "row.bleach_bypass.description": {
+    "t": "Bleach bypass and desaturated negatives"
+  },
+  "row.color_splash.label": {
+    "t": "Color Splash",
+    "max": 18
+  },
+  "row.color_splash.description": {
+    "t": "Black and white with kept colour(s), or colour substitution"
+  },
+  "row.monochrome.label": {
+    "t": "Monochrome",
+    "max": 18
+  },
+  "row.monochrome.description": {
+    "t": "Duotone colorization (grayscale + single tint)"
+  },
+  "row.bw.label": {
+    "t": "B&W",
+    "max": 18
+  },
+  "row.bw.description": {
+    "t": "Alternative black-and-white filters and simulations"
+  },
+  "row.light.label": {
+    "t": "Light",
+    "max": 18
+  },
+  "row.light.description": {
+    "t": "Exposure and contrast"
+  },
+  "row.vignette.label": {
+    "t": "Vignetting",
+    "max": 18
+  },
+  "row.vignette.description": {
+    "t": "Edge darkening"
+  },
+  "preset.neutral": {
+    "t": "Neutral",
+    "max": 16
+  },
+  "preset.Rouge": {
+    "t": "Red",
+    "max": 16
+  },
+  "preset.Orange": {
+    "t": "Orange",
+    "max": 16
+  },
+  "preset.Jaune": {
+    "t": "Yellow",
+    "max": 16
+  },
+  "preset.Vert": {
+    "t": "Green",
+    "max": 16
+  },
+  "preset.Bleu": {
+    "t": "Blue",
+    "max": 16
+  },
+  "preset.Violet": {
+    "t": "Purple",
+    "max": 16
+  },
+  "preset.Sepia": {
+    "t": "Sepia",
+    "max": 16
+  },
+  "preset.Substitution": {
+    "t": "Substitution",
+    "max": 16
+  },
+  "preset.Low Key": {
+    "t": "Low Key",
+    "max": 16
+  },
+  "preset.High Key": {
+    "t": "High Key",
+    "max": 16
+  },
+  "preset.Soft": {
+    "t": "Soft",
+    "max": 16
+  },
+  "preset.Balance": {
+    "t": "Balance",
+    "max": 16
+  },
+  "preset.Dramatique": {
+    "t": "Dramatic",
+    "max": 16
+  },
+  "preset.Round Central": {
+    "t": "Round central",
+    "max": 16
+  },
+  "preset.Linear Top+Bottom": {
+    "t": "Linear",
+    "max": 16
+  },
+  "preset.Acros + Yellow": {
+    "t": "Acros + Yellow",
+    "max": 16
+  },
+  "preset.Acros + Red": {
+    "t": "Acros + Red",
+    "max": 16
+  },
+  "preset.Acros + Green": {
+    "t": "Acros + Green",
+    "max": 16
+  },
+  "preset.Acros + Blue": {
+    "t": "Acros + Blue",
+    "max": 16
+  },
+  "overlay.thirds": {
+    "t": "Rule of thirds"
+  },
+  "overlay.golden_section": {
+    "t": "Golden section"
+  },
+  "overlay.golden_triangles": {
+    "t": "Golden triangles"
+  },
+  "overlay.golden_spiral": {
+    "t": "Golden spiral"
+  },
+  "overlay.center_lines": {
+    "t": "Lines to centre"
+  },
+  "overlay.diagonal": {
+    "t": "Diagonal"
+  },
+  "overlay.pyramid": {
+    "t": "Pyramid"
+  },
+  "overlay.compound_curve": {
+    "t": "Compound curve"
+  },
+  "overlay.symmetry": {
+    "t": "Symmetry"
+  },
+  "param.intensity": {
+    "t": "Strength",
+    "max": 34
+  },
+  "param.exposure": {
+    "t": "Exposure",
+    "max": 34
+  },
+  "param.contrast": {
+    "t": "Contrast",
+    "max": 34
+  },
+  "param.contrast_pivot": {
+    "t": "Contrast pivot",
+    "max": 34
+  },
+  "param.highlights": {
+    "t": "Highlights",
+    "max": 34
+  },
+  "param.shadows": {
+    "t": "Shadows",
+    "max": 34
+  },
+  "param.blacks": {
+    "t": "Blacks",
+    "max": 34
+  },
+  "param.whites": {
+    "t": "Whites",
+    "max": 34
+  },
+  "param.black_point": {
+    "t": "Black point",
+    "max": 34
+  },
+  "param.black_floor": {
+    "t": "Black floor",
+    "max": 34
+  },
+  "param.black_clip": {
+    "t": "Black clipping",
+    "max": 34
+  },
+  "param.dynamic_range": {
+    "t": "Dynamic range",
+    "max": 34
+  },
+  "param.saturation": {
+    "t": "Saturation",
+    "max": 34
+  },
+  "param.global_saturation": {
+    "t": "Global saturation",
+    "max": 34
+  },
+  "param.original_saturation": {
+    "t": "Original saturation",
+    "max": 34
+  },
+  "param.hsl_saturation_scale": {
+    "t": "HSL saturation",
+    "max": 34
+  },
+  "param.hsl_luminance_scale": {
+    "t": "HSL luminance",
+    "max": 34
+  },
+  "param.temperature": {
+    "t": "Temperature",
+    "max": 34
+  },
+  "param.temperature_shift": {
+    "t": "Apparent temperature",
+    "max": 34
+  },
+  "param.tint": {
+    "t": "Tint",
+    "max": 34
+  },
+  "param.tint_magenta": {
+    "t": "Green–magenta tint",
+    "max": 34
+  },
+  "param.tint_saturation": {
+    "t": "Tint saturation",
+    "max": 34
+  },
+  "param.hue": {
+    "t": "Colorization hue",
+    "max": 34
+  },
+  "param.force": {
+    "t": "Colorization strength",
+    "max": 34
+  },
+  "param.split_tone_scale": {
+    "t": "Split toning",
+    "max": 34
+  },
+  "param.split_shadow_hue": {
+    "t": "Shadow tint (hue)",
+    "max": 34
+  },
+  "param.split_shadow_strength": {
+    "t": "Shadow tint (strength)",
+    "max": 34
+  },
+  "param.split_highlight_hue": {
+    "t": "Highlight tint (hue)",
+    "max": 34
+  },
+  "param.split_highlight_strength": {
+    "t": "Highlight tint (strength)",
+    "max": 34
+  },
+  "param.clarity": {
+    "t": "Clarity",
+    "max": 34
+  },
+  "param.texture": {
+    "t": "Texture",
+    "max": 34
+  },
+  "param.sharpness": {
+    "t": "Sharpness",
+    "max": 34
+  },
+  "param.dehaze": {
+    "t": "Dehaze",
+    "max": 34
+  },
+  "param.grain": {
+    "t": "Grain",
+    "max": 34
+  },
+  "param.grain_std": {
+    "t": "Grain",
+    "max": 34
+  },
+  "param.vignette": {
+    "t": "Vignetting",
+    "max": 34
+  },
+  "param.bloom_threshold": {
+    "t": "Bloom (threshold)",
+    "max": 34
+  },
+  "param.bloom_amount": {
+    "t": "Bloom (amount)",
+    "max": 34
+  },
+  "param.bloom_radius": {
+    "t": "Bloom (radius)",
+    "max": 34
+  },
+  "param.bloom_warmth": {
+    "t": "Bloom (warmth)",
+    "max": 34
+  },
+  "param.soft_detail_amount": {
+    "t": "Softness (amount)",
+    "max": 34
+  },
+  "param.soft_detail_radius": {
+    "t": "Softness (radius)",
+    "max": 34
+  },
+  "param.edge_protection": {
+    "t": "Edge protection",
+    "max": 34
+  },
+  "param.filter_color": {
+    "t": "Filter",
+    "max": 34
+  },
+  "param.filter_intensity": {
+    "t": "Filter strength",
+    "max": 34
+  },
+  "param.color_chrome_effect": {
+    "t": "Color Chrome Effect",
+    "max": 34
+  },
+  "param.color_chrome_blue": {
+    "t": "Color Chrome Blue",
+    "max": 34
+  },
+  "param.mono_color_wc": {
+    "t": "Mono Colour WC",
+    "max": 34
+  },
+  "param.mono_color_mg": {
+    "t": "Mono Colour MG",
+    "max": 34
+  },
+  "param.background_desaturation": {
+    "t": "Background desaturation",
+    "max": 34
+  },
+  "param.saturation_threshold": {
+    "t": "Saturation threshold",
+    "max": 34
+  },
+  "param.crop_x": {
+    "t": "X",
+    "max": 34
+  },
+  "param.crop_y": {
+    "t": "Y",
+    "max": 34
+  },
+  "param.crop_width": {
+    "t": "Width",
+    "max": 34
+  },
+  "param.crop_height": {
+    "t": "Height",
+    "max": 34
+  },
+  "param.rotation_angle": {
+    "t": "Rotation",
+    "max": 34
+  },
+  "param.center_x": {
+    "t": "Centre X",
+    "max": 34
+  },
+  "param.center_y": {
+    "t": "Centre Y",
+    "max": 34
+  },
+  "param.radius_x": {
+    "t": "Radius X",
+    "max": 34
+  },
+  "param.radius_y": {
+    "t": "Radius Y",
+    "max": 34
+  },
+  "param.top_offset": {
+    "t": "Top offset",
+    "max": 34
+  },
+  "param.bottom_offset": {
+    "t": "Bottom offset",
+    "max": 34
+  },
+  "param.feather_width": {
+    "t": "Feather width",
+    "max": 34
+  },
+  "param.progressivity": {
+    "t": "Progressivity",
+    "max": 34
+  },
+  "param.mask_point_count": {
+    "t": "Vertex count",
+    "max": 34
+  },
+  "param.mask_feather": {
+    "t": "Outline feather",
+    "max": 34
+  },
+  "param.mask_invert": {
+    "t": "Invert outline",
+    "max": 34
+  },
+  "param.dyn.range": {
+    "t": "Range {index}",
+    "max": 34
+  },
+  "param.dyn.range_enabled": {
+    "t": "Range {index} on",
+    "max": 34
+  },
+  "param.dyn.range_boost": {
+    "t": "Colour {index} strength",
+    "max": 34
+  },
+  "param.dyn.replacement": {
+    "t": "Replacement {index}",
+    "max": 34
+  },
+  "param.dyn.replacement_enabled": {
+    "t": "Replacement {index} on",
+    "max": 34
+  },
+  "param.dyn.replacement_boost": {
+    "t": "Replacement {index} strength",
+    "max": 34
+  },
+  "param.dyn.zone_vertex_count": {
+    "t": "Zone {index} — vertex count",
+    "max": 34
+  },
+  "param.dyn.zone_feather": {
+    "t": "Zone {index} — feather",
+    "max": 34
+  },
+  "param.dyn.zone_invert": {
+    "t": "Zone {index} — invert",
+    "max": 34
+  },
+  "param.dyn.zone_vertex": {
+    "t": "Zone {index} — vertex {vertex} ({axis})"
+  },
+  "param.dyn.vertex": {
+    "t": "Vertex {vertex} ({axis})",
+    "max": 34
+  },
+  "param.dyn.region": {
+    "t": "{label} ({region})",
+    "max": 34
+  },
+  "error.preview_render_failed": {
+    "t": "Preview rendering failed"
+  },
+  "error.no_space_left": {
+    "t": "Not enough disk space to finish the operation."
+  },
+  "error.permission_denied": {
+    "t": "Access denied to this file or folder. Check its permissions."
+  },
+  "error.file_not_found": {
+    "t": "File or folder not found at this location."
+  },
+  "error.unreadable_image": {
+    "t": "This image file is corrupted or unreadable."
+  },
+  "error.unexpected": {
+    "t": "Something unexpected went wrong. Try again, or choose another file."
+  },
+  "error.recipe.unsupported_schema_version": {
+    "t": "This recipe uses an unsupported schema version."
+  },
+  "error.recipe.unsupported_schema_version_detail": {
+    "t": "{message} (received version: “{version}”)"
+  },
+  "error.recipe.missing_addon": {
+    "t": "This recipe references one or more add-ons that are missing from the current configuration."
+  },
+  "error.recipe.missing_addon_detail": {
+    "t": "{message} ({ids})"
+  },
+  "error.recipe.unreadable_file": {
+    "t": "This recipe file is unreadable or corrupted."
+  },
+  "error.recipe.application_error": {
+    "t": "This recipe could not be applied to the active image."
+  },
+  "error.destination_exists": {
+    "t": "This destination already exists."
+  },
+  "error.unsupported_format": {
+    "t": "This image format is not supported. Use a JPEG or PNG file."
+  },
+  "error.raw_not_decodable": {
+    "t": "This RAW file could not be decoded."
+  },
+  "error.batch.already_running": {
+    "t": "A batch run is already in progress."
+  },
+  "error.batch.no_batches": {
+    "t": "No batch to run."
+  },
+  "error.batch.empty_batch": {
+    "t": "This batch has no files."
+  },
+  "error.batch.preset_not_found": {
+    "t": "This batch's preset could not be found."
+  },
+  "error.batch.output_dir_not_found": {
+    "t": "This batch's output folder could not be found."
+  }
+}

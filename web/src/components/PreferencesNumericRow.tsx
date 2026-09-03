@@ -3,6 +3,7 @@
 // les pages Lignes/Vignettes des Préférences.
 
 import { ChevronDownIcon, ChevronUpIcon } from "./icons";
+import { t } from "../i18n";
 
 /** A labeled number field + up/down stepper + unit suffix -- shared by PreferencesLinesPage and
 PreferencesVignettesPage (2026-08-05 Préférences reorganization), extracted from what used to be
@@ -27,10 +28,10 @@ export function PreferencesNumericRow({ label, value, min, max, suffix, onChange
       <span className="prefs-row-input">
         <input type="number" min={min} max={max} value={value} onChange={(event) => onChange(clamp(Number(event.target.value)))} />
         <span className="prefs-stepper">
-          <button type="button" className="prefs-stepper__btn" tabIndex={-1} aria-label={`Augmenter ${label}`} onClick={() => onChange(clamp(value + 1))}>
+          <button type="button" className="prefs-stepper__btn" tabIndex={-1} aria-label={t("ui.prefs.increase", { label })} onClick={() => onChange(clamp(value + 1))}>
             <ChevronUpIcon />
           </button>
-          <button type="button" className="prefs-stepper__btn" tabIndex={-1} aria-label={`Diminuer ${label}`} onClick={() => onChange(clamp(value - 1))}>
+          <button type="button" className="prefs-stepper__btn" tabIndex={-1} aria-label={t("ui.prefs.decrease", { label })} onClick={() => onChange(clamp(value - 1))}>
             <ChevronDownIcon />
           </button>
         </span>

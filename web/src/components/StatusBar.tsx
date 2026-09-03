@@ -5,6 +5,8 @@
 import "./StatusBar.css";
 import type { RowSpec, SourceInfo } from "../lib/api";
 import { visibleRowRealIndices } from "../lib/filmstrip";
+import { t } from "../i18n";
+import { rowDisplayLabel } from "../i18n/backend";
 
 type StatusBarProps = {
   source: SourceInfo;
@@ -43,7 +45,7 @@ export function StatusBar({ source, previewSrc, rows, activeStepIndex, onActivat
         <button
           type="button"
           className="status-round-btn"
-          title="Étape précédente"
+          title={t("ui.status.previous_step")}
           disabled={!canGoBack}
           style={{ opacity: canGoBack ? 1 : 0.3 }}
           onClick={() => canGoBack && onActivateStep(visibleReal[activePos - 1])}
@@ -59,7 +61,7 @@ export function StatusBar({ source, previewSrc, rows, activeStepIndex, onActivat
             const active = index === activeStepIndex;
             return (
               <button
-                key={row.label}
+                key={row.identifier}
                 type="button"
                 className={`status-pill${active ? " status-pill--active" : done ? " status-pill--done" : ""}`}
                 onClick={() => onActivateStep(index)}
@@ -67,7 +69,7 @@ export function StatusBar({ source, previewSrc, rows, activeStepIndex, onActivat
                 {/* Numbered by POSITION in the visible list (pos), not the real backend index --
                 keeps a clean contiguous 01-05, no gap where Geometry/Framing used to be 01/02. */}
                 <span className="status-pill-dot">{String(pos + 1).padStart(2, "0")}</span>
-                <span className="status-pill-label">{row.label}</span>
+                <span className="status-pill-label">{rowDisplayLabel(row)}</span>
               </button>
             );
           })}
@@ -75,7 +77,7 @@ export function StatusBar({ source, previewSrc, rows, activeStepIndex, onActivat
         <button
           type="button"
           className="status-round-btn"
-          title="Valider · étape suivante"
+          title={t("ui.status.next_step")}
           disabled={!canAdvance}
           onClick={() => canAdvance && onActivateStep(visibleReal[activePos + 1])}
         >

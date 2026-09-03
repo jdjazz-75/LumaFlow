@@ -131,6 +131,7 @@ def resolve_workflow_rows(config: WorkflowConfig) -> list[RowSpec]:
     return [
         RowSpec(
             label=row.label or row.identifier or f"Step {i + 1}",
+            identifier=row.identifier or "",
             vignette_labels=tuple(row.thumbnail_presets),
             short_description=row.short_description or "",
         )
@@ -765,6 +766,7 @@ def refresh_workflow(session: Session) -> list[RowSpec]:
         rows = [
             RowSpec(
                 label=row.label,
+                identifier=row.identifier,
                 vignette_labels=row.vignette_labels,
                 vignette_states=vignette_states.get(i, {}),
                 short_description=row.short_description,

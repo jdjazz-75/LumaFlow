@@ -2,7 +2,7 @@
 // Boîte de dialogue Préférences : charge/persiste Preferences et WorkflowConfigData, et
 // orchestre ses 4 pages (Général/Workflow/Lignes/Vignettes) via une liste de catégories.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./PreferencesDialog.css";
 import {
   getPreferences,
@@ -16,8 +16,12 @@ import { PreferencesGeneralPage, type PathField } from "./PreferencesGeneralPage
 import { PreferencesLinesPage } from "./PreferencesLinesPage";
 import { PreferencesVignettesPage } from "./PreferencesVignettesPage";
 import { PreferencesWorkflowPage } from "./PreferencesWorkflowPage";
+import { getLocale, setLocale, t } from "../i18n";
 
-const CATEGORIES = ["Général", "Workflow", "Lignes", "Vignettes"] as const;
+/* Stable slugs, not display text (i18n phase 2, 2026-09-03) -- the visible tab name is resolved
+through the catalog at render time, so switching language can never desync the active tab from the
+page it selects. */
+const CATEGORIES = ["general", "workflow", "lines", "vignettes"] as const;
 type Category = (typeof CATEGORIES)[number];
 
 type PreferencesDialogProps = {
@@ -26,15 +30,20 @@ type PreferencesDialogProps = {
 };
 
 export function PreferencesDialog({ onClose, onSaved }: PreferencesDialogProps) {
-  const [category, setCategory] = useState<Category>("Général");
+  const [category, setCategory] = useState<Category>("general");
   const [prefs, setPrefs] = useState<Preferences | null>(null);
   const [workflowConfig, setWorkflowConfig] = useState<WorkflowConfigData | null>(null);
   const [saving, setSaving] = useState(false);
+  // La langue active à l'ouverture de la boîte, pour pouvoir la restaurer sur Annuler.
+  const initialLanguage = useRef<string>(getLocale());
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getPreferences()
-      .then(setPrefs)
+      .then((loaded) => {
+        initialLanguage.current = loaded.ui_language;
+        setPrefs(loaded);
+      })
       .catch((err) => setError(String(err)));
     getWorkflowConfig()
       .then(setWorkflowConfig)
@@ -43,6 +52,17 @@ export function PreferencesDialog({ onClose, onSaved }: PreferencesDialogProps) 
 
   function updateField(key: keyof Preferences, value: number | string) {
     setPrefs((current) => (current ? { ...current, [key]: value } : current));
+    // Langue (i18n phase 6): appliquée immédiatement, pour que la boîte de dialogue elle-même
+    // change de langue pendant qu'on la règle -- `Annuler` la remet à la valeur persistée
+    // (voir handleCancel).
+    if (key === "ui_language") setLocale(value);
+  }
+
+  /* Annuler doit défaire le changement de langue en direct ci-dessus -- sans ça, fermer la boîte
+  sans valider laisserait l'IHM dans la langue essayée alors que preferences.json n'a pas bougé. */
+  function handleCancel() {
+    setLocale(initialLanguage.current);
+    onClose();
   }
 
   async function handleBrowse(field: PathField, dialog: () => Promise<{ path: string | null }>) {
@@ -71,9 +91,9 @@ export function PreferencesDialog({ onClose, onSaved }: PreferencesDialogProps) 
   }
 
   return (
-    <div className="prefs-overlay" onClick={onClose}>
+    <div className="prefs-overlay" onClick={handleCancel}>
       <div className="prefs-dialog" onClick={(event) => event.stopPropagation()}>
-        <div className="prefs-title">Préférences</div>
+        <div className="prefs-title">{t("ui.prefs.title")}</div>
         {error && <div className="prefs-error">{error}</div>}
         <div className="prefs-body">
           <div className="prefs-category-list">
@@ -84,26 +104,26 @@ export function PreferencesDialog({ onClose, onSaved }: PreferencesDialogProps) 
                 className={item === category ? "prefs-category-item prefs-category-item--active" : "prefs-category-item"}
                 onClick={() => setCategory(item)}
               >
-                {item}
+                {t(`ui.prefs.category.${item}`)}
               </button>
             ))}
           </div>
           <div className="prefs-page">
             {!prefs || !workflowConfig ? (
-              <div className="prefs-loading">Chargement…</div>
+              <div className="prefs-loading">{t("ui.loading")}</div>
             ) : (
               <>
-                {category === "Général" && <PreferencesGeneralPage prefs={prefs} onBrowse={handleBrowse} onChange={updateField} />}
-                {category === "Workflow" && <PreferencesWorkflowPage config={workflowConfig} onChange={setWorkflowConfig} />}
-                {category === "Lignes" && <PreferencesLinesPage prefs={prefs} onChange={updateField} />}
-                {category === "Vignettes" && <PreferencesVignettesPage prefs={prefs} onChange={updateField} />}
+                {category === "general" && <PreferencesGeneralPage prefs={prefs} onBrowse={handleBrowse} onChange={updateField} />}
+                {category === "workflow" && <PreferencesWorkflowPage config={workflowConfig} onChange={setWorkflowConfig} />}
+                {category === "lines" && <PreferencesLinesPage prefs={prefs} onChange={updateField} />}
+                {category === "vignettes" && <PreferencesVignettesPage prefs={prefs} onChange={updateField} />}
               </>
             )}
           </div>
         </div>
         <div className="prefs-actions">
-          <button type="button" className="prefs-btn" onClick={onClose}>
-            Annuler
+          <button type="button" className="prefs-btn" onClick={handleCancel}>
+            {t("ui.action.cancel")}
           </button>
           <button
             type="button"
@@ -111,7 +131,7 @@ export function PreferencesDialog({ onClose, onSaved }: PreferencesDialogProps) 
             onClick={handleSave}
             disabled={!prefs || !workflowConfig || saving}
           >
-            Valider
+            {t("ui.action.validate")}
           </button>
         </div>
       </div>

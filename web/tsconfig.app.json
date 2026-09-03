@@ -6,6 +6,9 @@
     "module": "esnext",
     "types": ["vite/client"],
     "allowArbitraryExtensions": true,
+    /* i18n (2026-09-03): les catalogues src/i18n/*.json sont importés statiquement par
+       src/i18n/index.ts -- Vite les inline dans le bundle, aucun fetch au runtime. */
+    "resolveJsonModule": true,
     "skipLibCheck": true,
 
     /* Bundler mode */

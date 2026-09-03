@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:i18n": "node tests/i18n-budgets.test.mjs"
   },
   "dependencies": {
     "react": "^19.2.7",

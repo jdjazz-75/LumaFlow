@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Installation and running — LumaFlow</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html">LumaFlow</a>
+    <div class="lang-switch"><a href="../installation.html">FR</a><span class="sep">/</span><strong>EN</strong></div>
+    <nav>
+      <ul class="nav-main">
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="installation.html" class="active">Installation</a></li>
+        <li><a href="features.html">Features</a></li>
+        <li><a href="batch.html">Batch processing</a></li>
+        <li><a href="workflow/index.html">Workflow</a></li>
+      </ul>
+      <div class="nav-section-label">Workflow steps</div>
+      <ul class="nav-workflow">
+        <li><a href="workflow/film.html">Film</a></li>
+        <li><a href="workflow/bleach-bypass.html">Bleach Bypass</a></li>
+        <li><a href="workflow/color-splash.html">Color Splash</a></li>
+        <li><a href="workflow/monochrome.html">Monochrome</a></li>
+        <li><a href="workflow/bw.html">B&W</a></li>
+        <li><a href="workflow/light.html">Light</a></li>
+        <li><a href="workflow/vignetting.html">Vignetting</a></li>
+      </ul>
+    </nav>
+  </aside>
+  <main class="content">
+    <article>
+<h1 id="2-installation-and-running">2. Installation and running</h1>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li><strong>Python 3.11 or later</strong>, with <code>pip</code>.</li>
+<li><strong>Node.js</strong> (with <code>npm</code>) — used to build the web interface.</li>
+</ul>
+<h2 id="quick-start-recommended">Quick start (recommended)</h2>
+<p>Two scripts at the root of the repository install the dependencies and then launch the server, in a single step:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Terminal</th><th>Command</th></tr></thead>
+<tbody>
+<tr><td>PowerShell</td><td><code>./install-and-run.ps1</code></td></tr>
+<tr><td>Command Prompt (cmd)</td><td><code>install-and-run.bat</code></td></tr>
+</tbody></table></div>
+<p>These scripts, in order:</p>
+<ol>
+<li>Check that Python and Node/npm are available on the <code>PATH</code>.</li>
+<li>Install the <code>lumaflow</code> Python package in editable mode (<code>pip install -e .</code>).</li>
+<li>Install the web interface's npm dependencies if needed, then build it (<code>npm run build</code>).</li>
+<li>Launch the server (<code>lumaflow</code>), which automatically opens your browser at <code>http://127.0.0.1:8000</code>.</li>
+</ol>
+<p>The terminal window stays occupied by the server for as long as it runs; close it (or press <code>Ctrl+C</code>) to stop it. Running the script again later quickly reinstalls/rebuilds (dependencies already present aren't re-downloaded) and then relaunches the server.</p>
+<h2 id="manual-installation">Manual installation</h2>
+<p>If you'd rather not use the scripts, here are the same steps by hand, from the root of the repository:</p>
+<pre><code class="language-powershell">pip install -e .
+cd web
+npm install
+npm run build
+cd ..
+lumaflow</code></pre>
+<p>The <code>lumaflow</code> command (installed by <code>pip install -e .</code>) is the production entry point: it builds the web interface if needed (only on the very first launch — after any change to the code in <code>web/src/</code>, rebuild with <code>npm run build</code> before relaunching), then starts the server and opens the browser.</p>
+<h2 id="development-mode">Development mode</h2>
+<p>To work on the interface with hot reload, run two separate servers:</p>
+<pre><code class="language-powershell"># Terminal 1 — FastAPI API only (does not serve the web build)
+lumaflow-api
+
+# Terminal 2 — Vite development server (hot reload)
+cd web
+npm run dev</code></pre>
+<hr>
+    </article>
+  </main>
+</div>
+</body>
+</html>

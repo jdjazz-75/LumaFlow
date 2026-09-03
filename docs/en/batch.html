@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Batch processing — LumaFlow</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="index.html">LumaFlow</a>
+    <div class="lang-switch"><a href="../lot.html">FR</a><span class="sep">/</span><strong>EN</strong></div>
+    <nav>
+      <ul class="nav-main">
+        <li><a href="index.html">Overview</a></li>
+        <li><a href="installation.html">Installation</a></li>
+        <li><a href="features.html">Features</a></li>
+        <li><a href="batch.html" class="active">Batch processing</a></li>
+        <li><a href="workflow/index.html">Workflow</a></li>
+      </ul>
+      <div class="nav-section-label">Workflow steps</div>
+      <ul class="nav-workflow">
+        <li><a href="workflow/film.html">Film</a></li>
+        <li><a href="workflow/bleach-bypass.html">Bleach Bypass</a></li>
+        <li><a href="workflow/color-splash.html">Color Splash</a></li>
+        <li><a href="workflow/monochrome.html">Monochrome</a></li>
+        <li><a href="workflow/bw.html">B&W</a></li>
+        <li><a href="workflow/light.html">Light</a></li>
+        <li><a href="workflow/vignetting.html">Vignetting</a></li>
+      </ul>
+    </nav>
+  </aside>
+  <main class="content">
+    <article>
+<h1 id="batch-processing">Batch processing</h1>
+
+<p>One recipe, a thousand photos. <strong>Batch processing</strong> applies an already-tuned preset to a whole list of images without opening any of them: you choose the files, the preset and the destination folder, click <strong>Run</strong>, and LumaFlow develops each photo one after another while you do something else.</p>
+
+<p>The window opens from the header's ☰ menu, <strong>Batch</strong> entry.</p>
+
+<p class="figure"><img src="../screenshots/07-lot.png" alt="The batch processing window: two completed batches, progress gauges and a detailed log" loading="lazy"></p>
+
+<h2 id="1-building-a-batch">1. Building a batch</h2>
+
+<p>A <strong>batch</strong> is a block with three pieces of information. Add as many as you need with <strong>+ Add a batch</strong>, remove one with its block's cross.</p>
+
+<div class="table-wrap"><table>
+<thead><tr><th>Field</th><th>What you choose</th></tr></thead>
+<tbody>
+<tr><td><strong>Files</strong></td><td>A multi-file selection of images, in the usual Windows dialog — with the same filters as opening a photo: JPEG, PNG, and Canon (<code>.cr2</code>), Nikon (<code>.nef</code>) and Sony (<code>.arw</code>) RAW.</td></tr>
+<tr><td><strong>Preset</strong></td><td>A <code>.json</code> recipe file, as produced by ☰ &gt; Presets &gt; Export.</td></tr>
+<tr><td><strong>Output</strong></td><td>The folder to drop the developed images into. It's never created automatically: it must already exist.</td></tr>
+</tbody></table></div>
+
+<p>Several batches can perfectly well target different presets or folders — that's actually the whole point: process a black-and-white wedding and a Velvia reportage in a single gesture.</p>
+
+<p>The <strong>Run</strong> button stays disabled while a batch is incomplete. Paths are re-checked at launch: a preset or output folder that has vanished since selection is flagged before a single image is decoded.</p>
+
+<h2 id="2-output-file-names">2. Output file names</h2>
+
+<p>Each developed image is written under a name built as:</p>
+
+<pre><code>&lt;source file name&gt;-&lt;preset name&gt;-&lt;YY-MM-DD-HH-MM-SS&gt;.&lt;extension&gt;</code></pre>
+
+<p>For example, <code>IMG_0431.CR2</code> processed with <code>velvia-doux.json</code> on August 25, 2026 at 14:32:07 becomes:</p>
+
+<pre><code>IMG_0431-velvia-doux-26-08-25-14-32-07.jpg</code></pre>
+
+<p>The timestamp starts with the year, so a folder sorted by name is also sorted in chronological order. More importantly, it makes every name unique: <strong>a batch never overwrites the result of an earlier one</strong>, and you're never asked about overwriting. Re-running the same batch after tweaking the preset simply drops a new series next to the old one.</p>
+
+<p>The <strong>extension</strong> follows the source: a PNG stays a PNG, everything else — JPEG as well as RAW — comes out as JPEG, at the quality set in <em>Preferences &gt; General</em>. A RAW obviously can't be re-written as RAW.</p>
+
+<h2 id="3-tracking-progress">3. Tracking progress</h2>
+
+<p>Two progress scales, updated continuously:</p>
+
+<ul>
+<li>the <strong>horizontal gauge at the top of the window</strong>, with its percentage, gives the <strong>overall</strong> progress — across every image of every batch;</li>
+<li>the <strong>vertical gauge to the right of each block</strong>, with its percentage, gives the progress <strong>of that batch</strong>.</li>
+</ul>
+
+<p>In both cases the percentage means "images processed / total images". Failures count as processed: a gauge does reach 100% even if some images couldn't be developed.</p>
+
+<h2 id="4-the-log">4. The log</h2>
+
+<p>At the bottom of the window, the log receives <strong>one line per image</strong>, in processing order: a sequence number, the source file name, then either the written file's name (on success) or the reason for the failure. Successes and failures are distinguished both by symbol (✔ / ✖) and by color, never by color alone.</p>
+
+<p>Error messages are written in plain language — "This image file is corrupted or unreadable.", "File not found.", "Not enough disk space to write the result." — never as a raw technical trace.</p>
+
+<p>The summary on the right constantly shows where processing stands, then its final tally: <em>Finished — 24 successes, 2 failures</em>.</p>
+
+<p>The log stays available after processing ends, and survives closing and reopening the window.</p>
+
+<h2 id="5-a-failing-file-stops-nothing">5. A failing file stops nothing</h2>
+
+<p>This is the central rule: <strong>a problem on one image costs a log line, never the whole run</strong>. LumaFlow drops the faulty file and moves on to the next one immediately — whether it's a missing file, a corrupted one, an unsupported format, an unreadable RAW, or a write error.</p>
+
+<p>If it's a batch's <em>preset</em> that's unreadable, or it references steps absent from the current workflow configuration, that entire batch fails — but the following batches still run normally.</p>
+
+<h2 id="6-stopping-mid-run">6. Stopping mid-run</h2>
+
+<p>While running, <strong>Run</strong> becomes <strong>Stop</strong> and the batch fields are locked. Clicking <strong>Stop</strong> ends processing <strong>after the current image</strong> — never in the middle of writing a file. Images already produced are kept, the gauges and log stay displayed, and the summary shows where processing stopped.</p>
+
+<h2 id="7-good-to-know">7. Good to know</h2>
+
+<ul>
+<li><strong>Your originals are never modified</strong>, exactly as in interactive editing: the batch reads the source files and only writes to the output folder.</li>
+<li><strong>Processing is independent of the photo open</strong> on the light table. You can keep working on an image while a batch is running, and even close the batch window: processing continues, and reopening it shows the current progress.</li>
+<li><strong>Images are developed at full resolution</strong>, like a manual export — not at the reduced resolution of the thumbnails.</li>
+<li><strong>Only one run at a time.</strong> While a batch is running, a new launch is refused rather than queued.</li>
+<li><strong>Cropping and perspective correction are not applied</strong>: a recipe never carries the Geometry and Framing steps, which are specific to a given photo and would make no sense replicated as-is across hundreds of others.</li>
+<li><strong>Batches are not saved to disk.</strong> They live for the duration of the session: closing the application forgets them.</li>
+</ul>
+    </article>
+  </main>
+</div>
+</body>
+</html>

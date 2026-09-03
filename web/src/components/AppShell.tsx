@@ -11,32 +11,18 @@ import { HeaderBar } from "./HeaderBar";
 import { InfoIcon } from "./icons";
 import { contrastTextColor, hexToHsl, hexToRgbTriplet, hslToHex } from "../lib/color";
 import { describeError } from "../lib/errorMessages";
-import { HIDDEN_ROW_LABELS } from "../lib/filmstrip";
+import { isHiddenRow } from "../lib/filmstrip";
 import { BatchDialog, type BatchDraft } from "./BatchDialog";
 import { PreferencesDialog } from "./PreferencesDialog";
 // Sidebar removed from the UI 2026-07-29 -- see Sidebar.tsx's own header comment.
 import { StatusBar } from "./StatusBar";
 import { ZoomOverlay } from "./ZoomOverlay";
+import { setLocale, t, useLocale } from "../i18n";
+import { rowDisplayLabel, rowLabelForIdentifier } from "../i18n/backend";
 
 // Mirrors lumaflow/persistence/preferences.py's DEFAULT_* constants -- used
 // only until the real GET /preferences resolves, so the filmstrip has a
 // sane layout on first paint instead of collapsing to 0px gaps.
-// RowSpec only carries `label` (display text), not the backend's row `identifier` -- needed here
-// to name a step in a parameter_corrections or disabled_vignette_corrections entry (any addon,
-// feature 048) -- a small fixed map (mirroring lumaflow/config/config_workflow.json's identifier/
-// label pairs) is simpler than plumbing identifiers through RowSpec just for this. Geometry/
-// Framing are never in this map -- presets never carry those two rows (CLAUDE.md), so neither
-// correction list can ever name them.
-const STEP_IDENTIFIER_LABELS: Record<string, string> = {
-  film: "Film",
-  bleach_bypass: "Bleach Bypass",
-  color_splash: "Color Splash",
-  monochrome: "Monochrome",
-  bw: "B&W",
-  light: "Light",
-  vignette: "Vignettage",
-};
-
 const DEFAULT_LAYOUT_PREFS: Preferences = {
   menu_position: "left",
   menu_collapsed: false,
@@ -50,6 +36,7 @@ const DEFAULT_LAYOUT_PREFS: Preferences = {
   guide_limit_color: "#E3A75E",
   guide_overlay_color: "#FFFFFF",
   accent_color: "#E3A75E",
+  ui_language: "fr",
   presets_directory: null,
   open_image_directory: null,
   export_image_directory: null,
@@ -57,6 +44,10 @@ const DEFAULT_LAYOUT_PREFS: Preferences = {
 };
 
 export function AppShell() {
+  // Un seul abonnement à la locale, à la racine : tout l'arbre est re-rendu au changement de
+  // langue (voir i18n/index.ts's useLocale). Aucun autre composant n'a besoin de s'abonner tant
+  // qu'il est rendu sous celui-ci.
+  useLocale();
   const [showPreferences, setShowPreferences] = useState(false);
   const [layoutPrefs, setLayoutPrefs] = useState<Preferences>(DEFAULT_LAYOUT_PREFS);
 
@@ -117,7 +108,16 @@ export function AppShell() {
   }
 
   useEffect(() => {
-    api.getPreferences().then(setLayoutPrefs).catch(() => {});
+    api.getPreferences()
+      .then((loaded) => {
+        // Langue de l'IHM (i18n phase 6) : appliquée avant toute autre préférence, pour que le
+        // premier rendu utile soit déjà dans la bonne langue plutôt que de basculer sous les yeux
+        // de l'utilisateur. `setLocale` valide et retombe sur le français si la valeur est
+        // inconnue -- rien à valider ici.
+        setLocale(loaded.ui_language);
+        setLayoutPrefs(loaded);
+      })
+      .catch(() => {});
     api.listPresets().then(setPresets).catch(() => {});
   }, []);
 
@@ -184,14 +184,14 @@ export function AppShell() {
       // Hoisted out of withBusy below so the freshly created id is in scope for the preset
       // re-application that follows (a single POST, nothing worth a busy label of its own).
       const id = await ensureSession();
-      await withBusy("Ouverture de l'image…", async () => {
+      await withBusy(t("ui.busy.opening_image"), async () => {
         const openedRows = await api.openImage(id, resolvedPath);
         const info = await api.getSessionInfo(id);
         setRows(openedRows);
         // Geometry/Framing (indices 0/1) are no longer shown as filmstrip rows (2026-07-24) --
         // land on the first VISIBLE row instead of the hardcoded 0, or the newly opened image
         // would default to a row nothing in the UI can reach anymore.
-        const firstVisible = openedRows.findIndex((row) => !HIDDEN_ROW_LABELS.has(row.label));
+        const firstVisible = openedRows.findIndex((row) => !isHiddenRow(row));
         setActiveStepIndex(firstVisible === -1 ? 0 : firstVisible);
         setSource(info.source);
         setPreviewNonce((n) => n + 1);
@@ -233,7 +233,7 @@ export function AppShell() {
       // backend session before saving the recipe -- otherwise a save fired right after a click
       // could persist the PREVIOUS parameters, not the one just clicked (see pendingMutation).
       await pendingMutation.current;
-      await withBusy("Sauvegarde de la recette…", () => api.saveRecipe(sessionId, resolvedPath, true));
+      await withBusy(t("ui.busy.saving_recipe"), () => api.saveRecipe(sessionId, resolvedPath, true));
       setActivePresetPath(resolvedPath);
     } catch (err) {
       setError(describeError(err));
@@ -258,7 +258,7 @@ export function AppShell() {
     setParameterCorrections([]);
     setDisabledVignetteCorrections([]);
     try {
-      await withBusy("Chargement de la recette…", async () => {
+      await withBusy(t("ui.busy.loading_recipe"), async () => {
         const {
           rows: updatedRows,
           parameter_corrections,
@@ -267,7 +267,7 @@ export function AppShell() {
         setRows(updatedRows);
         // Mirrors handleOpen: land on the first VISIBLE row (Geometry/Framing are hidden), matching
         // apply_recipe's own active_step_index reset to 0 server-side.
-        const firstVisible = updatedRows.findIndex((row) => !HIDDEN_ROW_LABELS.has(row.label));
+        const firstVisible = updatedRows.findIndex((row) => !isHiddenRow(row));
         setActiveStepIndex(firstVisible === -1 ? 0 : firstVisible);
         setPreviewNonce((n) => n + 1);
         // Non-blocking (FR-005): never prevents the recipe from being applied above, or
@@ -312,10 +312,10 @@ export function AppShell() {
     }
     setError(null);
     try {
-      await withBusy("Réinitialisation…", async () => {
+      await withBusy(t("ui.busy.resetting"), async () => {
         const updatedRows = await trackMutation(api.resetSession(sessionId));
         setRows(updatedRows);
-        const firstVisible = updatedRows.findIndex((row) => !HIDDEN_ROW_LABELS.has(row.label));
+        const firstVisible = updatedRows.findIndex((row) => !isHiddenRow(row));
         setActiveStepIndex(firstVisible === -1 ? 0 : firstVisible);
         setPreviewNonce((n) => n + 1);
         setParameterCorrections([]);
@@ -346,7 +346,7 @@ export function AppShell() {
       // click (e.g. Light/High Key) could render the PREVIOUS, pre-edit pixels instead of what was
       // just applied (see pendingMutation's own comment for the bug this closes).
       await pendingMutation.current;
-      await withBusy("Export en cours…", () =>
+      await withBusy(t("ui.busy.exporting"), () =>
         api.exportImage(sessionId, resolvedPath, resolvedPath.toLowerCase().endsWith(".png") ? "PNG" : "JPEG", {
           force: true,
           jpegQuality: layoutPrefs.export_jpeg_quality,
@@ -415,6 +415,10 @@ export function AppShell() {
 
   function handlePreferencesSaved(saved: Preferences) {
     setLayoutPrefs(saved);
+    // La langue a déjà été appliquée en direct pendant l'édition (PreferencesDialog.updateField).
+    // On la ré-applique ici depuis la valeur RENVOYÉE par le serveur, qui est la valeur réellement
+    // persistée après validation -- si le backend l'a refusée et rabattue sur "fr", l'IHM suit.
+    setLocale(saved.ui_language);
     // Presets directory may have just changed -- re-populate the header combobox immediately
     // rather than waiting for the next full page load.
     api.listPresets().then(setPresets).catch(() => {});
@@ -451,10 +455,10 @@ export function AppShell() {
           {error && <div className="central-work-area__error">{error}</div>}
           {parameterCorrections.length > 0 && (
             <div className="central-work-area__warning">
-              Certains réglages hors bornes ont été automatiquement corrigés :{" "}
+              {t("ui.warning.parameter_corrections")}{" "}
               {parameterCorrections
                 .map((correction) => {
-                  const label = STEP_IDENTIFIER_LABELS[correction.step_identifier] ?? correction.step_identifier;
+                  const label = rowLabelForIdentifier(rows, correction.step_identifier);
                   return `${label} · ${correction.parameter} (${correction.requested} → ${correction.applied})`;
                 })
                 .join(", ")}
@@ -463,11 +467,10 @@ export function AppShell() {
           )}
           {disabledVignetteCorrections.length > 0 && (
             <div className="central-work-area__warning">
-              Certaines vignettes ont été désactivées depuis l'enregistrement de cette recette et
-              ont été remplacées par le réglage neutre de leur ligne :{" "}
+              {t("ui.warning.disabled_vignettes")}{" "}
               {disabledVignetteCorrections
                 .map((correction) => {
-                  const label = STEP_IDENTIFIER_LABELS[correction.step_identifier] ?? correction.step_identifier;
+                  const label = rowLabelForIdentifier(rows, correction.step_identifier);
                   return `${label} · ${correction.requested_identifier}`;
                 })
                 .join(", ")}
@@ -487,7 +490,7 @@ export function AppShell() {
             />
           ) : (
             !error && (
-              <div className="work-placeholder">Ouvrez une image (bouton «Ouvrir») pour commencer.</div>
+              <div className="work-placeholder">{t("ui.placeholder.open_an_image")}</div>
             )
           )}
           {hasImage && sessionId && source && (
@@ -503,7 +506,8 @@ export function AppShell() {
             <ZoomOverlay
               sessionId={sessionId}
               stepIndex={zoomTarget.stepIndex}
-              rowLabel={rows[zoomTarget.stepIndex]?.label ?? ""}
+              rowLabel={rowDisplayLabel(rows[zoomTarget.stepIndex])}
+              rowIdentifier={rows[zoomTarget.stepIndex]?.identifier ?? ""}
               identifier={zoomTarget.identifier}
               onConfirm={handleZoomConfirm}
               onCancel={handleZoomCancel}
@@ -518,12 +522,7 @@ export function AppShell() {
         always-visible "aide minimale intégrée", extended rather than replaced with
         a new UI surface (YAGNI). The full text is also on `title` so it stays fully
         discoverable (native tooltip) even if the single line truncates on a narrow window. */}
-        <span
-          title="Flèches Haut/Bas : changer d'étape · Flèches Gauche/Droite : changer de vignette · Espace, double-clic ou l'icône loupe sur une vignette : ouvrir le Zoom · Échap : fermer un menu ou le Zoom · Cliquez une ligne assombrie pour y revenir"
-        >
-          Flèches : naviguer · Espace, double-clic ou l'icône loupe : Zoom · Échap : fermer · Cliquez une
-          ligne assombrie pour y revenir
-        </span>
+        <span title={t("ui.shortcuts.full")}>{t("ui.shortcuts.short")}</span>
       </div>
       {showBatch && (
         <BatchDialog

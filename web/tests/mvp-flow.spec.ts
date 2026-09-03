@@ -7,8 +7,16 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { pinFrenchLocale } from "./helpers/locale";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// i18n phase 0 (2026-09-03, garde-fou) -- cette suite sélectionne par texte français ; épingler
+// la locale avant CHAQUE test, indépendamment du describe qui le contient (voir tests/helpers/
+// locale.ts).
+test.beforeEach(async ({ page }) => {
+  await pinFrenchLocale(page);
+});
 
 /**
  * End-to-end verification of the primary MVP journey (feature 046): open → 6+ workflow steps →
@@ -94,7 +102,9 @@ function rowLocator(page: Page, rowLabel: string) {
 
 // Visible filmstrip row order (Geometry/Framing excluded -- HIDDEN_ROW_LABELS,
 // web/src/lib/filmstrip.ts), used only to pick ArrowUp vs ArrowDown below.
-const VISIBLE_ROW_ORDER = ["Film", "Bleach Bypass", "Color Splash", "Monochrome", "B&W", "Light", "Vignettage"];
+// i18n phase 3 (2026-09-03) : les libellés harmonisés en français sont ceux affichés --
+// "B&W" -> "N&B", "Light" -> "Lumière" (voir web/src/i18n/fr.json's row.bw.label/row.light.label).
+const VISIBLE_ROW_ORDER = ["Film", "Bleach Bypass", "Color Splash", "Monochrome", "N&B", "Lumière", "Vignettage"];
 
 /** Filmstrip is a fixed 3-row sliding window (Filmstrip.tsx), not a scroll container -- ArrowUp/
 ArrowDown advance the active row one position at a time (same pattern as
@@ -143,23 +153,23 @@ test.describe("MVP flow -- US1: éditer et exporter une image du début à la fi
 
     // Geometry/Framing are real pipeline steps but hidden from the filmstrip UI (see file header
     // note) -- confirm they're genuinely absent, not just off-screen in the 3-row window.
-    await expect(rowLocator(page, "Geometry")).toHaveCount(0);
-    await expect(rowLocator(page, "Framing")).toHaveCount(0);
+    await expect(rowLocator(page, "Géométrie")).toHaveCount(0);
+    await expect(rowLocator(page, "Cadrage")).toHaveCount(0);
 
     // Sample a spread of visible rows (first/middle/last), not just the initially-active one, so
     // this doesn't just prove "the default active row has a default selection".
-    for (const label of ["Film", "Light", "Vignettage"]) {
+    for (const label of ["Film", "Lumière", "Vignettage"]) {
       const row = await navigateToRow(page, label);
       const selected = row.locator(".vignette-card--selected");
       await expect(selected).toHaveCount(1);
-      await expect(selected.locator(".vignette-card__caption-text")).toHaveText("Neutral");
+      await expect(selected.locator(".vignette-card__caption-text")).toHaveText("Neutre");
     }
   });
 
   test("un clic simple sur une vignette à 3 étapes différentes sélectionne et applique immédiatement, sans jamais ouvrir le Zoom", async ({ page }) => {
     await openTestImage(page);
 
-    for (const label of ["Film", "Light", "Vignettage"]) {
+    for (const label of ["Film", "Lumière", "Vignettage"]) {
       const row = await navigateToRow(page, label);
       const cards = row.locator(".vignette-card");
       const target = cards.nth(1); // first non-default option
@@ -250,7 +260,7 @@ test.describe("MVP flow -- US2: affiner une étape via le mode Zoom", () => {
   test("confirmer un ajustement Zoom l'applique à l'étape et à un export ultérieur", async ({ page }) => {
     await openTestImage(page);
 
-    // "Intensity" scales the applied film emulation's strength -- on the default "Neutral" preset
+    // "Intensity" scales the applied film emulation's strength -- on the default "Neutre" preset
     // (no emulation applied) it has nothing to scale, so a non-neutral preset must be selected
     // first for the slider to have any observable effect at all.
     const filmRow = rowLocator(page, "Film");
@@ -270,7 +280,9 @@ test.describe("MVP flow -- US2: affiner une étape via le mode Zoom", () => {
     // group's French title).
     await page.getByRole("button", { name: "Intensité" }).click();
     const intensityRow = page.locator(".zoom-overlay__slider-row", {
-      has: page.locator(".zoom-overlay__slider-label", { hasText: "Intensity" }),
+      // i18n phase 3 (2026-09-03) : film.py's "intensity" param declared an English label
+      // ("Intensity"), harmonisé en "Intensité" (voir fr.json's param.intensity).
+      has: page.locator(".zoom-overlay__slider-label", { hasText: "Intensité" }),
     });
     const slider = intensityRow.locator('input[type="range"]');
     await slider.focus();
@@ -308,7 +320,9 @@ test.describe("MVP flow -- US2: affiner une étape via le mode Zoom", () => {
     // group's French title).
     await page.getByRole("button", { name: "Intensité" }).click();
     const intensityRow = page.locator(".zoom-overlay__slider-row", {
-      has: page.locator(".zoom-overlay__slider-label", { hasText: "Intensity" }),
+      // i18n phase 3 (2026-09-03) : film.py's "intensity" param declared an English label
+      // ("Intensity"), harmonisé en "Intensité" (voir fr.json's param.intensity).
+      has: page.locator(".zoom-overlay__slider-label", { hasText: "Intensité" }),
     });
     const slider = intensityRow.locator('input[type="range"]');
     await slider.focus();
@@ -335,12 +349,16 @@ test.describe("MVP flow -- US3: sauvegarder une recette et retrouver son état",
 
     const filmRow = await navigateToRow(page, "Film");
     const filmChoice = filmRow.locator(".vignette-card").nth(1);
-    const filmIdentifier = await filmChoice.locator(".vignette-card__caption-text").innerText();
+    // i18n phase 3 (2026-09-03): the CAPTION can now be translated ("Round Central" ->
+    // "Ronde centrée"), but the recipe's persisted `thumbnail_identifier` never is (D5) --
+    // read the raw identifier from VignetteCard's `data-identifier`, not the caption's innerText,
+    // or this assertion compares a French display string against an untranslated JSON field.
+    const filmIdentifier = await filmChoice.getAttribute("data-identifier");
     await filmChoice.click();
 
     const vignetteRow = await navigateToRow(page, "Vignettage");
     const vignetteChoice = vignetteRow.locator(".vignette-card").nth(1);
-    const vignetteIdentifier = await vignetteChoice.locator(".vignette-card__caption-text").innerText();
+    const vignetteIdentifier = await vignetteChoice.getAttribute("data-identifier");
     await vignetteChoice.click();
 
     const recipePath = tmpPath("recipe.json");

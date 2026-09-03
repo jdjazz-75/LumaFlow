@@ -13,16 +13,23 @@ export const NEUTRAL_PRESET_IDENTIFIER = "neutral";
 edited exclusively via the "Réglages manuels" > Geometry/Cadrage toggle inside Film's and Color
 Splash's own Zoom (the auxiliary zoom parameter mechanism). They remain real, indexed pipeline
 steps on the backend (config_workflow.json is untouched) -- only the web editing UI hides them.
-Matches by `label`, the same fragile-but-established convention ZoomOverlay.tsx already uses for
-its own Geometry/Framing dispatch. */
-export const HIDDEN_ROW_LABELS = new Set(["Geometry", "Framing"]);
+
+Matched on `RowSpec.identifier` since 2026-09-03 (i18n phase 1). It used to match on `label`, a
+convention this file itself called "fragile-but-established" -- and one that stopped working the
+moment "Geometry" became "Géométrie", silently un-hiding both rows. */
+export const HIDDEN_ROW_IDENTIFIERS = new Set(["geometry", "framing"]);
+
+/** True for a row the web UI never lists as a standalone filmstrip row. */
+export function isHiddenRow(row: { identifier: string }): boolean {
+  return HIDDEN_ROW_IDENTIFIERS.has(row.identifier);
+}
 
 /** Real row indices (matching the backend's positional stepIndex, used by activateStep/
-thumbnailUrl/zoomTarget.stepIndex) with HIDDEN_ROW_LABELS excluded -- NOT renumbered, since
+thumbnailUrl/zoomTarget.stepIndex) with HIDDEN_ROW_IDENTIFIERS excluded -- NOT renumbered, since
 downstream API calls are positional against the full 7-row pipeline. Any component that lists or
 navigates rows (Filmstrip, StatusBar) should iterate this instead of `rows` directly. */
-export function visibleRowRealIndices(rows: { label: string }[]): number[] {
-  return rows.map((_, i) => i).filter((i) => !HIDDEN_ROW_LABELS.has(rows[i].label));
+export function visibleRowRealIndices(rows: { identifier: string }[]): number[] {
+  return rows.map((_, i) => i).filter((i) => !isHiddenRow(rows[i]));
 }
 
 /** The always-3-wide row window (ergonomics correction, 2026-07-13):
@@ -46,6 +53,13 @@ export function visibleRowIndices(activeIndex: number, total: number): number[] 
   return indices;
 }
 
+/** ancien (jusqu'au 2026-09-03) : le libellé d'affichage d'une vignette était calculé ici, et
+renvoyait la chaîne ANGLAISE "Neutral" alors que les 7 addons déclarent tous `label="Neutre"` --
+le `ThumbnailPreset.label` n'étant jamais lu par le frontend (voir CLAUDE.md), c'est cet anglais-là
+qui s'affichait sur chaque ligne. Remplacé par i18n/backend.ts's `presetLabel(rowIdentifier,
+identifier)`, qui traduit ET reste indexé sur l'identifiant persisté (jamais réécrit, cf. D5).
+
 export function vignetteDisplayText(identifier: string): string {
   return identifier === NEUTRAL_PRESET_IDENTIFIER ? "Neutral" : identifier;
 }
+*/

@@ -183,6 +183,30 @@ consistent rather than each inventing their own entrance animation. */
   outline: none;
 }
 
+/* Langue de l'IHM (i18n phase 6, 2026-09-03) -- un <select> natif hérite sinon des couleurs
+système (fond blanc/texte sombre sous Windows/Chromium), détonnant avec le reste du panneau.
+Même palette que .prefs-row-input input pour rester cohérent ; les <option> du menu déroulant
+restent partiellement soumis au thème OS (Chromium ne permet pas de restyler leur popup), mais
+le champ fermé -- ce qui est visible en permanence -- correspond au thème sombre. */
+.prefs-select {
+  background: var(--card-inner);
+  border: 1px solid var(--bd);
+  border-radius: var(--radius-sm);
+  color: var(--t1);
+  font-family: var(--font-ui);
+  font-size: var(--fs-14);
+  padding: 4px 8px;
+}
+
+.prefs-select:focus {
+  outline: none;
+}
+
+.prefs-select option {
+  background: var(--card-inner);
+  color: var(--t1);
+}
+
 .prefs-stepper {
   display: flex;
   flex-direction: column;

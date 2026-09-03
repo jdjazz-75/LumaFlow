@@ -5,6 +5,7 @@
 import type { RefObject, PointerEvent as ReactPointerEvent } from "react";
 import "./VignetteShapeStage.css";
 import { MoveToolIcon, RotationToolIcon, ShapeToolIcon } from "./icons";
+import { t } from "../i18n";
 
 // Interactive shape editor for the Vignetting addon's "dynamic aids" pass (on top of feature
 // 044's fixed-geometry presets): an ellipse (Round Central) or a line-band (Linear Top+Bottom),
@@ -307,7 +308,7 @@ export function VignetteShapeControls({ activeTool, onToggleTool }: VignetteShap
         type="button"
         className={`vignette-shape-stage__tool-button${activeTool === "move" ? " vignette-shape-stage__tool-button--selected" : ""}`}
         onClick={() => onToggleTool("move")}
-        title="Déplacer" aria-label="Déplacer" aria-pressed={activeTool === "move"}
+        title={t("ui.tool.move")} aria-label={t("ui.tool.move")} aria-pressed={activeTool === "move"}
       >
         <MoveToolIcon size={18} />
       </button>
@@ -315,7 +316,7 @@ export function VignetteShapeControls({ activeTool, onToggleTool }: VignetteShap
         type="button"
         className={`vignette-shape-stage__tool-button${activeTool === "rotation" ? " vignette-shape-stage__tool-button--selected" : ""}`}
         onClick={() => onToggleTool("rotation")}
-        title="Rotation" aria-label="Rotation" aria-pressed={activeTool === "rotation"}
+        title={t("ui.tool.rotate")} aria-label={t("ui.tool.rotate")} aria-pressed={activeTool === "rotation"}
       >
         <RotationToolIcon size={18} />
       </button>
@@ -323,7 +324,7 @@ export function VignetteShapeControls({ activeTool, onToggleTool }: VignetteShap
         type="button"
         className={`vignette-shape-stage__tool-button${activeTool === "resize" ? " vignette-shape-stage__tool-button--selected" : ""}`}
         onClick={() => onToggleTool("resize")}
-        title="Redimensionner" aria-label="Redimensionner" aria-pressed={activeTool === "resize"}
+        title={t("ui.tool.resize")} aria-label={t("ui.tool.resize")} aria-pressed={activeTool === "resize"}
       >
         <ShapeToolIcon size={18} />
       </button>
