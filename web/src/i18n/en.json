@@ -276,6 +276,12 @@
   "ui.prefs.workflow.move_down": {
     "t": "▼ Down"
   },
+  "ui.prefs.workflow.move_row_up": {
+    "t": "Move row up"
+  },
+  "ui.prefs.workflow.move_row_down": {
+    "t": "Move row down"
+  },
   "ui.batch.title": {
     "t": "Batch processing"
   },

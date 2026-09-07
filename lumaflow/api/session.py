@@ -146,11 +146,12 @@ def reload_workflow_config(new_config: WorkflowConfig, source_path: str | None =
     """Reassigns the module-level WORKFLOW_CONFIG/WORKFLOW_ROWS globals in-process, no restart --
     called by app.py's PUT /workflow-config after a validated save (Préférences > Workflow,
     2026-08-06). Encapsulated here (rather than an external caller poking session.WORKFLOW_CONFIG
-    directly) so the two globals can never be set out of sync. Safe to call while sessions are
-    open: row identifiers/order are enforced (by app.py's endpoint, before this is called) to stay
-    identical to what they were when every open session's pipeline was built -- only each row's
-    `thumbnail_presets` may differ -- so refresh_workflow's positional zip against WORKFLOW_ROWS
-    stays valid for every already-open session, with no per-session snapshot needed.
+    directly) so the two globals can never be set out of sync. The row *set* is enforced (by
+    app.py's endpoint, before this is called) to stay identical to what it was when every open
+    session's pipeline was built -- only each row's `thumbnail_presets` and, since 2026-09-05, the
+    row ORDER may differ. A pure vignette edit leaves refresh_workflow's positional zip against
+    WORKFLOW_ROWS valid for every already-open session with no further work; a row reorder requires
+    the endpoint to also call reorder_session_pipeline() on each open session right after this.
 
     `source_path` (2026-08-06 bug fix) also updates WORKFLOW_CONFIG_SOURCE_PATH when given -- the
     caller passes the submitted draft's own source_path (the file the user last opened, or the
@@ -200,14 +201,16 @@ def _resolve_addon_for_row(row, addon_index: dict[str, AddonDescriptor]) -> Addo
 # reachable via the "Réglages manuels" > Geometry/Cadrage toggle inside Film's/Color Splash's own
 # Zoom (auxiliary_zoom_* below). They remain real, indexed pipeline steps -- this constant/helper
 # affect ONLY which rows _compute_vignette_states lazily renders thumbnails for on the web API,
-# mirroring web/src/lib/filmstrip.ts's HIDDEN_ROW_LABELS/visibleRowRealIndices exactly. Never touch
-# `visible_row_indices` itself (lumaflow.api.filmstrip_types) -- filter before calling it, map back
-# after.
-_HIDDEN_ROW_LABELS = {"Geometry", "Framing"}
+# mirroring web/src/lib/filmstrip.ts's HIDDEN_ROW_IDENTIFIERS/visibleRowRealIndices exactly. Never
+# touch `visible_row_indices` itself (lumaflow.api.filmstrip_types) -- filter before calling it,
+# map back after. Matched by IDENTIFIER, not label (2026-09-05, aligning with the frontend's own
+# 2026-09-03 migration): the label is now localised ("Geometry" -> "Géométrie") and row order is
+# user-editable, so only the stable identifier is a safe key.
+_HIDDEN_ROW_IDENTIFIERS = {"geometry", "framing"}
 
 
 def _visible_row_real_indices(total: int) -> list[int]:
-    return [i for i in range(total) if WORKFLOW_CONFIG.rows[i].label not in _HIDDEN_ROW_LABELS]
+    return [i for i in range(total) if WORKFLOW_CONFIG.rows[i].identifier not in _HIDDEN_ROW_IDENTIFIERS]
 
 
 def _row_index_by_identifier(row_identifier: str) -> int | None:
@@ -777,6 +780,32 @@ def refresh_workflow(session: Session) -> list[RowSpec]:
             for i, row in enumerate(rows)
         ]
     return rows
+
+
+def reorder_session_pipeline(session: Session) -> None:
+    """Re-sort an already-open session's pipeline onto the CURRENT WORKFLOW_CONFIG.rows order,
+    after a live row-reordering Valider (Préférences > Workflow, 2026-09-05).
+
+    reload_workflow_config only swaps the module globals; a session opened before it still has its
+    pipeline._steps in the previous order, and refresh_workflow zips that list positionally against
+    WORKFLOW_CONFIG.rows -- so without this the wrong RowSpec/selection would be reported for every
+    moved row. The row *set* is unchanged (enforced by app.py's _validate_workflow_row_identity),
+    so this is a pure permutation: each PipelineStep carries its own parameters/selected, and
+    thumbnail_selections is keyed by identifier, so re-sorting the list preserves every in-progress
+    correction. The position-keyed caches and any open Zoom session are dropped, exactly as
+    open_image does, since a step's pipeline position -- their key -- has changed."""
+    if session.pipeline is None:
+        return
+    order = {identifier: i for i, identifier in enumerate((row.identifier for row in WORKFLOW_CONFIG.rows))}
+    session.pipeline._steps.sort(key=lambda step: order.get(step.identifier, len(order)))
+    with session._row_before_lock:
+        session.step_render_cache = {}
+        session.working_render_cache = {}
+        session.vignette_state_cache = {}
+        session._active_row_before_pending = None
+    session.zoom = None
+    visible = _visible_row_real_indices(len(WORKFLOW_CONFIG.rows))
+    session.active_step_index = visible[0] if visible else 0
 
 
 def activate_step(session: Session, step_index: int) -> list[RowSpec]:

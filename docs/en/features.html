@@ -45,7 +45,7 @@
 <li>a reminder of the keyboard shortcuts: Up/Down arrows to change step, Left/Right arrows to change thumbnail within a step, Space/double-click/magnifier icon to open Zoom, Esc to close.</li>
 </ul>
 <h2 id="3-2-the-workflow-9-steps">3.2 The workflow: 9 steps</h2>
-<p>The standard pipeline (defined in <code>config_workflow.json</code>, never hardcoded) has 9 steps. Two of them (<strong>Geometry</strong> and <strong>Framing</strong>) aren't shown as filmstrip rows but stay editable from any other step (see §3.4) — the following 7 rows are directly visible and navigable:</p>
+<p>The standard pipeline (defined in <code>config_workflow.json</code>, never hardcoded) has 9 steps. Two of them (<strong>Geometry</strong> and <strong>Framing</strong>) aren't shown as filmstrip rows but stay editable from any other step (see §3.4) — the following 7 rows are directly visible and navigable. Their <strong>order can be changed</strong> from Preferences &gt; Workflow (see §3.9); Geometry and Framing stay pinned first. The numbering below reflects the default shipped order:</p>
 <div class="table-wrap"><table>
 <thead><tr><th>#</th><th>Step</th><th>Role</th><th>Presets</th></tr></thead>
 <tbody>
@@ -103,7 +103,7 @@
 <p class="figure"><img src="../screenshots/06-preferences.png" alt="Preferences — General" loading="lazy"></p>
 <ul>
 <li><strong>General</strong>: accent color for the whole interface, default folders (open, export, presets), default export JPEG quality.</li>
-<li><strong>Workflow</strong>: enable/disable and reorder each row's thumbnails (the rows themselves stay fixed); import/export of the <code>config_workflow.json</code> file.</li>
+<li><strong>Workflow</strong>: reorder the workflow rows (▲/▼ buttons; Geometry and Framing stay pinned first) and, for each row, enable/disable and reorder its thumbnails; import/export of the <code>config_workflow.json</code> file. The row set itself stays fixed (no adding/removing). Like the other settings, "Validate" applies the new order to the open photo immediately without writing to disk; use "Export" to save it.</li>
 <li><strong>Rows</strong>: filmstrip spacing and margins, opacity of inactive rows.</li>
 <li><strong>Thumbnails</strong>: colors of the guiding aids (limits/overlays shown during interactive editing) and min/max bounds of the optical zoom.</li>
 </ul>

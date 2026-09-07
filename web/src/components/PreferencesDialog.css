@@ -376,6 +376,14 @@ editable. --- */
   align-items: center;
   gap: 8px;
   width: 100%;
+}
+
+.prefs-workflow-row-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
   padding: 0;
   border: none;
   background: transparent;
@@ -384,8 +392,21 @@ editable. --- */
   text-align: left;
 }
 
-.prefs-workflow-row-header:hover {
+.prefs-workflow-row-toggle:hover {
   color: var(--amber);
+}
+
+.prefs-workflow-row-move {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+
+.prefs-workflow-row-move .prefs-btn {
+  flex: none;
+  padding: 2px 8px;
+  font-size: var(--fs-12);
+  line-height: 1;
 }
 
 .prefs-workflow-row-label {

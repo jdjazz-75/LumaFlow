@@ -430,7 +430,22 @@ export function AppShell() {
     // Ouvrir. Re-fetch now, tracked like every other session-touching call so a rapid
     // Export/Enregistrer right after closing Préférences can't race ahead of it.
     if (sessionId) {
-      trackMutation(api.getWorkflow(sessionId).then(setRows)).catch(() => {});
+      trackMutation(
+        api.getWorkflow(sessionId).then((nextRows) => {
+          // Row reordering (2026-09-05): if the row ORDER changed, the backend already reset the
+          // open session's active step to the first visible row (session.py
+          // reorder_session_pipeline) -- follow it here so this tab's highlighted row doesn't
+          // point at a row that has since moved. A pure vignette edit leaves the order (and the
+          // active row) untouched.
+          const prevOrder = rows.map((row) => row.identifier).join(",");
+          const nextOrder = nextRows.map((row) => row.identifier).join(",");
+          if (prevOrder !== nextOrder) {
+            const firstVisible = nextRows.findIndex((row) => !isHiddenRow(row));
+            setActiveStepIndex(firstVisible === -1 ? 0 : firstVisible);
+          }
+          setRows(nextRows);
+        }),
+      ).catch(() => {});
     }
   }
 

@@ -45,7 +45,7 @@
 <li>un rappel des raccourcis clavier : flèches Haut/Bas pour changer d'étape, flèches Gauche/Droite pour changer de vignette au sein d'une étape, Espace/double-clic/icône loupe pour ouvrir le Zoom, Échap pour fermer.</li>
 </ul>
 <h2 id="3-2-le-workflow-9-tapes">3.2 Le workflow : 9 étapes</h2>
-<p>Le pipeline standard (défini dans <code>config_workflow.json</code>, jamais codé en dur) comprend 9 étapes. Deux d'entre elles (<strong>Géométrie</strong> et <strong>Cadrage</strong>) ne s'affichent pas comme des lignes de la pellicule mais restent éditables depuis n'importe quelle autre étape (voir §3.4) — les 7 lignes suivantes sont directement visibles et navigables :</p>
+<p>Le pipeline standard (défini dans <code>config_workflow.json</code>, jamais codé en dur) comprend 9 étapes. Deux d'entre elles (<strong>Géométrie</strong> et <strong>Cadrage</strong>) ne s'affichent pas comme des lignes de la pellicule mais restent éditables depuis n'importe quelle autre étape (voir §3.4) — les 7 lignes suivantes sont directement visibles et navigables. Leur <strong>ordre est modifiable</strong> depuis Préférences &gt; Workflow (voir §3.9) ; Géométrie et Cadrage restent verrouillées en tête. La numérotation ci-dessous correspond à l'ordre livré par défaut :</p>
 <div class="table-wrap"><table>
 <thead><tr><th>#</th><th>Étape</th><th>Rôle</th><th>Presets</th></tr></thead>
 <tbody>
@@ -103,7 +103,7 @@
 <p class="figure"><img src="screenshots/06-preferences.png" alt="Préférences — Général" loading="lazy"></p>
 <ul>
 <li><strong>Général</strong> : couleur d'accentuation de toute l'interface, dossiers par défaut (ouverture, export, presets), qualité JPEG d'export par défaut.</li>
-<li><strong>Workflow</strong> : active/désactive et réordonne les vignettes de chaque ligne (les lignes elles-mêmes restent fixes) ; import/export du fichier <code>config_workflow.json</code>.</li>
+<li><strong>Workflow</strong> : réordonne les lignes du workflow (boutons ▲/▼ ; Géométrie et Cadrage restent verrouillées en tête) et, pour chaque ligne, active/désactive et réordonne ses vignettes ; import/export du fichier <code>config_workflow.json</code>. Le jeu de lignes lui-même reste fixe (aucun ajout/suppression). Comme les autres réglages, « Valider » applique le nouvel ordre immédiatement à la photo ouverte sans écrire sur le disque ; utilisez « Exporter » pour le sauvegarder.</li>
 <li><strong>Lignes</strong> : espacement et marges de la pellicule, opacité des lignes inactives.</li>
 <li><strong>Vignettes</strong> : couleurs des aides de guidage (limites/overlays affichés pendant l'édition interactive) et bornes min/max du zoom optique.</li>
 </ul>

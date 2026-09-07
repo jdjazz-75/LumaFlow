@@ -1070,9 +1070,17 @@ def load_recipe_endpoint(session_id: str, body: LoadRecipeIn) -> LoadRecipeOut:
 
 # --- Workflow config -- process-wide (not per-session), Préférences > Workflow (2026-08-06).
 # Row structure (identifier/label/category/addon_identifiers/short_description) is read-only from
-# this API's perspective -- only each row's vignette membership/order is ever written back. See
-# session.py's reload_workflow_config docstring for why this invariant is what makes a live reload
-# safe for already-open sessions without any per-session snapshot. ---
+# this API's perspective -- only each row's vignette membership AND the ROW ORDER itself are ever
+# written back (row reordering added 2026-09-05). The row *set* (which identifiers exist) stays
+# fixed: that's what keeps a live reload safe for already-open sessions -- a changed set could not
+# be reconciled, whereas a pure permutation is (see session.py reorder_session_pipeline). ---
+
+# geometry/framing have no filmstrip row and are edited only from inside Film/Color Splash's Zoom
+# (auxiliary_zoom_*), whose "render the pipeline up to -- excluding -- this row" only makes sense
+# if they precede every visible row. They are therefore pinned to the first positions and are the
+# one part of the order the reordering UI/API must refuse to disturb. Mirrors session.py's
+# _HIDDEN_ROW_IDENTIFIERS and web/src/lib/filmstrip.ts's HIDDEN_ROW_IDENTIFIERS.
+_LEADING_ROW_IDENTIFIERS = frozenset({"geometry", "framing"})
 
 
 class WorkflowVignetteIO(BaseModel):
@@ -1130,20 +1138,40 @@ def _workflow_config_out(config: WorkflowConfig, source_path: str) -> WorkflowCo
 
 
 def _validate_workflow_row_identity(rows: list[WorkflowRowIO], live_config: WorkflowConfig) -> None:
-    """Rows themselves are structurally fixed (2026-08-06 product decision) -- only vignette
-    membership/order is ever editable via Préférences > Workflow. Enforced here (not just by the
-    frontend leaving identifier/label/category read-only) so an imported/hand-crafted JSON with a
-    different row set can never reach reload_workflow_config -- that's the invariant the "no
-    per-session snapshot needed" design in session.py depends on."""
+    """The row *set* is structurally fixed -- only each row's vignette membership/order and, since
+    2026-09-05, the ROW ORDER are editable via Préférences > Workflow. Enforced here (not just by
+    the frontend) so an imported/hand-crafted JSON that adds, drops or renames a row can never
+    reach reload_workflow_config -- a changed set can't be reconciled onto an open session,
+    a permutation can (session.py reorder_session_pipeline).
+
+    Two rules:
+      1. Same identifiers, same count -- otherwise `row_set_mismatch` (kept as the category name so
+         web/src/lib/api.ts and describeError stay valid).
+      2. geometry/framing stay in the leading positions -- see _LEADING_ROW_IDENTIFIERS."""
     submitted = [row.identifier for row in rows]
     expected = [row.identifier for row in live_config.rows]
-    if submitted != expected:
+    if sorted(submitted, key=lambda x: x or "") != sorted(expected, key=lambda x: x or ""):
         raise HTTPException(
             status_code=400,
             detail={
                 "category": "row_set_mismatch",
-                "message": "L'ensemble ou l'ordre des lignes ne correspond pas à la configuration actuelle.",
+                "message": "L'ensemble des lignes ne correspond pas à la configuration actuelle.",
                 "details": {"submitted": submitted, "expected": expected},
+            },
+        )
+    # Only the leading rows the live config actually declares are pinned (a hand-authored config
+    # per spec 023 may omit geometry/framing entirely -- then there is nothing to pin).
+    leading = [i for i in expected if i in _LEADING_ROW_IDENTIFIERS]
+    if leading and (
+        set(submitted[: len(leading)]) != set(leading)
+        or any(i in _LEADING_ROW_IDENTIFIERS for i in submitted[len(leading) :])
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "category": "leading_rows_locked",
+                "message": "Les lignes Géométrie et Cadrage doivent rester en tête du workflow.",
+                "details": {"submitted": submitted},
             },
         )
 
@@ -1151,8 +1179,8 @@ def _validate_workflow_row_identity(rows: list[WorkflowRowIO], live_config: Work
 def _apply_workflow_row_io(rows: list[WorkflowRowIO], live_config: WorkflowConfig) -> WorkflowConfig:
     """Reconstructs a full WorkflowConfig for writing: identifier/label/category/
     addon_identifiers/short_description always come from the matching LIVE structural row (safe --
-    _validate_workflow_row_identity already guarantees a 1:1, same-order identifier match); only a
-    row's enabled vignette set/order (`vignettes`) is taken from the submitted payload."""
+    _validate_workflow_row_identity already guarantees a 1:1 identifier match); the ROW ORDER and
+    each row's enabled vignette set/order (`vignettes`) are taken from the submitted payload."""
     live_by_identifier = {row.identifier: row for row in live_config.rows}
     new_rows = []
     for row_io in rows:
@@ -1190,7 +1218,16 @@ def put_workflow_config_endpoint(body: WorkflowConfigOut) -> WorkflowConfigOut:
     live_config = session_module.WORKFLOW_CONFIG
     _validate_workflow_row_identity(body.rows, live_config)
     new_config = _apply_workflow_row_io(body.rows, live_config)
+    order_changed = [r.identifier for r in live_config.rows] != [r.identifier for r in new_config.rows]
     reload_workflow_config(new_config, body.source_path or str(default_workflow_config_path()))
+    # Row reordering (2026-09-05): an already-open session's pipeline._steps was built at
+    # open_image time in the OLD order -- refresh_workflow zips it positionally against
+    # WORKFLOW_CONFIG.rows, so it must be re-sorted onto the new order (and its position-keyed
+    # caches dropped) before the next refresh. A pure vignette edit leaves the order untouched and
+    # skips this entirely (unchanged fast path).
+    if order_changed:
+        for open_session in _sessions.values():
+            session_module.reorder_session_pipeline(open_session)
     return _workflow_config_out(new_config, session_module.WORKFLOW_CONFIG_SOURCE_PATH)
 
 

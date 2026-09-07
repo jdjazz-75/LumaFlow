@@ -276,6 +276,12 @@
   "ui.prefs.workflow.move_down": {
     "t": "▼ Descendre"
   },
+  "ui.prefs.workflow.move_row_up": {
+    "t": "Monter la ligne"
+  },
+  "ui.prefs.workflow.move_row_down": {
+    "t": "Descendre la ligne"
+  },
   "ui.batch.title": {
     "t": "Traitement par lot"
   },

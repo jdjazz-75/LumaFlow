@@ -11,6 +11,7 @@ import {
   openWorkflowConfigDialog,
 } from "../lib/api";
 import { describeError } from "../lib/errorMessages";
+import { isHiddenRow } from "../lib/filmstrip";
 import { ChevronDownIcon, ChevronUpIcon } from "./icons";
 import { t } from "../i18n";
 import { presetLabel, rowDisplayLabel } from "../i18n/backend";
@@ -25,7 +26,14 @@ the project). "neutral" stays pinned first and locked (RowSpec.__post_init__ for
 regardless of what's submitted, so showing it as draggable/toggleable would be misleading). Row
 cards fold/unfold (2026-08-06 follow-up) -- collapsed by default, own local state, not the shared
 CollapsibleSection primitive (that one assumes a borderless stacked-list look; these keep their
-existing bordered card). */
+existing bordered card).
+
+Row ORDER is editable since 2026-09-05 (▲/▼ in each card header, same array-swap pattern as
+moveVignette). The hidden rows (Geometry/Cadrage -- isHiddenRow) are pinned in the leading
+positions and have no move buttons: the auxiliary-zoom corrections that reach them from inside
+Film/Color Splash's Zoom only render coherently if they precede every visible row. The backend
+(app.py _validate_workflow_row_identity) enforces the same rule, so a hand-edited JSON can't get
+past it either. */
 
 type SelectedVignette = { rowIndex: number; vignetteIndex: number };
 
@@ -86,6 +94,26 @@ export function PreferencesWorkflowPage({ config, onChange }: PreferencesWorkflo
     setSelected({ rowIndex, vignetteIndex: target });
   }
 
+  function rowIsHidden(rowIndex: number): boolean {
+    return isHiddenRow({ identifier: rows[rowIndex]?.identifier ?? "" });
+  }
+
+  // A visible row may swap with an adjacent visible row only -- never past a hidden (leading) row.
+  function canMoveRow(rowIndex: number, offset: number): boolean {
+    const target = rowIndex + offset;
+    if (target < 0 || target >= rows.length) return false;
+    return !rowIsHidden(rowIndex) && !rowIsHidden(target);
+  }
+
+  function moveRow(rowIndex: number, offset: number) {
+    if (!canMoveRow(rowIndex, offset)) return;
+    const target = rowIndex + offset;
+    const next = [...rows];
+    [next[rowIndex], next[target]] = [next[target], next[rowIndex]];
+    onRowsChange(next);
+    setSelected(null); // row indices just shifted -- any vignette selection is now stale
+  }
+
   async function handleOpen() {
     setError(null);
     setBusy(true);
@@ -135,15 +163,41 @@ export function PreferencesWorkflowPage({ config, onChange }: PreferencesWorkflo
           const isOpen = !collapsed.has(rowKey);
           return (
             <div key={rowKey} className="prefs-workflow-row-card">
-              <button
-                type="button"
-                className="prefs-workflow-row-header"
-                onClick={() => toggleRowCollapsed(rowKey)}
-                aria-expanded={isOpen}
-              >
-                {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-                <span className="prefs-workflow-row-label">{rowDisplayLabel({ identifier: row.identifier ?? "", label: row.label ?? row.identifier ?? "" })}</span>
-              </button>
+              <div className="prefs-workflow-row-header">
+                <button
+                  type="button"
+                  className="prefs-workflow-row-toggle"
+                  onClick={() => toggleRowCollapsed(rowKey)}
+                  aria-expanded={isOpen}
+                >
+                  {isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                  <span className="prefs-workflow-row-label">{rowDisplayLabel({ identifier: row.identifier ?? "", label: row.label ?? row.identifier ?? "" })}</span>
+                </button>
+                {!rowIsHidden(rowIndex) && (
+                  <div className="prefs-workflow-row-move">
+                    <button
+                      type="button"
+                      className="prefs-btn"
+                      onClick={() => moveRow(rowIndex, -1)}
+                      disabled={!canMoveRow(rowIndex, -1)}
+                      aria-label={t("ui.prefs.workflow.move_row_up")}
+                      title={t("ui.prefs.workflow.move_row_up")}
+                    >
+                      ▲
+                    </button>
+                    <button
+                      type="button"
+                      className="prefs-btn"
+                      onClick={() => moveRow(rowIndex, 1)}
+                      disabled={!canMoveRow(rowIndex, 1)}
+                      aria-label={t("ui.prefs.workflow.move_row_down")}
+                      title={t("ui.prefs.workflow.move_row_down")}
+                    >
+                      ▼
+                    </button>
+                  </div>
+                )}
+              </div>
               {isOpen && (
                 <>
                   <div className="prefs-workflow-vignette-list">

@@ -2822,8 +2822,10 @@ def test_put_workflow_config_disables_a_vignette_in_memory_without_any_disk_writ
 
 
 def test_put_workflow_config_row_set_mismatch_rejected(client, isolated_workflow_config_path):
+    """A different row SET (add/drop/rename) is still refused -- only a permutation of the existing
+    identifiers is allowed (2026-09-05 row reordering)."""
     baseline = client.get("/workflow-config").json()
-    mismatched = {"rows": list(reversed(baseline["rows"]))}
+    mismatched = {"rows": baseline["rows"][:-1]}  # drop the last row -- a different set
 
     response = client.put("/workflow-config", json=mismatched)
     assert response.status_code == 400
@@ -2831,6 +2833,63 @@ def test_put_workflow_config_row_set_mismatch_rejected(client, isolated_workflow
 
     unchanged = client.get("/workflow-config").json()
     assert unchanged == baseline
+
+
+def test_put_workflow_config_reordering_leading_rows_rejected(client, isolated_workflow_config_path):
+    """geometry/framing must stay in the leading positions -- the auxiliary-zoom corrections that
+    reach them from inside Film/Color Splash's Zoom only render coherently if they precede every
+    visible row."""
+    baseline = client.get("/workflow-config").json()
+    reversed_rows = {"rows": list(reversed(baseline["rows"]))}  # pushes geometry/framing to the end
+
+    response = client.put("/workflow-config", json=reversed_rows)
+    assert response.status_code == 400
+    assert response.json()["detail"]["category"] == "leading_rows_locked"
+
+    unchanged = client.get("/workflow-config").json()
+    assert unchanged == baseline
+
+
+def test_put_workflow_config_reorders_visible_rows(client, isolated_workflow_config_path):
+    """Moving Color Splash above Film is applied to the live config and reflected by a GET."""
+    baseline = client.get("/workflow-config").json()
+    identifiers = [row["identifier"] for row in baseline["rows"]]
+    film_i, splash_i = identifiers.index("film"), identifiers.index("color_splash")
+
+    rows = list(baseline["rows"])
+    rows.insert(film_i, rows.pop(splash_i))
+    response = client.put("/workflow-config", json={"rows": rows})
+    assert response.status_code == 200
+
+    after = [row["identifier"] for row in client.get("/workflow-config").json()["rows"]]
+    assert after.index("color_splash") < after.index("film")
+    assert after[:2] == identifiers[:2]  # geometry/framing still lead
+    assert sorted(after) == sorted(identifiers)  # same set
+
+
+def test_put_workflow_config_reorder_reflows_open_session_pipeline(client, isolated_workflow_config_path):
+    """An already-open session's pipeline is re-sorted onto the new order, so its /workflow
+    listing follows the reorder without the photo being reopened -- and a vignette selected
+    before the reorder (keyed by row identifier, carried on the PipelineStep) is preserved."""
+    session_id = _open(client)
+    baseline = client.get("/workflow-config").json()
+    identifiers = [row["identifier"] for row in baseline["rows"]]
+    film_i = identifiers.index("film")
+
+    assert (
+        client.post(f"/sessions/{session_id}/steps/{film_i}/select", json={"identifier": "Velvia"}).status_code
+        == 200
+    )
+
+    rows = list(baseline["rows"])
+    rows.insert(film_i, rows.pop(identifiers.index("color_splash")))
+    assert client.put("/workflow-config", json={"rows": rows}).status_code == 200
+
+    workflow = client.get(f"/sessions/{session_id}/workflow").json()
+    order = [row["identifier"] for row in workflow]
+    assert order.index("color_splash") < order.index("film")
+    film_row = next(row for row in workflow if row["identifier"] == "film")
+    assert film_row["selected_vignette_identifier"] == "Velvia"
 
 
 def test_put_workflow_config_tracks_source_path_in_memory_without_writing_the_imported_file(
