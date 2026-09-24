@@ -121,6 +121,20 @@ async function box(locator: Locator): Promise<Box> {
   return b!;
 }
 
+/** Light's "Masque Sujet" panel (ergonomics revision 2026-09-24, mirroring Suppression d'objets):
+ * a `CollapsibleSection` header in "Réglages manuels" (not a bare `role="switch"` any more) whose
+ * body holds 4 fixed on/off zone switches plus the shared Adoucissement/Inverser controls. See
+ * ZoomOverlay.tsx's renderSubjectMaskZonePanel/renderLightMaskLayer and memory
+ * object-removal-addon-planned (this same pattern, applied to a second addon).
+ */
+async function openSubjectMaskCorrection(page: Page) {
+  await page.locator(".zoom-overlay__region-controls .collapsible-section__header", { hasText: "Masque sujet" }).click();
+}
+
+async function toggleSubjectMaskZone(page: Page, n: number) {
+  await page.getByRole("switch", { name: `Zone ${n}` }).click();
+}
+
 test.describe("Zoom overlay corrections -- Geometry/Cadrage/Masque Sujet", () => {
   test("Geometry: le cadre wrapper est confiné dans le stage ET pixel-identique à la photo, centré", async ({ page }) => {
     await openFilmZoom(page);
@@ -233,7 +247,10 @@ test.describe("Zoom overlay corrections -- Geometry/Cadrage/Masque Sujet", () =>
     await expect(page.locator(".zoom-overlay__pan-zone").first()).toBeVisible();
 
     await page.getByRole("button", { name: "Sujet" }).click();
-    await page.getByRole("switch", { name: "Masque sujet" }).click();
+    // Ergonomics revision 2026-09-24 (mirroring Suppression d'objets): "Masque sujet" is now a
+    // collapsible panel header, not a switch -- opening it activates zone 1, which already has
+    // the historical default rectangle (light.py's `_DEFAULT_MASK_POINTS`), same as before.
+    await openSubjectMaskCorrection(page);
     await page.waitForTimeout(500);
 
     const maskContentBox = await page.locator(".zoom-overlay__compare-content").boundingBox();
@@ -247,8 +264,39 @@ test.describe("Zoom overlay corrections -- Geometry/Cadrage/Masque Sujet", () =>
     const maskPhotoBox = await box(page.locator(".crop-canvas__photo"));
     expectBoxesEqual(maskWrapperBox, maskPhotoBox);
 
-    await expect(page.locator(".subject-mask-stage__controls")).toBeVisible();
+    // Feather/invert now live inside the panel itself (no more floating "controls" bar for Light).
+    await expect(page.getByRole("switch", { name: "Zone 1" })).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByText("Adoucissement")).toBeVisible();
     await expect(page.locator(".zoom-overlay__optical-zoom")).toBeVisible();
+  });
+
+  test("Masque Sujet : 4 zones à bascule, sélection et désactivation indépendantes", async ({ page }) => {
+    await openTestImage(page);
+    const lightRow = await navigateToRow(page, "Lumière");
+    await lightRow.locator(".vignette-card").first().dblclick();
+    await waitForPaneImagesLoaded(page);
+    await page.getByRole("button", { name: "Sujet" }).click();
+    await openSubjectMaskCorrection(page);
+    await page.waitForTimeout(300);
+
+    // Zone 1 is on by default (historical rectangle); turn on Zone 2 as well.
+    await expect(page.getByRole("switch", { name: "Zone 1" })).toHaveAttribute("aria-checked", "true");
+    await toggleSubjectMaskZone(page, 2);
+    await page.waitForTimeout(300);
+    await expect(page.getByRole("switch", { name: "Zone 2" })).toHaveAttribute("aria-checked", "true");
+    // Both zones' outlines are on the canvas at once.
+    await expect(page.locator(".subject-mask-stage__outline")).toHaveCount(2);
+
+    // Selecting Zone 1's label (already enabled) hands the drag handles back to it -- 4 vertices.
+    await page.locator(".zoom-overlay__slider-label--clickable", { hasText: "Zone 1" }).click();
+    await page.waitForTimeout(300);
+    await expect(page.locator(".subject-mask-stage__vertex")).toHaveCount(4);
+
+    // Turning Zone 2 back off removes its outline and its own switch reports off.
+    await toggleSubjectMaskZone(page, 2);
+    await page.waitForTimeout(300);
+    await expect(page.getByRole("switch", { name: "Zone 2" })).toHaveAttribute("aria-checked", "false");
+    await expect(page.locator(".subject-mask-stage__outline")).toHaveCount(1);
   });
 
   test("Color Splash: la zone d'application d'un intervalle réutilise le même éditeur que Masque Sujet, sans casser ses invariants", async ({
@@ -353,6 +401,273 @@ test.describe("Zoom overlay corrections -- Geometry/Cadrage/Masque Sujet", () =>
     ).toHaveCount(0);
   });
 });
+
+/**
+ * Suppression d'objets (feature 100) -- same non-regression discipline as the Geometry/Cadrage/
+ * Masque Sujet suite above (wrapper==image pixel equality, centering), plus zone-specific
+ * invariants: enabling/disabling zones, vertex insert/delete, and a functional check that
+ * Appliquer genuinely removes a distinctly-colored object. Run alongside the rest of this file
+ * (`npm run test:e2e`) after any change to ZoomOverlay.tsx/.css, CropCanvas.css, or
+ * RemovalToolStage.tsx/.css.
+ *
+ * Ergonomics revision (2026-09-24): the zone list (previously a floating "+/-"" panel over the
+ * photo, up to 8 zones) moved into a `CollapsibleSection` in the "Réglages manuels" panel, with a
+ * fixed MAX_REMOVAL_ZONES=4 on/off switch per zone -- opening that section (its header, not a
+ * separate `role="switch"`) both reveals the zone list AND mounts the on-canvas editor
+ * (RemovalToolStage), replacing the old bare `role="switch"` toggle. See ZoomOverlay.tsx's
+ * renderCorrections/renderRemovalZonePanel and memory object-removal-addon-planned.
+ */
+async function openRemovalCorrection(page: Page) {
+  await page.locator(".zoom-overlay__corrections .collapsible-section__header", { hasText: "Suppression d'objets" }).click();
+}
+
+async function toggleRemovalZone(page: Page, n: number) {
+  await page.getByRole("switch", { name: `Zone ${n}` }).click();
+}
+const REMOVAL_FIXTURE_IMAGE = path.resolve(__dirname, "fixtures/removal-object.png");
+
+/** Like openTestImage, but opens a given fixture and returns the session id it lifted from a real
+request URL -- same technique the reduced-preview suite below already uses (response.body() has
+already been found unreliable for binary payloads in this exact file; a request URL has no such
+gotcha). */
+async function openImageAndGetSessionId(page: Page, fixturePath: string): Promise<string> {
+  let sessionId: string | null = null;
+  page.on("request", (request) => {
+    const match = request.url().match(/\/sessions\/([^/]+)\/open$/);
+    if (match) sessionId = match[1];
+  });
+  await page.route("**/dialogs/open-image", async (route) => {
+    await route.fulfill({ json: { path: fixturePath } });
+  });
+  await page.goto("/");
+  await page.locator(".header-menu").click();
+  await page.getByRole("button", { name: "Photo" }).click();
+  await page.getByRole("button", { name: /ouvrir/i }).first().click();
+  await expect.poll(() => sessionId).not.toBeNull();
+  return sessionId as unknown as string;
+}
+
+async function fetchAuxiliaryRemovalSliders(page: Page, sessionId: string): Promise<Record<string, number>> {
+  return page.evaluate(async (id) => {
+    const response = await fetch(`/sessions/${id}/zoom/auxiliary/removal`);
+    const body = await response.json();
+    return Object.fromEntries((body.sliders as Array<{ identifier: string; value: number }>).map((s) => [s.identifier, s.value]));
+  }, sessionId);
+}
+
+/** Samples the auxiliary "after" preview's pixel color at a given fractional position, entirely
+within the page context (fetch + canvas + getImageData) -- avoids Playwright's own response.body()
+for a binary payload, same reasoning as hashBytesAt below. */
+async function samplePixelAt(page: Page, url: string, fx: number, fy: number): Promise<[number, number, number]> {
+  return page.evaluate(
+    async ({ targetUrl, fx, fy }) => {
+      const response = await fetch(targetUrl, { cache: "no-store" });
+      const blob = await response.blob();
+      const bitmap = await createImageBitmap(blob);
+      const canvas = document.createElement("canvas");
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(bitmap, 0, 0);
+      const x = Math.min(bitmap.width - 1, Math.max(0, Math.round(fx * bitmap.width)));
+      const y = Math.min(bitmap.height - 1, Math.max(0, Math.round(fy * bitmap.height)));
+      const data = ctx.getImageData(x, y, 1, 1).data;
+      return [data[0], data[1], data[2]] as [number, number, number];
+    },
+    { targetUrl: url, fx, fy },
+  );
+}
+
+test.describe("Zoom overlay corrections -- Suppression d'objets", () => {
+  test("le panneau apparaît sous Cadrage, dans cet ordre", async ({ page }) => {
+    await openFilmZoom(page);
+    const labels = page.locator(
+      ".zoom-overlay__corrections .zoom-overlay__slider-label, .zoom-overlay__corrections .collapsible-section__title",
+    );
+    await expect(labels).toHaveText(["Géométrie", "Cadrage", "Suppression d'objets"]);
+  });
+
+  test("le cadre wrapper est confiné dans le stage ET pixel-identique à la photo, centré", async ({ page }) => {
+    await openFilmZoom(page);
+    await zoomIn(page, 8);
+    await openRemovalCorrection(page);
+    await waitForStagePhotoLoaded(page, ".crop-canvas__photo");
+    await page.waitForTimeout(300);
+
+    const stageBox = await box(page.locator(".removal-stage"));
+    const wrapperBox = await box(page.locator(".crop-canvas__photo-bounds"));
+    const photoBox = await box(page.locator(".crop-canvas__photo"));
+
+    expect(photoBox.width).toBeLessThanOrEqual(stageBox.width + 1);
+    expect(photoBox.height).toBeLessThanOrEqual(stageBox.height + 1);
+    expectBoxesEqual(wrapperBox, photoBox);
+
+    const marginLeft = photoBox.x - stageBox.x;
+    const marginRight = stageBox.x + stageBox.width - (photoBox.x + photoBox.width);
+    const marginTop = photoBox.y - stageBox.y;
+    const marginBottom = stageBox.y + stageBox.height - (photoBox.y + photoBox.height);
+    expect(Math.abs(marginLeft - marginRight)).toBeLessThanOrEqual(BOX_EPSILON_PX);
+    expect(Math.abs(marginTop - marginBottom)).toBeLessThanOrEqual(BOX_EPSILON_PX);
+
+    await expect(page.locator(".zoom-overlay__optical-zoom")).toBeVisible();
+    await expect(page.locator(".zoom-overlay__optical-zoom-fit")).toBeVisible();
+  });
+
+  test("activer une zone dans le panneau donne 4 sommets, le glissement commit la valeur exacte côté serveur", async ({ page }) => {
+    const sessionId = await openImageAndGetSessionId(page, REMOVAL_FIXTURE_IMAGE);
+    const filmRow = page.locator(".filmstrip-row", { has: page.locator(".filmstrip-row__name", { hasText: "Film" }) });
+    await filmRow.locator(".vignette-card").first().dblclick();
+    await waitForPaneImagesLoaded(page);
+    await openRemovalCorrection(page);
+    await waitForStagePhotoLoaded(page, ".crop-canvas__photo");
+    await page.waitForTimeout(300);
+
+    await toggleRemovalZone(page, 1);
+    await expect(page.locator(".removal-stage__vertex")).toHaveCount(4);
+
+    const photoBox = await box(page.locator(".crop-canvas__photo"));
+    const targetFx = 0.62;
+    const targetFy = 0.58;
+    const vertex = page.locator(".removal-stage__vertex").first();
+    const vertexBox = await box(vertex);
+    await page.mouse.move(vertexBox.x + vertexBox.width / 2, vertexBox.y + vertexBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(photoBox.x + photoBox.width * targetFx, photoBox.y + photoBox.height * targetFy, { steps: 5 });
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+
+    const sliders = await fetchAuxiliaryRemovalSliders(page, sessionId);
+    expect(sliders["zone_0_mask_point_00_x"]).toBeCloseTo(targetFx, 2);
+    expect(sliders["zone_0_mask_point_00_y"]).toBeCloseTo(targetFy, 2);
+  });
+
+  test("le milieu d'une arête ajoute un sommet, le double-clic en retire un sans jamais passer sous 3", async ({ page }) => {
+    await openFilmZoom(page);
+    await openRemovalCorrection(page);
+    await waitForStagePhotoLoaded(page, ".crop-canvas__photo");
+    await toggleRemovalZone(page, 1);
+    await expect(page.locator(".removal-stage__vertex")).toHaveCount(4);
+
+    const midpoint = page.locator(".subject-mask-stage__midpoint").first();
+    const midpointBox = await box(midpoint);
+    await page.mouse.move(midpointBox.x + midpointBox.width / 2, midpointBox.y + midpointBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+    await expect(page.locator(".removal-stage__vertex")).toHaveCount(5);
+
+    for (let i = 0; i < 3; i++) {
+      await page.locator(".removal-stage__vertex").first().dblclick();
+      await page.waitForTimeout(150);
+    }
+    // 5 -> 4 -> 3 -> refused (stays at 3, the MIN_MASK_VERTICES floor).
+    await expect(page.locator(".removal-stage__vertex")).toHaveCount(3);
+  });
+
+  test("deux zones : sélection et désactivation indépendantes", async ({ page }) => {
+    await openFilmZoom(page);
+    await openRemovalCorrection(page);
+    await waitForStagePhotoLoaded(page, ".crop-canvas__photo");
+
+    await toggleRemovalZone(page, 1);
+    await toggleRemovalZone(page, 2);
+    await expect(page.getByRole("switch", { name: "Zone 1" })).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByRole("switch", { name: "Zone 2" })).toHaveAttribute("aria-checked", "true");
+    // Both zones' outlines are drawn (2 SVG contours on the canvas), even though only the most
+    // recently enabled one (Zone 2) shows draggable vertex handles.
+    await expect(page.locator(".removal-stage__zone")).toHaveCount(2);
+
+    // Selecting Zone 1 (click its clickable label, not the switch) swaps which one shows handles.
+    await page.locator(".zoom-overlay__slider-label--clickable", { hasText: "Zone 1" }).click();
+    await expect(page.locator(".removal-stage__vertex")).toHaveCount(4);
+
+    // Turning Zone 2 off deactivates only that slot; Zone 1 stays on and keeps its own contour.
+    await toggleRemovalZone(page, 2);
+    await page.waitForTimeout(200);
+    await expect(page.getByRole("switch", { name: "Zone 1" })).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByRole("switch", { name: "Zone 2" })).toHaveAttribute("aria-checked", "false");
+    await expect(page.locator(".removal-stage__zone")).toHaveCount(1);
+  });
+
+  test("Appliquer retire effectivement un objet à la couleur distincte de la photo", async ({ page }) => {
+    const sessionId = await openImageAndGetSessionId(page, REMOVAL_FIXTURE_IMAGE);
+    const filmRow = page.locator(".filmstrip-row", { has: page.locator(".filmstrip-row__name", { hasText: "Film" }) });
+    await filmRow.locator(".vignette-card").first().dblclick();
+    await waitForPaneImagesLoaded(page);
+    await openRemovalCorrection(page);
+    await waitForStagePhotoLoaded(page, ".crop-canvas__photo");
+    await page.waitForTimeout(300);
+
+    // The fixture's magenta disc sits at (0.5, 0.5) with radius 90px on a 1600x1067 image (~8.4%
+    // of the width) -- draw a zone comfortably around it via the 4 default seed vertices, then
+    // drag each corner outward so the zone fully covers the disc.
+    await toggleRemovalZone(page, 1);
+    const photoBox = await box(page.locator(".crop-canvas__photo"));
+    const corners: Array<[number, number]> = [
+      [0.5 - 0.09, 0.5 - 0.14],
+      [0.5 + 0.09, 0.5 - 0.14],
+      [0.5 + 0.09, 0.5 + 0.14],
+      [0.5 - 0.09, 0.5 + 0.14],
+    ];
+    for (let i = 0; i < 4; i++) {
+      const vertex = page.locator(".removal-stage__vertex").nth(i);
+      const vertexBox = await box(vertex);
+      await page.mouse.move(vertexBox.x + vertexBox.width / 2, vertexBox.y + vertexBox.height / 2);
+      await page.mouse.down();
+      const [fx, fy] = corners[i];
+      await page.mouse.move(photoBox.x + photoBox.width * fx, photoBox.y + photoBox.height * fy, { steps: 5 });
+      await page.mouse.up();
+      await page.waitForTimeout(150);
+    }
+
+    // The bottom-panel "Appliquer" button (not the correction switch) -- disambiguate by class.
+    await page.locator(".zoom-overlay__apply").click();
+    await expect(page.locator(".crop-canvas__stage--preview")).toBeVisible({ timeout: 20_000 });
+
+    const [r, g, b] = await samplePixelAt(page, `/sessions/${sessionId}/zoom/auxiliary/removal/after`, 0.5, 0.5);
+    const magentaDistance = Math.sqrt((r - 230) ** 2 + (g - 30) ** 2 + (b - 220) ** 2);
+    expect(magentaDistance).toBeGreaterThan(60);
+
+    // Valider must succeed and close the Zoom overlay -- confirm_zoom keeps the auxiliary edit by
+    // simply discarding its snapshot (already covered directly by the backend's own
+    // test_auxiliary_zoom_removal_confirm_keeps_zones); here the closed overlay is the visible
+    // signal that the flow completed without error.
+    await page.locator(".zoom-overlay__confirm").click();
+    await expect(page.locator(".zoom-overlay")).toHaveCount(0);
+  });
+
+  test("Réinitialiser retire toutes les zones ; Fermer (Annuler) restaure l'état précédent", async ({ page }) => {
+    await openFilmZoom(page);
+    await openRemovalCorrection(page);
+    await waitForStagePhotoLoaded(page, ".crop-canvas__photo");
+    await toggleRemovalZone(page, 1);
+    await expect(page.locator(".removal-stage__vertex")).toHaveCount(4);
+
+    await page.locator(".zoom-overlay__reset").click();
+    await page.waitForTimeout(200);
+    await expect(page.locator(".removal-stage__vertex")).toHaveCount(0);
+    await expect(page.getByRole("switch", { name: "Zone 1" })).toHaveAttribute("aria-checked", "false");
+
+    await toggleRemovalZone(page, 1);
+    await expect(page.locator(".removal-stage__vertex")).toHaveCount(4);
+    // "Fermer" is this overlay's cancel action (handleCancel -> api.cancelZoom), not a separate
+    // "Annuler" button -- it discards every edit made since Zoom was opened (this row's fresh zone
+    // included), restoring the snapshot taken at open time.
+    await page.locator(".zoom-overlay__close").click();
+
+    // A fresh Zoom session on the same row must come back with no zone (the edit was discarded).
+    await filmRowDblClick(page);
+    await openRemovalCorrection(page);
+    await waitForStagePhotoLoaded(page, ".crop-canvas__photo");
+    await expect(page.locator(".removal-stage__vertex")).toHaveCount(0);
+  });
+});
+
+async function filmRowDblClick(page: Page) {
+  const filmRow = page.locator(".filmstrip-row", { has: page.locator(".filmstrip-row__name", { hasText: "Film" }) });
+  await filmRow.locator(".vignette-card").first().dblclick();
+  await waitForPaneImagesLoaded(page);
+}
 
 /**
  * PERF-ZOOM-RENDER-PLAN.md étape 2: a reduced-resolution preview now fires while a "Réglages

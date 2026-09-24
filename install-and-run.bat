@@ -26,6 +26,15 @@ if errorlevel 1 (
 
 echo.
 echo [1/3] Installation du paquet Python lumaflow (mode editable)...
+rem torch (moteur de Suppression d'objets, research.md R3) d'abord, depuis l'index CPU dedie -- le
+rem wheel PyPI par defaut pour Windows embarque le runtime CUDA (plusieurs Go) ; celui-ci ne pese
+rem qu'environ 130 Mo. Installe avant "pip install -e ." pour que ce dernier trouve deja une
+rem version satisfaisante et ne retombe pas sur l'index par defaut.
+python -m pip install torch==2.14.0 --index-url https://download.pytorch.org/whl/cpu
+if errorlevel 1 (
+    echo Echec de "pip install torch" ^(index CPU^)
+    exit /b 1
+)
 python -m pip install -e .
 if errorlevel 1 (
     echo Echec de "pip install -e ."

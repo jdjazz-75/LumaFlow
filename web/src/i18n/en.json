@@ -144,6 +144,42 @@
   "ui.mask.whole_image": {
     "t": "Whole image"
   },
+  "ui.removal.zone": {
+    "t": "Zone {n}",
+    "max": 10
+  },
+  "ui.removal.margin": {
+    "t": "Margin",
+    "max": 10
+  },
+  "ui.removal.feather": {
+    "t": "Feather",
+    "max": 10
+  },
+  "ui.removal.variant": {
+    "t": "Try another fill",
+    "max": 22
+  },
+  "ui.removal.empty_hint": {
+    "t": "Turn on a zone in the panel to remove an element from the photo",
+    "max": 70
+  },
+  "ui.removal.computing": {
+    "t": "Filling in progress…",
+    "max": 30
+  },
+  "ui.removal.preview_badge": {
+    "t": "Fill preview · click to resume editing",
+    "max": 60
+  },
+  "ui.removal.large_zone_hint": {
+    "t": "Large zone: the result may be smoother, with less detail.",
+    "max": 80
+  },
+  "ui.light.mask_zone": {
+    "t": "Zone {n}",
+    "max": 10
+  },
   "ui.zoom.optical": {
     "t": "Zoom"
   },
@@ -409,6 +445,9 @@
   "zoom.correction.framing": {
     "t": "Framing"
   },
+  "zoom.correction.removal": {
+    "t": "Object removal"
+  },
   "zoom.region.global": {
     "t": "Global"
   },
@@ -483,6 +522,13 @@
   "group.finishing": {
     "t": "Finishing",
     "max": 26
+  },
+  "row.removal.label": {
+    "t": "Object removal",
+    "max": 24
+  },
+  "row.removal.description": {
+    "t": "Object removal by content-aware fill"
   },
   "row.geometry.label": {
     "t": "Geometry",

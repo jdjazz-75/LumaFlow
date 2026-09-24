@@ -33,10 +33,12 @@ from lumaflow.addons.contract import AddonDescriptor, ThumbnailPreset, ZoomParam
 from lumaflow.addons.loader import DiscoveryLocation, load_addons
 from lumaflow.config.workflow import (
     DEFAULT_WORKFLOW_CONFIG_PATH,
+    PINNED_LEADING_ROW_IDENTIFIERS,
     WorkflowConfig,
     WorkflowConfigIOError,
     WorkflowConfigValidationError,
     load_workflow_config,
+    normalize_pinned_leading_rows,
 )
 from lumaflow.engine.compatibility import apply_recipe_pipeline
 from lumaflow.engine.errors import StepError
@@ -95,7 +97,15 @@ def _resolve_initial_workflow_config() -> tuple[WorkflowConfig, Path]:
     Falls back to the canonical default if the remembered path is unset, or if loading it fails
     for any reason (moved/deleted/corrupted since it was last opened) -- a stale pointer degrading
     the WHOLE app to zero rows would be far worse than silently falling back to "as if this were a
-    fresh install"."""
+    fresh install".
+
+    Either branch is passed through `normalize_pinned_leading_rows` (feature 100) against the
+    canonical file before being returned: a remembered config saved before a pinned leading row
+    (e.g. `removal`) existed would otherwise silently miss it forever, since PUT /workflow-config
+    never writes to disk on its own (see `workflow-config-valider-never-writes-disk`) -- this
+    in-memory repair is what lets an old remembered file keep working without the user ever having
+    to re-export it. Normalizing the canonical file against itself is a harmless no-op."""
+    canonical = _load_workflow_config(DEFAULT_WORKFLOW_CONFIG_PATH)
     try:
         remembered = load_preferences(default_preferences_path()).workflow_config_source_path
     except Exception:
@@ -103,10 +113,13 @@ def _resolve_initial_workflow_config() -> tuple[WorkflowConfig, Path]:
     if remembered:
         candidate = Path(remembered)
         try:
-            return load_workflow_config(candidate), candidate
+            loaded = load_workflow_config(candidate)
+            normalized, _inserted = normalize_pinned_leading_rows(loaded, canonical)
+            return normalized, candidate
         except (WorkflowConfigIOError, WorkflowConfigValidationError):
             pass
-    return _load_workflow_config(DEFAULT_WORKFLOW_CONFIG_PATH), DEFAULT_WORKFLOW_CONFIG_PATH
+    normalized_canonical, _inserted = normalize_pinned_leading_rows(canonical, canonical)
+    return normalized_canonical, DEFAULT_WORKFLOW_CONFIG_PATH
 
 
 WORKFLOW_CONFIG, _INITIAL_WORKFLOW_CONFIG_PATH = _resolve_initial_workflow_config()
@@ -197,16 +210,18 @@ def _resolve_addon_for_row(row, addon_index: dict[str, AddonDescriptor]) -> Addo
     return None
 
 
-# Geometry/Framing no longer have their own filmstrip row in the WEB frontend (2026-07-24) -- only
-# reachable via the "Réglages manuels" > Geometry/Cadrage toggle inside Film's/Color Splash's own
-# Zoom (auxiliary_zoom_* below). They remain real, indexed pipeline steps -- this constant/helper
-# affect ONLY which rows _compute_vignette_states lazily renders thumbnails for on the web API,
-# mirroring web/src/lib/filmstrip.ts's HIDDEN_ROW_IDENTIFIERS/visibleRowRealIndices exactly. Never
-# touch `visible_row_indices` itself (lumaflow.api.filmstrip_types) -- filter before calling it,
-# map back after. Matched by IDENTIFIER, not label (2026-09-05, aligning with the frontend's own
-# 2026-09-03 migration): the label is now localised ("Geometry" -> "Géométrie") and row order is
-# user-editable, so only the stable identifier is a safe key.
-_HIDDEN_ROW_IDENTIFIERS = {"geometry", "framing"}
+# Geometry/Framing (and, since feature 100, Removal) have no filmstrip row in the WEB frontend --
+# only reachable via a "Réglages manuels" toggle inside another row's own Zoom (auxiliary_zoom_*
+# below). They remain real, indexed pipeline steps -- this constant/helper affect ONLY which rows
+# _compute_vignette_states lazily renders thumbnails for on the web API, mirroring
+# web/src/lib/filmstrip.ts's HIDDEN_ROW_IDENTIFIERS/visibleRowRealIndices exactly. Never touch
+# `visible_row_indices` itself (lumaflow.api.filmstrip_types) -- filter before calling it, map back
+# after. Matched by IDENTIFIER, not label (2026-09-05, aligning with the frontend's own 2026-09-03
+# migration): the label is now localised ("Geometry" -> "Géométrie") and row order is user-editable,
+# so only the stable identifier is a safe key. Derived from PINNED_LEADING_ROW_IDENTIFIERS
+# (lumaflow/config/workflow.py) rather than a second hand-written literal set, so the two can never
+# drift apart.
+_HIDDEN_ROW_IDENTIFIERS = set(PINNED_LEADING_ROW_IDENTIFIERS)
 
 
 def _visible_row_real_indices(total: int) -> list[int]:
@@ -1047,16 +1062,18 @@ def render_auxiliary_before(session: Session, row_identifier: str) -> numpy.ndar
     return render_full_resolution(session, upto_exclusive=step_index)
 
 
-def set_auxiliary_zoom_parameter(session: Session, row_identifier: str, identifier: str, value: float) -> None:
-    """Writes one edit into `row_identifier`'s own step (Geometry's corner_*/rotation_angle,
-    Framing's crop_*) while a Zoom session is open on a DIFFERENT row (Film/Color Splash) --
-    mirrors set_zoom_parameter, but targets an explicit row instead of session.zoom.step_index.
-    Snapshots that step's parameter values on first write this session (lazily, keyed by step
-    index) so cancel_zoom can restore them alongside the zoomed step's own snapshot. Deliberately
-    does NOT re-render (unlike set_zoom_parameter, which the plain-slider debounce path relies on)
-    -- the combined preview is only recomputed when the caller explicitly renders zoom/after,
-    triggered by the "Appliquer" button, same convention GeometryCanvas/CropCanvas already use for
-    their own corner/crop drags."""
+def set_auxiliary_zoom_parameters(session: Session, row_identifier: str, updates: dict[str, float]) -> None:
+    """Writes a BATCH of edits into `row_identifier`'s own step while a Zoom session is open on a
+    DIFFERENT row -- same semantics as `set_auxiliary_zoom_parameter` (single-key convenience
+    wrapper below), generalized for feature 100's removal zones, which commit up to 65 keys (one
+    vertex drag) per gesture and would otherwise need 65 round trips. Snapshots that step's
+    parameter values ONCE on the first write this Zoom session (lazily, keyed by step index,
+    whether that first write came through this function or the singular one) so `cancel_zoom` can
+    restore them alongside the zoomed step's own snapshot. Deliberately does NOT re-render (unlike
+    `set_zoom_parameter`, which the plain-slider debounce path relies on) -- the combined preview is
+    only recomputed when the caller explicitly renders zoom/after, triggered by the "Appliquer"
+    button, same convention GeometryCanvas/CropCanvas/RemovalToolStage already use for their own
+    drag commits."""
     if session.zoom is None:
         raise ValueError("No Zoom session open")
     if session.pipeline is None:
@@ -1067,7 +1084,34 @@ def set_auxiliary_zoom_parameter(session: Session, row_identifier: str, identifi
     step = session.pipeline._steps[step_index]
     if step_index not in session.zoom.auxiliary_snapshots:
         session.zoom.auxiliary_snapshots[step_index] = dict(step.parameters.values)
-    step.parameters.values[identifier] = value
+    for identifier, value in updates.items():
+        step.parameters.values[identifier] = value
+
+
+def set_auxiliary_zoom_parameter(session: Session, row_identifier: str, identifier: str, value: float) -> None:
+    """Single-key convenience wrapper around `set_auxiliary_zoom_parameters` -- kept as its own
+    entry point since Geometry's/Framing's own drag handlers each commit exactly one key at a time
+    (corner_*/rotation_angle, crop_*) and a batch-of-one would just add ceremony at every call
+    site."""
+    set_auxiliary_zoom_parameters(session, row_identifier, {identifier: value})
+
+
+def render_auxiliary_after(session: Session, row_identifier: str) -> numpy.ndarray:
+    """Full-resolution render of the pipeline up to AND INCLUDING `row_identifier`'s own step --
+    the preview `RemovalToolStage.apply()` (and any future auxiliary stage) shows after its
+    "Appliquer" button, mirroring `render_zoom_after`'s "before/after" convention for a row zoomed
+    directly. Reuses `render_full_resolution`'s own per-position cache
+    (`_compute_applied_pipeline_cached`), so this never recomputes a position the singular/plural
+    setters above already caused to be recomputed by a later call, and a subsequent `GET
+    .../zoom/auxiliary/{row}/before` on `geometry`/`framing` (which renders up to their own,
+    LATER position) reuses this same cached prefix instead of recomputing `removal`'s output a
+    second time."""
+    if session.zoom is None:
+        raise ValueError("No Zoom session open")
+    step_index = _row_index_by_identifier(row_identifier)
+    if step_index is None:
+        raise ValueError(f"Unknown row identifier '{row_identifier}'")
+    return render_full_resolution(session, upto_exclusive=step_index + 1)
 
 
 def _before_signature_for_step(session: Session, step_index: int) -> tuple:

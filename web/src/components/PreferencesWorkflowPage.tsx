@@ -29,8 +29,9 @@ CollapsibleSection primitive (that one assumes a borderless stacked-list look; t
 existing bordered card).
 
 Row ORDER is editable since 2026-09-05 (▲/▼ in each card header, same array-swap pattern as
-moveVignette). The hidden rows (Geometry/Cadrage -- isHiddenRow) are pinned in the leading
-positions and have no move buttons: the auxiliary-zoom corrections that reach them from inside
+moveVignette). The hidden rows (Suppression d'objets/Geometry/Cadrage since feature 100 --
+isHiddenRow) are pinned in the leading positions and have no move buttons: the auxiliary-zoom
+corrections that reach them from inside
 Film/Color Splash's Zoom only render coherently if they precede every visible row. The backend
 (app.py _validate_workflow_row_identity) enforces the same rule, so a hand-edited JSON can't get
 past it either. */

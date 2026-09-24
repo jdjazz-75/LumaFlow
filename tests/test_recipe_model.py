@@ -126,16 +126,19 @@ def test_empty_schema_version_rejected():
         assert exc.reason == "empty_schema_version"
 
 
-# --- Geometry/Framing excluded from every recipe (2026-08-24) ---
+# --- Geometry/Framing excluded from every recipe (2026-08-24); Removal joins them (feature 100,
+# 2026-09-23) -- all three are image-specific corrections that almost never apply to a different
+# photo. ---
 
 
-def test_geometry_and_framing_step_entries_are_dropped_on_load():
-    # A recipe file that still lists Geometry/Framing (hand-crafted, or a v1 file authored before
-    # this exclusion existed) must load without error or warning -- those two entries are simply
-    # absent from the resulting Recipe.steps, same as if the file never mentioned them.
+def test_geometry_framing_and_removal_step_entries_are_dropped_on_load():
+    # A recipe file that still lists Geometry/Framing/Removal (hand-crafted, or a v1 file authored
+    # before these exclusions existed) must load without error or warning -- those entries are
+    # simply absent from the resulting Recipe.steps, same as if the file never mentioned them.
     data = {
         "schema_version": SCHEMA_VERSION,
         "steps": [
+            {"step_identifier": "removal", "thumbnail_identifier": "neutral", "parameters": {"zone_0_mask_point_count": 4.0}},
             {"step_identifier": "geometry", "thumbnail_identifier": "neutral", "parameters": {"angle": 12.0}},
             {"step_identifier": "framing", "thumbnail_identifier": "neutral", "parameters": {"crop_x": 0.1}},
             {"step_identifier": "film", "thumbnail_identifier": "neutral", "parameters": {}},
@@ -145,8 +148,8 @@ def test_geometry_and_framing_step_entries_are_dropped_on_load():
     assert [s.step_identifier for s in recipe.steps] == ["film"]
 
 
-def test_excluded_step_identifiers_is_geometry_and_framing():
-    assert EXCLUDED_STEP_IDENTIFIERS == frozenset({"geometry", "framing"})
+def test_excluded_step_identifiers_is_geometry_framing_and_removal():
+    assert EXCLUDED_STEP_IDENTIFIERS == frozenset({"geometry", "framing", "removal"})
 
 
 # --- US3 (legacy): backward compatibility with a v1 file (source block + no exclusion) ---

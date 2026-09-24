@@ -67,7 +67,9 @@ test("remonter Color Splash au-dessus de Film via Préférences > Workflow", asy
   await moveUp.click();
   await expect(moveUp).toBeDisabled();
 
-  // Géométrie/Cadrage n'ont pas de commande de déplacement.
+  // Suppression d'objets/Géométrie/Cadrage n'ont pas de commande de déplacement (3 lignes
+  // épinglées en tête depuis feature 100, plus Géométrie/Cadrage déjà verrouillées).
+  await expect(rowCard(page, "Suppression d'objets").getByRole("button", { name: "Monter la ligne" })).toHaveCount(0);
   await expect(rowCard(page, "Géométrie").getByRole("button", { name: "Monter la ligne" })).toHaveCount(0);
 
   const [putResponse, workflowResponse] = await Promise.all([
@@ -93,6 +95,6 @@ test("remonter Color Splash au-dessus de Film via Préférences > Workflow", asy
     .get("/workflow-config")
     .then((r) => r.json())
     .then((c: { rows: { identifier: string }[] }) => c.rows.map((row) => row.identifier));
-  expect(serverOrder.slice(0, 2)).toEqual(["geometry", "framing"]);
+  expect(serverOrder.slice(0, 3)).toEqual(["removal", "geometry", "framing"]);
   expect(serverOrder.indexOf("color_splash")).toBeLessThan(serverOrder.indexOf("film"));
 });

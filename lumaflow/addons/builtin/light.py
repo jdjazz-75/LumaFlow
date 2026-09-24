@@ -1,9 +1,13 @@
-# LumaFlow v1.0 (2026-08-07)
+# LumaFlow v1.1 (2026-09-24)
 # Addon Lumiere : moteur de gradation parametrique (~31 champs) avec presets Low Key/
-# High Key/Dramatique/Soft, split sujet/fond via masque polygonal, halo et douceur protegee.
+# High Key/Dramatique/Soft, split sujet/fond via jusqu'a 4 zones polygonales (union), halo et
+# douceur protegee.
 """Light addon (Lumière) v2 -- elaborate one-click presets (Low Key, High Key, Dramatique, Soft)
 on top of F-043's Neutre/Balance, all sharing a single parametric grading engine, plus a
-subject/background split (feature 047).
+subject/background split (feature 047), extended 2026-09-24 to up to 4 independent zones whose
+UNION defines the subject region (ergonomics revision requested alongside object_removal.py's own
+4-zone toggle panel -- see `_MASK_ZONE_PREFIXES`'s docstring for the recipe-compatibility
+constraint that shaped this, and `specs/099-addon-light-v2/spec.md`'s dated addendum).
 
 No Qt, no pipeline engine, no persistence module import (same convention as every module under
 lumaflow/addons/).
@@ -719,9 +723,20 @@ _MAX_MASK_VERTICES = 32
 # SubjectMaskStage with when no mask_point_* key is in params yet.
 _DEFAULT_MASK_POINTS: tuple[tuple[float, float], ...] = ((0.25, 0.25), (0.75, 0.25), (0.75, 0.75), (0.25, 0.75))
 
+# Up to 4 independent zones whose UNION defines the subject/background boundary (ergonomics
+# revision 2026-09-24, mirroring object_removal.py's own 4-zone toggle panel). Zone 1 keeps the
+# ORIGINAL bare `mask_point_*` keys -- this addon's mask is saved in recipes (unlike
+# object_removal's transient zones), so an existing recipe's single polygon must keep reading back
+# identically; zones 2-4 are new, additive, on their own `zone2_`/`zone3_`/`zone4_` prefixes (match
+# `isMaskParameter`'s `(^|_)mask_(...)` regex on the web side without any frontend change).
+# Adoucissement/Inverser stay SHARED across all 4 zones (bare `mask_feather`/`mask_invert` only,
+# same as Suppression d'objets' single global Marge/Fondu) -- zones 2-4 declare no feather/invert
+# keys of their own.
+_MASK_ZONE_PREFIXES: tuple[str, ...] = ("", "zone2_", "zone3_", "zone4_")
+
 
 class _MaskSpec(NamedTuple):
-    points: tuple[tuple[float, float], ...]
+    zones: tuple[tuple[tuple[float, float], ...], ...]
     feather_pct: float
     invert: bool
 
@@ -733,44 +748,88 @@ def _read_bool(params: dict[str, Any], key: str, default: bool) -> bool:
     return float(value) >= 0.5
 
 
-def _read_mask(params: dict[str, Any]) -> _MaskSpec | None:
-    """Resolves the polygon boundary from its flat scalar keys -- `count < 3` (missing, malformed,
-    or explicitly below 3) returns `None` (no region split -- the degenerate-polygon case: a
-    near-zero-vertex "shape" is simply treated as no boundary at all, never an error)."""
-    count_float = _read_float(params, "mask_point_count", 0.0, minimum=0.0, maximum=_MAX_MASK_VERTICES)
-    count = int(count_float)
+def _read_mask_zone(params: dict[str, Any], prefix: str) -> tuple[tuple[float, float], ...] | None:
+    """Resolves ONE zone's polygon from its flat scalar keys -- `count < 3` (missing, malformed, or
+    explicitly below 3) returns `None`, meaning this zone slot is simply unused (mirrors
+    object_removal.py's own `_read_zone`, the same degenerate-polygon-is-not-an-error convention)."""
+    count = int(_read_float(params, f"{prefix}mask_point_count", 0.0, minimum=0.0, maximum=_MAX_MASK_VERTICES))
     if count < 3:
         return None
     points = []
     for i in range(count):
-        default_x, default_y = _DEFAULT_MASK_POINTS[i] if i < len(_DEFAULT_MASK_POINTS) else (0.5, 0.5)
-        x = _read_float(params, f"mask_point_{i:02d}_x", default_x, minimum=0.0, maximum=1.0)
-        y = _read_float(params, f"mask_point_{i:02d}_y", default_y, minimum=0.0, maximum=1.0)
+        default_x, default_y = (
+            _DEFAULT_MASK_POINTS[i] if prefix == "" and i < len(_DEFAULT_MASK_POINTS) else (0.5, 0.5)
+        )
+        x = _read_float(params, f"{prefix}mask_point_{i:02d}_x", default_x, minimum=0.0, maximum=1.0)
+        y = _read_float(params, f"{prefix}mask_point_{i:02d}_y", default_y, minimum=0.0, maximum=1.0)
         points.append((x, y))
+    return tuple(points)
+
+
+def _read_mask(params: dict[str, Any]) -> _MaskSpec | None:
+    """Resolves the subject/background boundary as the UNION of up to 4 zones (ergonomics revision
+    2026-09-24) -- `None` (no region split) only when NONE of the 4 zones has >=3 vertices, same
+    "degenerate shape is not an error" contract as before. Adoucissement/Inverser are read once,
+    from the bare keys only, shared by every zone (see `_MASK_ZONE_PREFIXES`'s own docstring)."""
+    zones = tuple(
+        zone_points
+        for prefix in _MASK_ZONE_PREFIXES
+        if (zone_points := _read_mask_zone(params, prefix)) is not None
+    )
+    if not zones:
+        return None
     feather_pct = _read_float(params, "mask_feather", 2.0, minimum=0.0, maximum=20.0)
     invert = _read_bool(params, "mask_invert", False)
-    return _MaskSpec(points=tuple(points), feather_pct=feather_pct, invert=invert)
+    return _MaskSpec(zones=zones, feather_pct=feather_pct, invert=invert)
+
+
+def _rasterize_polygon_hard(shape: tuple[int, ...], points: tuple[tuple[float, float], ...]) -> numpy.ndarray:
+    """Rasterizes one polygon via PIL.ImageDraw (handles arbitrary, including self-intersecting,
+    polygons via scanline fill with no crash risk -- the degenerate-polygon edge case) to a hard
+    (unfeathered) 0..1 float mask. Recomputed from the actual array `shape` on every call -- never
+    cached across resolutions, so the mask is geometrically identical for the 480px preview and the
+    full-resolution render."""
+    height, width = shape[0], shape[1]
+    canvas = PILImage.new("L", (width, height), 0)
+    pixel_points = [(x * width, y * height) for x, y in points]
+    ImageDraw.Draw(canvas).polygon(pixel_points, fill=255)
+    return numpy.asarray(canvas, dtype=numpy.float32) / 255.0
+
+
+def _feather_and_invert(hard_mask: numpy.ndarray, feather_pct: float, invert: bool, shape: tuple[int, ...]) -> numpy.ndarray:
+    """Feathers a hard 0/1 mask via two `_box_blur` passes at half the feather radius each
+    (triangular ~= gaussian falloff, Decision 6), then optionally inverts."""
+    height, width = shape[0], shape[1]
+    radius = max(0, int(round(feather_pct / 100.0 * min(height, width))))
+    mask = hard_mask
+    if radius > 0:
+        half = max(1, radius // 2)
+        mask = _box_blur(_box_blur(mask, half), half)
+    return 1.0 - mask if invert else mask
 
 
 def _polygon_mask(
     shape: tuple[int, ...], points: tuple[tuple[float, float], ...], feather_pct: float, invert: bool
 ) -> numpy.ndarray:
-    """Rasterizes the polygon via PIL.ImageDraw (handles arbitrary, including self-intersecting,
-    polygons via scanline fill with no crash risk -- the degenerate-polygon edge case),
-    then feathers the hard edge via two `_box_blur` passes at half the feather radius each
-    (triangular ~= gaussian falloff, Decision 6). Recomputed from the actual array `shape` on every
-    call -- never cached across resolutions, so the mask is geometrically identical for the 480px
-    preview and the full-resolution render."""
-    height, width = shape[0], shape[1]
-    canvas = PILImage.new("L", (width, height), 0)
-    pixel_points = [(x * width, y * height) for x, y in points]
-    ImageDraw.Draw(canvas).polygon(pixel_points, fill=255)
-    mask = numpy.asarray(canvas, dtype=numpy.float32) / 255.0
-    radius = max(0, int(round(feather_pct / 100.0 * min(height, width))))
-    if radius > 0:
-        half = max(1, radius // 2)
-        mask = _box_blur(_box_blur(mask, half), half)
-    return 1.0 - mask if invert else mask
+    """Single-polygon mask (feathered, optionally inverted) -- kept as its own function (signature
+    and behaviour unchanged) since it is still the natural single-zone case; see `_union_mask` for
+    the multi-zone generalisation used by `light_adjustments`."""
+    return _feather_and_invert(_rasterize_polygon_hard(shape, points), feather_pct, invert, shape)
+
+
+def _union_mask(
+    shape: tuple[int, ...],
+    zones: tuple[tuple[tuple[float, float], ...], ...],
+    feather_pct: float,
+    invert: bool,
+) -> numpy.ndarray:
+    """The subject/background boundary for MULTIPLE zones: each zone is rasterized hard (no
+    feather), combined via a pixel-wise max (a plain union -- correct regardless of whether zones
+    overlap, unlike an even-odd SVG path, which would incorrectly punch a hole back open where two
+    zones overlap), and feathered/inverted ONCE on the combined shape -- feathering per zone and
+    recombining would double-blur adjacent zone boundaries."""
+    hard = numpy.maximum.reduce([_rasterize_polygon_hard(shape, points) for points in zones])
+    return _feather_and_invert(hard, feather_pct, invert, shape)
 
 
 # Padding (beyond the feather ramp itself) added to the mask's bounding box before cropping the
@@ -830,32 +889,53 @@ def _region_delta_parameter_descriptions(prefix: str, region_label: str) -> tupl
     return tuple(descriptions)
 
 
-def _mask_parameter_descriptions() -> tuple[ParameterDescription, ...]:
+def _mask_zone_parameter_descriptions(zone_index: int) -> tuple[ParameterDescription, ...]:
+    """One zone's vertex parameters -- zone 0 (bare prefix) also declares the shared
+    feather/invert keys and defaults to the historical centered-rectangle default (back-compat,
+    see `_MASK_ZONE_PREFIXES`'s docstring); zones 1-3 (`zone2_`/`zone3_`/`zone4_`) are new, declare
+    ONLY their own vertex count + coordinates, and default to an empty (disabled) zone, matching
+    `maskValuesFromById`'s own `isPrefixed ? 0 : 4` fallback on the web side."""
+    prefix = _MASK_ZONE_PREFIXES[zone_index]
+    is_primary = zone_index == 0
     descriptions = [
         ParameterDescription(
-            identifier="mask_point_count", label="Nombre de sommets", kind="numeric_slider", default=4.0,
-            zoom_only=True, constraints=NumericSliderConstraints(minimum=0.0, maximum=float(_MAX_MASK_VERTICES), step=1.0),
-        ),
-        ParameterDescription(
-            identifier="mask_feather", label="Adoucissement du contour", kind="numeric_slider", default=2.0,
-            zoom_only=True, constraints=NumericSliderConstraints(minimum=0.0, maximum=20.0, step=0.5),
-        ),
-        ParameterDescription(
-            identifier="mask_invert", label="Inverser le contour", kind="numeric_slider", default=0.0,
-            zoom_only=True, constraints=NumericSliderConstraints(minimum=0.0, maximum=1.0, step=1.0),
+            identifier=f"{prefix}mask_point_count", label=f"Zone {zone_index + 1} — nombre de sommets",
+            kind="numeric_slider", default=4.0 if is_primary else 0.0, zoom_only=True,
+            constraints=NumericSliderConstraints(minimum=0.0, maximum=float(_MAX_MASK_VERTICES), step=1.0),
         ),
     ]
-    for i in range(_MAX_MASK_VERTICES):
-        default_x, default_y = _DEFAULT_MASK_POINTS[i] if i < len(_DEFAULT_MASK_POINTS) else (0.5, 0.5)
+    if is_primary:
         descriptions.append(ParameterDescription(
-            identifier=f"mask_point_{i:02d}_x", label=f"Sommet {i} (x)", kind="numeric_slider",
-            default=default_x, zoom_only=True, constraints=NumericSliderConstraints(minimum=0.0, maximum=1.0, step=0.001),
+            identifier="mask_feather", label="Adoucissement du contour", kind="numeric_slider", default=2.0,
+            zoom_only=True, constraints=NumericSliderConstraints(minimum=0.0, maximum=20.0, step=0.5),
         ))
         descriptions.append(ParameterDescription(
-            identifier=f"mask_point_{i:02d}_y", label=f"Sommet {i} (y)", kind="numeric_slider",
-            default=default_y, zoom_only=True, constraints=NumericSliderConstraints(minimum=0.0, maximum=1.0, step=0.001),
+            identifier="mask_invert", label="Inverser le contour", kind="numeric_slider", default=0.0,
+            zoom_only=True, constraints=NumericSliderConstraints(minimum=0.0, maximum=1.0, step=1.0),
+        ))
+    for i in range(_MAX_MASK_VERTICES):
+        default_x, default_y = (
+            _DEFAULT_MASK_POINTS[i] if is_primary and i < len(_DEFAULT_MASK_POINTS) else (0.5, 0.5)
+        )
+        descriptions.append(ParameterDescription(
+            identifier=f"{prefix}mask_point_{i:02d}_x", label=f"Zone {zone_index + 1} — sommet {i} (x)",
+            kind="numeric_slider", default=default_x, zoom_only=True,
+            constraints=NumericSliderConstraints(minimum=0.0, maximum=1.0, step=0.001),
+        ))
+        descriptions.append(ParameterDescription(
+            identifier=f"{prefix}mask_point_{i:02d}_y", label=f"Zone {zone_index + 1} — sommet {i} (y)",
+            kind="numeric_slider", default=default_y, zoom_only=True,
+            constraints=NumericSliderConstraints(minimum=0.0, maximum=1.0, step=0.001),
         ))
     return tuple(descriptions)
+
+
+def _mask_parameter_descriptions() -> tuple[ParameterDescription, ...]:
+    return tuple(
+        description
+        for zone_index in range(len(_MASK_ZONE_PREFIXES))
+        for description in _mask_zone_parameter_descriptions(zone_index)
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1004,9 +1084,10 @@ _GRADES: dict[str, _LightGrade] = {
 def resolve_zoom_values(params: dict[str, Any]) -> dict[str, float]:
     """Returns the effective value of every declared identifier -- base-grade fields (an override
     present in `params` wins, otherwise the selected look's own calibrated value), `intensity`,
-    the 38 subject_*/background_* region-delta fields, and the 67 mask fields -- completeness
-    (every identifier in ADDON_DESCRIPTION.parameter_descriptions has an entry here) is the direct
-    regression guard for the bug already fixed once on this same addon in F-043."""
+    the 38 subject_*/background_* region-delta fields, and the 262 mask fields (4 zones, see
+    `_MASK_ZONE_PREFIXES`) -- completeness (every identifier in
+    ADDON_DESCRIPTION.parameter_descriptions has an entry here) is the direct regression guard for
+    the bug already fixed once on this same addon in F-043."""
     intensity = _read_float(params, "intensity", 1.0, minimum=0.0, maximum=1.0)
     values: dict[str, float] = {"intensity": intensity}
     base = _GRADES.get(params.get("look"), _NEUTRAL_GRADE)
@@ -1019,13 +1100,24 @@ def resolve_zoom_values(params: dict[str, Any]) -> dict[str, float]:
         for field_name in _REGION_COMPOSITION:
             values[f"{prefix}_{field_name}"] = float(getattr(deltas, field_name))
 
-    values["mask_point_count"] = _read_float(params, "mask_point_count", 4.0, minimum=0.0, maximum=_MAX_MASK_VERTICES)
     values["mask_feather"] = _read_float(params, "mask_feather", 2.0, minimum=0.0, maximum=20.0)
     values["mask_invert"] = 1.0 if _read_bool(params, "mask_invert", False) else 0.0
-    for i in range(_MAX_MASK_VERTICES):
-        default_x, default_y = _DEFAULT_MASK_POINTS[i] if i < len(_DEFAULT_MASK_POINTS) else (0.5, 0.5)
-        values[f"mask_point_{i:02d}_x"] = _read_float(params, f"mask_point_{i:02d}_x", default_x, minimum=0.0, maximum=1.0)
-        values[f"mask_point_{i:02d}_y"] = _read_float(params, f"mask_point_{i:02d}_y", default_y, minimum=0.0, maximum=1.0)
+    for zone_index, prefix in enumerate(_MASK_ZONE_PREFIXES):
+        is_primary = zone_index == 0
+        default_count = 4.0 if is_primary else 0.0
+        values[f"{prefix}mask_point_count"] = _read_float(
+            params, f"{prefix}mask_point_count", default_count, minimum=0.0, maximum=_MAX_MASK_VERTICES
+        )
+        for i in range(_MAX_MASK_VERTICES):
+            default_x, default_y = (
+                _DEFAULT_MASK_POINTS[i] if is_primary and i < len(_DEFAULT_MASK_POINTS) else (0.5, 0.5)
+            )
+            values[f"{prefix}mask_point_{i:02d}_x"] = _read_float(
+                params, f"{prefix}mask_point_{i:02d}_x", default_x, minimum=0.0, maximum=1.0
+            )
+            values[f"{prefix}mask_point_{i:02d}_y"] = _read_float(
+                params, f"{prefix}mask_point_{i:02d}_y", default_y, minimum=0.0, maximum=1.0
+            )
     return values
 
 
@@ -1069,8 +1161,9 @@ def light_adjustments(image: numpy.ndarray, params: dict[str, Any]) -> numpy.nda
         # here silently drops the region delta over most of the image whenever inverted (bug found
         # 2026-07-28: the original version always cropped the subject render, which is correct only
         # for the non-inverted case).
-        x0, x1, y0, y1 = _mask_bounding_box(mask.points, mask.feather_pct, source.shape)
-        alpha = _polygon_mask(source.shape, mask.points, mask.feather_pct, mask.invert)[..., numpy.newaxis]
+        pooled_points = tuple(point for zone_points in mask.zones for point in zone_points)
+        x0, x1, y0, y1 = _mask_bounding_box(pooled_points, mask.feather_pct, source.shape)
+        alpha = _union_mask(source.shape, mask.zones, mask.feather_pct, mask.invert)[..., numpy.newaxis]
         if not mask.invert:
             full_result = _apply_region_grade(source, background_grade)
             graded = full_result.copy()

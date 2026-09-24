@@ -12,18 +12,31 @@ type CollapsibleSectionProps = {
   /** Caller computes this (it already has the group's live values); the section only renders
   the dot -- a hint that a value inside a collapsed group differs from its default. */
   hasModifiedValue?: boolean;
+  /** Controlled mode (feature 100's "Suppression d'objets" panel, ergonomics revision): when both
+  are given, the section's open/closed state is driven by the caller (e.g. tied to whether an
+  on-canvas correction stage is mounted) instead of its own internal state, and clicking the header
+  calls `onToggle` instead of flipping local state. Omit both to keep the original uncontrolled
+  behavior (every other call site) unchanged. */
+  open?: boolean;
+  onToggle?: () => void;
   children: ReactNode;
 };
 
-export function CollapsibleSection({ title, defaultOpen = false, hasModifiedValue = false, children }: CollapsibleSectionProps) {
-  const [open, setOpen] = useState(defaultOpen);
+export function CollapsibleSection({ title, defaultOpen = false, hasModifiedValue = false, open: openProp, onToggle, children }: CollapsibleSectionProps) {
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const open = openProp ?? internalOpen;
+
+  function handleClick() {
+    if (onToggle) onToggle();
+    else setInternalOpen((prev) => !prev);
+  }
 
   return (
     <div className="collapsible-section">
       <button
         type="button"
         className="collapsible-section__header"
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={handleClick}
         aria-expanded={open}
       >
         <span className="collapsible-section__title">{title}</span>

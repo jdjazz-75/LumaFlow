@@ -9,15 +9,16 @@ for this screen's behavior since the Qt UI's removal (2026-07-29). */
 
 export const NEUTRAL_PRESET_IDENTIFIER = "neutral";
 
-/** Geometry/Cadrage are no longer shown as standalone filmstrip rows (2026-07-24) -- both are now
-edited exclusively via the "Réglages manuels" > Geometry/Cadrage toggle inside Film's and Color
-Splash's own Zoom (the auxiliary zoom parameter mechanism). They remain real, indexed pipeline
-steps on the backend (config_workflow.json is untouched) -- only the web editing UI hides them.
+/** Geometry/Cadrage (and, since feature 100, Suppression d'objets) are no longer shown as
+standalone filmstrip rows -- all three are edited exclusively via a "Réglages manuels" toggle
+inside another row's own Zoom (the auxiliary zoom parameter mechanism). They remain real, indexed
+pipeline steps on the backend (config_workflow.json is untouched) -- only the web editing UI hides
+them.
 
 Matched on `RowSpec.identifier` since 2026-09-03 (i18n phase 1). It used to match on `label`, a
 convention this file itself called "fragile-but-established" -- and one that stopped working the
 moment "Geometry" became "Géométrie", silently un-hiding both rows. */
-export const HIDDEN_ROW_IDENTIFIERS = new Set(["geometry", "framing"]);
+export const HIDDEN_ROW_IDENTIFIERS = new Set(["removal", "geometry", "framing"]);
 
 /** True for a row the web UI never lists as a standalone filmstrip row. */
 export function isHiddenRow(row: { identifier: string }): boolean {

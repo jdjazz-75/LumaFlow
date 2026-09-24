@@ -17,6 +17,7 @@ from lumaflow.addons.builtin.light import (
     ADDON_DESCRIPTION,
     _FIELD_BOUNDS,
     _GRADES,
+    _MASK_ZONE_PREFIXES,
     _MaskSpec,
     _NEUTRAL_GRADE,
     _REGION_COMPOSITION,
@@ -26,6 +27,7 @@ from lumaflow.addons.builtin.light import (
     _polygon_mask,
     _read_mask,
     _read_region_deltas,
+    _union_mask,
     light_adjustments,
     resolve_zoom_values,
 )
@@ -289,11 +291,16 @@ def test_addon_description_shape():
     region_identifiers = {
         f"{prefix}_{field_name}" for prefix in ("subject", "background") for field_name in _REGION_COMPOSITION
     }
-    mask_identifiers = {"mask_point_count", "mask_feather", "mask_invert"} | {
-        f"mask_point_{i:02d}_{axis}" for i in range(32) for axis in ("x", "y")
-    }
+    # Zone 1 (bare prefix, back-compat) declares count+feather+invert+64 vertex coords; zones 2-4
+    # (`zone2_`/`zone3_`/`zone4_`) declare only count+64 vertex coords each (shared feather/invert,
+    # see _MASK_ZONE_PREFIXES) -- 67 + 3*65 = 262 mask identifiers total.
+    mask_identifiers: set[str] = set()
+    for zone_index, prefix in enumerate(_MASK_ZONE_PREFIXES):
+        mask_identifiers.add(f"{prefix}mask_point_count")
+        mask_identifiers |= {f"{prefix}mask_point_{i:02d}_{axis}" for i in range(32) for axis in ("x", "y")}
+    mask_identifiers |= {"mask_feather", "mask_invert"}
     assert declared_identifiers == {"intensity"} | set(_FIELD_BOUNDS) | region_identifiers | mask_identifiers
-    assert len(declared_identifiers) == 137
+    assert len(declared_identifiers) == 332
     assert all(p.zoom_only for p in ADDON_DESCRIPTION.parameter_descriptions)
     assert ADDON_DESCRIPTION.overlay_descriptions == ()
     assert ADDON_DESCRIPTION.resolve_zoom_values is resolve_zoom_values
@@ -466,7 +473,7 @@ def test_mask_vertex_per_key_fallback_to_default_rectangle_point():
     mask = _read_mask(corrupted)
     clean = _read_mask(_RECTANGLE_PARAMS)
     assert mask is not None and clean is not None
-    assert mask.points[1] == clean.points[1] == (0.75, 0.25)
+    assert mask.zones[0][1] == clean.zones[0][1] == (0.75, 0.25)
 
 
 def test_resolve_zoom_values_includes_region_and_mask_fields_with_defaults():
@@ -615,3 +622,75 @@ def test_inverted_mask_applies_subject_grade_outside_the_bounding_box():
     # well past the polygon's own feather-padded bounding box: exactly where the bug dropped the
     # subject grade entirely.
     assert numpy.array_equal(out[2, 2], subject_only[2, 2])
+
+
+# --- Ergonomics revision 2026-09-24: up to 4 zones, union defines the subject boundary ---
+
+
+def test_a_recipe_using_only_the_bare_zone_1_keys_is_unaffected_by_the_multi_zone_change():
+    # Non-regression guard for _MASK_ZONE_PREFIXES's whole reason to exist: an already-saved
+    # recipe only ever wrote the bare `mask_point_*` keys (zone 1) -- it must keep rendering
+    # exactly as it did before zones 2-4 existed.
+    image = _variance_fixture()
+    params = {"look": "low_key", "intensity": 1.0, "subject_exposure": 40.0, "background_exposure": -20.0, **_RECTANGLE_PARAMS}
+    out = light_adjustments(image, params)
+    mask = _read_mask(params)
+    assert mask is not None
+    assert mask.zones == (((0.25, 0.25), (0.75, 0.25), (0.75, 0.75), (0.25, 0.75)),)
+    # Equivalent to a single-zone _polygon_mask render (what this addon did pre-revision).
+    single_zone_alpha = _polygon_mask(image.shape, mask.zones[0], mask.feather_pct, mask.invert)
+    union_alpha = _union_mask(image.shape, mask.zones, mask.feather_pct, mask.invert)
+    assert numpy.allclose(single_zone_alpha, union_alpha)
+    assert out.shape == image.shape
+
+
+def test_only_zone_2_active_still_reads_shared_feather_and_invert_from_the_bare_keys():
+    # Zones 2-4 declare no feather/invert keys of their own (Décision 2 of the ergonomics plan) --
+    # even when zone 1 is empty and only zone 2 is drawn, mask_feather/mask_invert (bare) still
+    # apply.
+    params = {
+        "zone2_mask_point_count": 4.0,
+        "zone2_mask_point_00_x": 0.1, "zone2_mask_point_00_y": 0.1,
+        "zone2_mask_point_01_x": 0.4, "zone2_mask_point_01_y": 0.1,
+        "zone2_mask_point_02_x": 0.4, "zone2_mask_point_02_y": 0.4,
+        "zone2_mask_point_03_x": 0.1, "zone2_mask_point_03_y": 0.4,
+        "mask_feather": 7.5,
+        "mask_invert": 1.0,
+    }
+    mask = _read_mask(params)
+    assert mask is not None
+    assert len(mask.zones) == 1
+    assert mask.feather_pct == 7.5
+    assert mask.invert is True
+
+
+def test_union_of_two_disjoint_zones_covers_both():
+    shape = (100, 100, 3)
+    zone_a = ((0.05, 0.05), (0.25, 0.05), (0.25, 0.25), (0.05, 0.25))
+    zone_b = ((0.75, 0.75), (0.95, 0.75), (0.95, 0.95), (0.75, 0.95))
+    union = _union_mask(shape, (zone_a, zone_b), feather_pct=0.0, invert=False)
+    assert union[15, 15] == 1.0  # inside zone_a
+    assert union[85, 85] == 1.0  # inside zone_b
+    assert union[50, 50] == 0.0  # outside both
+
+
+def test_union_of_two_overlapping_zones_leaves_no_hole_in_the_overlap():
+    # This is the case a naive even-odd SVG-style combination would get wrong (two overlapping
+    # "holes" cancel back out to "outside") -- a plain pixel-wise max must not.
+    shape = (100, 100, 3)
+    zone_a = ((0.1, 0.1), (0.6, 0.1), (0.6, 0.6), (0.1, 0.6))
+    zone_b = ((0.4, 0.4), (0.9, 0.4), (0.9, 0.9), (0.4, 0.9))
+    union = _union_mask(shape, (zone_a, zone_b), feather_pct=0.0, invert=False)
+    assert union[50, 50] == 1.0  # deep in the overlap region -- must stay "inside", not cancel out
+    assert union[15, 15] == 1.0  # zone_a only
+    assert union[85, 85] == 1.0  # zone_b only
+    assert union[95, 5] == 0.0  # outside both
+
+
+def test_multi_zone_addon_description_has_262_mask_fields_262_none_transient():
+    # Every mask identifier is zoom_only, none is transient (unlike object_removal.py's zones,
+    # Light's mask IS saved in recipes) -- direct regression guard for Décision 1 of the plan.
+    mask_descriptions = [p for p in ADDON_DESCRIPTION.parameter_descriptions if "mask_" in (p.identifier or "")]
+    assert len(mask_descriptions) == 262
+    assert all(p.zoom_only for p in mask_descriptions)
+    assert not any(p.transient for p in mask_descriptions)

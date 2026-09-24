@@ -433,6 +433,32 @@ export async function setAuxiliaryZoomParameter(
   }
 }
 
+/** Batched sibling of setAuxiliaryZoomParameter -- writes N edits into `rowIdentifier`'s own step
+in one call, required for feature 100's removal zones (up to 65 keys per vertex-drag commit, same
+reasoning as setZoomParameters vs setZoomParameter). Same "does not render" contract: 204, no body. */
+export async function setAuxiliaryZoomParameters(
+  sessionId: string,
+  rowIdentifier: string,
+  updates: Array<{ identifier: string; value: number }>,
+): Promise<void> {
+  const response = await fetch(`${BASE_URL}/sessions/${sessionId}/zoom/auxiliary/${rowIdentifier}/parameters`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ updates }),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({ detail: response.statusText }));
+    throw new ApiError(response.status, body.detail ?? response.statusText);
+  }
+}
+
+/** Full-resolution render up to AND INCLUDING `rowIdentifier`'s own step -- the preview a stage's
+"Appliquer" shows (RemovalToolStage), mirroring zoomAfterUrl's convention for a row zoomed
+directly. */
+export function auxiliaryZoomAfterUrl(sessionId: string, rowIdentifier: string): string {
+  return `${BASE_URL}/sessions/${sessionId}/zoom/auxiliary/${rowIdentifier}/after`;
+}
+
 /* Préférences > Workflow (2026-08-06) -- rows themselves are structurally fixed (identifier/
 label/category/short_description are read-only, always echoed back unchanged); only each row's
 vignette enabled flag/order is ever written. `vignettes` is a single UNIFIED list -- every

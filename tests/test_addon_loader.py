@@ -69,7 +69,7 @@ def test_real_builtin_directory_resolves_light_addon_alongside_the_others():
     assert descriptor.category == "light"
     assert descriptor.processing_function is not None
     assert len(descriptor.thumbnail_presets) == 6
-    assert len(descriptor.zoom_parameters) == 137  # intensity + 31 base-grade + 38 region-delta + 67 mask fields (feature 047)
+    assert len(descriptor.zoom_parameters) == 332  # intensity + 31 base-grade + 38 region-delta + 262 mask fields (4 zones, feature 047, revised 2026-09-24)
     assert descriptor.resolve_zoom_values is not None
 
 

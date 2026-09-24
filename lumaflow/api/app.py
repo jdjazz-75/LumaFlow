@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+import threading
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -23,6 +24,7 @@ from PIL import Image
 from pydantic import BaseModel
 
 from lumaflow.addons.contract import ZoomParameterDeclaration
+from lumaflow.addons.inpainting import lama_backend
 from lumaflow.api import batch_runs
 from lumaflow.api import session as session_module
 from lumaflow.api.session import (
@@ -44,6 +46,7 @@ from lumaflow.api.session import (
     precompute_row_before,
     refresh_workflow,
     reload_workflow_config,
+    render_auxiliary_after,
     render_auxiliary_before,
     render_full_resolution,
     render_zoom_after,
@@ -52,6 +55,7 @@ from lumaflow.api.session import (
     row_has_zoom,
     select_vignette,
     set_auxiliary_zoom_parameter,
+    set_auxiliary_zoom_parameters,
     set_zoom_parameter,
     set_zoom_parameters,
     zoom_effective_values,
@@ -59,6 +63,7 @@ from lumaflow.api.session import (
     zoom_pure_default_values,
 )
 from lumaflow.config.workflow import (
+    PINNED_LEADING_ROW_IDENTIFIERS,
     WorkflowConfig,
     WorkflowConfigIOError,
     WorkflowConfigValidationError,
@@ -66,6 +71,7 @@ from lumaflow.config.workflow import (
     catalog_thumbnail_presets,
     default_workflow_config_path,
     load_workflow_config,
+    normalize_pinned_leading_rows,
     save_workflow_config,
 )
 from lumaflow.engine import raw_formats
@@ -97,6 +103,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def _warm_up_lama_backend() -> None:
+    """Suppression d'objets' fill engine (research.md R3) downloads its model checkpoint (first run
+    only) and loads it into memory on first use -- doing that eagerly, off the request path, in a
+    background thread avoids the FIRST real "Appliquer" paying that cost (a few seconds once the
+    file is on disk, longer on a first-ever download). Runs in a plain daemon thread, not
+    `BackgroundTasks`, since `warmup()` is a blocking call and this must not hold up server
+    startup -- the rest of the API is usable immediately regardless of how long this takes, or
+    whether it fails (network unavailable on a fully offline first run: `warmup()` swallows the
+    error, and the next real request retries and surfaces it properly instead)."""
+    threading.Thread(target=lama_backend.warmup, daemon=True).start()
+
 
 # In-memory session store (Phase 1 scope: single local-machine process, no
 # persistence across restarts -- matches the "local web app, no auth/multi-
@@ -741,6 +761,40 @@ def set_auxiliary_zoom_parameter_endpoint(session_id: str, row_identifier: str, 
     return Response(status_code=204)
 
 
+class SetAuxiliaryZoomParametersIn(BaseModel):
+    updates: list[ZoomParameterUpdate]
+
+
+@app.post("/sessions/{session_id}/zoom/auxiliary/{row_identifier}/parameters")
+def set_auxiliary_zoom_parameters_endpoint(
+    session_id: str, row_identifier: str, body: SetAuxiliaryZoomParametersIn
+) -> Response:
+    """Batched sibling of `/zoom/auxiliary/{row}/parameter` -- writes N edits into `row_identifier`'s
+    own step in one call, required for feature 100's removal zones (up to 65 keys per vertex-drag
+    commit, same reasoning as `/zoom/parameters` vs `/zoom/parameter`). Same "does not re-render"
+    contract as the singular auxiliary endpoint -- 204, no body."""
+    session = _get_session(session_id)
+    try:
+        set_auxiliary_zoom_parameters(session, row_identifier, {u.identifier: u.value for u in body.updates})
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return Response(status_code=204)
+
+
+@app.get("/sessions/{session_id}/zoom/auxiliary/{row_identifier}/after")
+def get_auxiliary_zoom_after_endpoint(session_id: str, row_identifier: str) -> Response:
+    """Full-resolution render up to AND INCLUDING `row_identifier`'s own step -- the preview a
+    stage's "Appliquer" button shows (feature 100's `RemovalToolStage`; a future Geometry/Cadrage
+    "Appliquer" could reuse it too, though those currently reuse `/zoom/after` instead since their
+    own row IS the zoomed one once "Appliquer" swaps the panel)."""
+    session = _get_session(session_id)
+    try:
+        pixels = render_auxiliary_after(session, row_identifier)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _png_response(pixels)
+
+
 @app.post("/sessions/{session_id}/zoom/confirm", response_model=list[RowSpecOut])
 def confirm_zoom_endpoint(session_id: str) -> list[RowSpecOut]:
     session = _get_session(session_id)
@@ -1075,12 +1129,17 @@ def load_recipe_endpoint(session_id: str, body: LoadRecipeIn) -> LoadRecipeOut:
 # fixed: that's what keeps a live reload safe for already-open sessions -- a changed set could not
 # be reconciled, whereas a pure permutation is (see session.py reorder_session_pipeline). ---
 
-# geometry/framing have no filmstrip row and are edited only from inside Film/Color Splash's Zoom
-# (auxiliary_zoom_*), whose "render the pipeline up to -- excluding -- this row" only makes sense
-# if they precede every visible row. They are therefore pinned to the first positions and are the
-# one part of the order the reordering UI/API must refuse to disturb. Mirrors session.py's
-# _HIDDEN_ROW_IDENTIFIERS and web/src/lib/filmstrip.ts's HIDDEN_ROW_IDENTIFIERS.
-_LEADING_ROW_IDENTIFIERS = frozenset({"geometry", "framing"})
+# removal/geometry/framing have no filmstrip row and are edited only from inside another row's own
+# Zoom (auxiliary_zoom_*), whose "render the pipeline up to -- excluding -- this row" only makes
+# sense if they precede every visible row. They are therefore pinned to the first positions and are
+# the one part of the order the reordering UI/API must refuse to disturb. Re-exported from
+# lumaflow.config.workflow (single source of truth, shared with session.py's
+# _HIDDEN_ROW_IDENTIFIERS and mirrored by web/src/lib/filmstrip.ts's HIDDEN_ROW_IDENTIFIERS) rather
+# than a second hand-written literal here. UNLIKE before feature 100, ORDER among these three is
+# itself now a constraint (removal must precede geometry/framing -- see that module's own comment),
+# not just membership in the set -- _validate_workflow_row_identity below checks the exact prefix,
+# not merely `set(submitted[:n]) == set(leading)`.
+_LEADING_ROW_IDENTIFIERS = frozenset(PINNED_LEADING_ROW_IDENTIFIERS)
 
 
 class WorkflowVignetteIO(BaseModel):
@@ -1147,7 +1206,9 @@ def _validate_workflow_row_identity(rows: list[WorkflowRowIO], live_config: Work
     Two rules:
       1. Same identifiers, same count -- otherwise `row_set_mismatch` (kept as the category name so
          web/src/lib/api.ts and describeError stay valid).
-      2. geometry/framing stay in the leading positions -- see _LEADING_ROW_IDENTIFIERS."""
+      2. Every pinned row (removal/geometry/framing, whichever the live config declares) stays in
+         the leading positions, in their CANONICAL order -- see _LEADING_ROW_IDENTIFIERS and
+         PINNED_LEADING_ROW_IDENTIFIERS."""
     submitted = [row.identifier for row in rows]
     expected = [row.identifier for row in live_config.rows]
     if sorted(submitted, key=lambda x: x or "") != sorted(expected, key=lambda x: x or ""):
@@ -1160,17 +1221,21 @@ def _validate_workflow_row_identity(rows: list[WorkflowRowIO], live_config: Work
             },
         )
     # Only the leading rows the live config actually declares are pinned (a hand-authored config
-    # per spec 023 may omit geometry/framing entirely -- then there is nothing to pin).
-    leading = [i for i in expected if i in _LEADING_ROW_IDENTIFIERS]
+    # per spec 023 may omit them entirely -- then there is nothing to pin). Order among them is a
+    # constraint, not just membership (feature 100): PINNED_LEADING_ROW_IDENTIFIERS' own order is
+    # canonical, so `leading` below is that canonical order filtered to what `expected` actually has
+    # -- comparing SEQUENCES (`!=` on lists), not sets, is what catches "removal placed after
+    # geometry" even though both rows are still present and still both ahead of every visible row.
+    leading = [i for i in PINNED_LEADING_ROW_IDENTIFIERS if i in expected]
     if leading and (
-        set(submitted[: len(leading)]) != set(leading)
+        submitted[: len(leading)] != leading
         or any(i in _LEADING_ROW_IDENTIFIERS for i in submitted[len(leading) :])
     ):
         raise HTTPException(
             status_code=400,
             detail={
                 "category": "leading_rows_locked",
-                "message": "Les lignes Géométrie et Cadrage doivent rester en tête du workflow.",
+                "message": "Les lignes Suppression d'objets, Géométrie et Cadrage doivent rester en tête du workflow, dans cet ordre.",
                 "details": {"submitted": submitted},
             },
         )
@@ -1289,7 +1354,11 @@ def import_workflow_config_endpoint(body: WorkflowConfigImportIn) -> WorkflowCon
             status_code=400,
             detail={"category": "invalid_config", "reason": exc.reason, "detail": exc.detail},
         ) from exc
-    imported_out = _workflow_config_out(imported, body.path)
+    # A file exported before a pinned leading row existed (e.g. `removal`, feature 100) would
+    # otherwise fail _validate_workflow_row_identity's row_set_mismatch check forever -- normalize
+    # it in memory first (never touches the file on disk) so an older export keeps importing.
+    normalized, _inserted = normalize_pinned_leading_rows(imported, session_module.WORKFLOW_CONFIG)
+    imported_out = _workflow_config_out(normalized, body.path)
     # A draft is only useful once it's known to be applicable -- reject here (before it ever
     # reaches the Préférences UI's draft state) rather than only at Valider time.
     _validate_workflow_row_identity(imported_out.rows, session_module.WORKFLOW_CONFIG)

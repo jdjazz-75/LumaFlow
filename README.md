@@ -131,10 +131,11 @@ Use the Zoom view for before/after comparison and detailed adjustments.
 
 ## Editing workflow
 
-The standard LumaFlow pipeline contains nine processing stages.
+The standard LumaFlow pipeline contains ten processing stages.
 
 | Stage | Purpose |
 |---|---|
+| **Object removal** | Removes up to 4 zones from a photo by content-aware fill (a local AI model, LaMa) |
 | **Geometry** | Manual rotation and free four-corner perspective correction |
 | **Framing** | Free cropping with composition guides |
 | **Film** | Film rendering and grain |
@@ -199,7 +200,15 @@ Press `Ctrl+C` in the terminal to stop the application.
 
 ## Manual installation
 
-Install the Python package:
+Install PyTorch first, from the CPU-only index (the default PyPI wheel for Windows bundles the
+CUDA runtime and is several GB; this one is about 130 MB) -- Object removal's fill engine (LaMa)
+needs it:
+
+```bash
+pip install torch==2.14.0 --index-url https://download.pytorch.org/whl/cpu
+```
+
+Then install the Python package:
 
 ```bash
 pip install -e .

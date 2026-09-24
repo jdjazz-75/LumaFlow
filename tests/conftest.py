@@ -29,6 +29,50 @@ def _no_row_before_precompute_delay(monkeypatch):
     monkeypatch.setattr(session_module, "_ROW_BEFORE_PRECOMPUTE_DELAY_S", 0.0)
 
 
+# ---------------------------------------------------------------------------
+# 100 — LaMa pivot (research.md R3): stub the real network by default so `pytest`
+# stays fast/offline, matching this repo's `raw_fixture` precedent (a real dependency
+# opted into explicitly, not paid by every test run).
+# ---------------------------------------------------------------------------
+
+
+def _stub_lama_run(roi_image, roi_hole, target_long_edge):
+    """Deterministic, fast, numpy-only substitute for `lama_backend.run` -- fills the hole with the
+    mean colour of the ROI's own non-hole pixels (or mid-grey if there are none), plus a small
+    offset DERIVED FROM THE (SOLVE-TIME) HOLE'S OWN PIXEL COUNT, broadcast flat. The offset matters:
+    `engine.py`'s "variant" mechanic works by dilating the hole passed to the solver by a few pixels
+    (not by passing `variant` into the solve call itself, see `engine.py`'s module docstring), so
+    two different variants typically differ only by a thin boundary ring of pixels -- a plain
+    non-hole mean colour alone can land on the exact same rounded uint8 for two such
+    barely-different holes on the same textured test image, which would make
+    `..._different_variant_changes_only_inside`-style tests fail for a reason that has nothing to
+    do with a real bug. Exercises the exact same call contract (shape/dtype in, shape/dtype out) so
+    every test of `engine.py`'s cropping/clustering/compositing plumbing stays meaningful without
+    needing torch or a downloaded model -- it is deliberately too crude to prove fill QUALITY, which
+    is what the `model`-marked tests (real LaMa) are for instead."""
+    import numpy
+
+    if not numpy.any(~roi_hole):
+        base = numpy.full(3, 128.0, dtype=numpy.float32)
+    else:
+        base = roi_image[~roi_hole].mean(axis=0)
+    hole_seed = int(numpy.count_nonzero(roi_hole)) % 41
+    offset = numpy.array([hole_seed, (hole_seed * 2) % 41, (hole_seed * 3) % 41], dtype=numpy.float32)
+    fill = numpy.clip(base + offset, 0.0, 255.0)
+    return numpy.broadcast_to(fill, roi_image.shape).astype(numpy.float32).copy()
+
+
+@pytest.fixture(autouse=True)
+def _stub_lama_backend_by_default(request, monkeypatch):
+    if request.node.get_closest_marker("model") is not None:
+        yield
+        return
+    from lumaflow.addons.inpainting import lama_backend
+
+    monkeypatch.setattr(lama_backend, "run", _stub_lama_run)
+    yield
+
+
 @pytest.fixture
 def deterministic_session():
     from lumaflow.engine.image_io import load_image

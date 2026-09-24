@@ -22,6 +22,8 @@ table instead of guessing:
   .geometry-canvas__guide-selector     z-index: 3   (GeometryCanvas.css, added 2026-07-31 alongside
                                                       Geometry's own pan-zone ticks)
   .crop-canvas__guide-selector         z-index: 3   (CropCanvas.css, same reason)
+  .removal-stage__hint                 z-index: 2   (RemovalToolStage.css, feature 100)
+  .removal-stage__busy                 z-index: 3   (RemovalToolStage.css)
 When adding a new floating control here, give it an explicit z-index too -- pick 2 unless it must
 specifically sit above another explicit one, in which case go higher and update this table. */
 
@@ -421,6 +423,21 @@ tab row, not above it, unlike every other row's own top-of-panel placement). */
   color: var(--t2);
 }
 
+/* Suppression d'objets' zone rows only (ergonomics revision, 2026-09-24): an enabled zone's own
+label is clickable, selecting it for on-canvas editing (which vertex handles the stage currently
+shows) independently of its on/off switch. `--selected` marks whichever row is the current pick. */
+.zoom-overlay__slider-label--clickable {
+  cursor: pointer;
+}
+
+.zoom-overlay__slider-label--clickable:hover {
+  color: var(--t1);
+}
+
+.zoom-overlay__slider-label--selected {
+  color: var(--amber);
+}
+
 .zoom-overlay__slider-value {
   font-size: 12px;
   color: var(--amber);
@@ -623,6 +640,39 @@ mutually-exclusive 1-of-4 choice, not four independent on/off states. */
 .zoom-overlay__no-sliders {
   font-size: 12.5px;
   color: var(--t3);
+}
+
+/* Suppression d'objets' zone panel (ergonomics revision, 2026-09-24 -- see renderRemovalZonePanel
+in ZoomOverlay.tsx): a small inline hint below the per-zone toggle rows, same visual weight as
+.zoom-overlay__no-sliders but reusable for any short panel-body note, not just "no sliders". */
+.zoom-overlay__hint-text {
+  font-size: 12.5px;
+  color: var(--t3);
+  margin-top: -2px;
+  margin-bottom: 4px;
+}
+
+.zoom-overlay__variant-button {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--bd);
+  background: transparent;
+  color: var(--t2);
+  font-size: 12.5px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  text-align: center;
+}
+
+.zoom-overlay__variant-button:hover:not(:disabled) {
+  border-color: var(--bdh);
+  color: var(--t1);
+}
+
+.zoom-overlay__variant-button:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .zoom-overlay__actions {

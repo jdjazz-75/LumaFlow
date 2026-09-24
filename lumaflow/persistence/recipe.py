@@ -101,10 +101,11 @@ def validate_recipe_dict(data: dict[str, Any]) -> None:
 
 # Row identifiers a recipe never carries, regardless of the file's own schema version --
 # image-specific corrections (geometry.py::_resolve_corners/_resolve_angle,
-# framing.py::_resolve_box) that almost never apply to a different photo. build_recipe (session.py)
-# never emits them; a v1 file that still has one (authored before this exclusion existed) simply
-# has that entry dropped here, silently, same as a v1.1 file that never mentioned it.
-EXCLUDED_STEP_IDENTIFIERS: frozenset[str] = frozenset({"geometry", "framing"})
+# framing.py::_resolve_box, object_removal.py's polygon zones -- feature 100) that almost never
+# apply to a different photo. build_recipe (session.py) never emits them; a v1 file that still has
+# one (authored before this exclusion existed) simply has that entry dropped here, silently, same
+# as a v1.1 file that never mentioned it.
+EXCLUDED_STEP_IDENTIFIERS: frozenset[str] = frozenset({"geometry", "framing", "removal"})
 
 
 def recipe_from_dict(data: dict[str, Any]) -> Recipe:

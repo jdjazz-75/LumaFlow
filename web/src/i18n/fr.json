@@ -144,6 +144,42 @@
   "ui.mask.whole_image": {
     "t": "Toute l'image"
   },
+  "ui.removal.zone": {
+    "t": "Zone {n}",
+    "max": 10
+  },
+  "ui.removal.margin": {
+    "t": "Marge",
+    "max": 10
+  },
+  "ui.removal.feather": {
+    "t": "Fondu",
+    "max": 10
+  },
+  "ui.removal.variant": {
+    "t": "Autre proposition",
+    "max": 22
+  },
+  "ui.removal.empty_hint": {
+    "t": "Activez une zone dans le panneau pour retirer un élément de la photo",
+    "max": 70
+  },
+  "ui.removal.computing": {
+    "t": "Calcul du remplissage…",
+    "max": 30
+  },
+  "ui.removal.preview_badge": {
+    "t": "Aperçu du remplissage · cliquer pour reprendre l'édition",
+    "max": 60
+  },
+  "ui.removal.large_zone_hint": {
+    "t": "Zone étendue : le résultat peut être plus lisse, avec moins de détails.",
+    "max": 80
+  },
+  "ui.light.mask_zone": {
+    "t": "Zone {n}",
+    "max": 10
+  },
   "ui.zoom.optical": {
     "t": "Zoom"
   },
@@ -409,6 +445,9 @@
   "zoom.correction.framing": {
     "t": "Cadrage"
   },
+  "zoom.correction.removal": {
+    "t": "Suppression d'objets"
+  },
   "zoom.region.global": {
     "t": "Global"
   },
@@ -483,6 +522,13 @@
   "group.finishing": {
     "t": "Finition",
     "max": 26
+  },
+  "row.removal.label": {
+    "t": "Suppression d'objets",
+    "max": 24
+  },
+  "row.removal.description": {
+    "t": "Suppression d'objets par remplissage de contenu"
   },
   "row.geometry.label": {
     "t": "Géométrie",

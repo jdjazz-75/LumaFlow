@@ -27,6 +27,15 @@ if TYPE_CHECKING:
 
 DEFAULT_WORKFLOW_CONFIG_PATH = pathlib.Path(__file__).parent / "config_workflow.json"
 
+# The rows hidden from the web filmstrip and edited only from inside another row's Zoom panel (the
+# "auxiliary zoom parameter" mechanism, lumaflow/api/session.py) -- mirrored by
+# lumaflow/api/session.py's _HIDDEN_ROW_IDENTIFIERS, lumaflow/api/app.py's
+# _LEADING_ROW_IDENTIFIERS and web/src/lib/filmstrip.ts's HIDDEN_ROW_IDENTIFIERS. ORDER matters
+# here (unlike the pre-feature-100 geometry/framing pair, whose order was never itself a
+# constraint): `removal` anchors its zones to the SOURCE photo and therefore MUST run before
+# `geometry`/`framing` -- see .specify/memory/constitution.md v1.7.0's Contraintes Produit.
+PINNED_LEADING_ROW_IDENTIFIERS: tuple[str, ...] = ("removal", "geometry", "framing")
+
 
 @dataclass(frozen=True)
 class WorkflowRow:
@@ -297,6 +306,56 @@ def save_workflow_config(config: WorkflowConfig, path: pathlib.Path) -> None:
         raise WorkflowConfigIOError(WorkflowConfigIOErrorCategory.UNKNOWN, "save", detail=str(e)) from e
     except Exception as e:
         raise WorkflowConfigIOError(WorkflowConfigIOErrorCategory.UNKNOWN, "save", detail=str(e)) from e
+
+
+def normalize_pinned_leading_rows(
+    config: WorkflowConfig, reference: WorkflowConfig
+) -> tuple[WorkflowConfig, tuple[str, ...]]:
+    """Pure, in-memory repair for an OLDER `config` (a remembered `workflow_config_source_path`, or
+    an imported file) that predates a newly-added pinned leading row (e.g. `removal`, added by
+    feature 100): inserts whichever `PINNED_LEADING_ROW_IDENTIFIERS` are present in `reference`
+    (normally the canonical `config_workflow.json`) but missing from `config`, in their canonical
+    order, ahead of every other row -- and reorders any pinned rows `config` DOES already have to
+    match that same canonical order, since the order among them is itself now a constraint (see
+    `PINNED_LEADING_ROW_IDENTIFIERS`'s own comment).
+
+    A config with NONE of the pinned rows at all (e.g. a hand-authored spec-023 config, or an older
+    test fixture that never had Geometry/Framing as real rows) is returned UNCHANGED -- this
+    function repairs a config that is missing something it should have alongside what it already
+    has, it does not retrofit removal/geometry/framing onto a config that deliberately never
+    declared any workflow-row leading section at all.
+
+    Returns `(normalized_config, inserted_identifiers)` -- `inserted_identifiers` is empty when
+    nothing needed to change (the common case), letting a caller report "the config was migrated"
+    only when something actually happened. Never writes to disk -- callers decide whether/when to
+    persist (see `workflow-config-valider-never-writes-disk` for why that boundary matters)."""
+    present = {row.identifier for row in config.rows}
+    pinned_present = [identifier for identifier in PINNED_LEADING_ROW_IDENTIFIERS if identifier in present]
+    if not pinned_present:
+        return config, ()
+
+    reference_by_identifier = {row.identifier: row for row in reference.rows}
+    missing = tuple(
+        identifier
+        for identifier in PINNED_LEADING_ROW_IDENTIFIERS
+        if identifier not in present and identifier in reference_by_identifier
+    )
+    config_by_identifier = {row.identifier: row for row in config.rows}
+    pinned_in_canonical_order = [
+        identifier for identifier in PINNED_LEADING_ROW_IDENTIFIERS if identifier in present or identifier in missing
+    ]
+    already_in_canonical_order = [row.identifier for row in config.rows if row.identifier in present and row.identifier in PINNED_LEADING_ROW_IDENTIFIERS] == [
+        identifier for identifier in pinned_in_canonical_order if identifier in present
+    ]
+    if not missing and already_in_canonical_order:
+        return config, ()
+
+    leading_rows = [
+        config_by_identifier[identifier] if identifier in config_by_identifier else reference_by_identifier[identifier]
+        for identifier in pinned_in_canonical_order
+    ]
+    other_rows = [row for row in config.rows if row.identifier not in PINNED_LEADING_ROW_IDENTIFIERS]
+    return WorkflowConfig(rows=tuple(leading_rows) + tuple(other_rows)), missing
 
 
 def default_workflow_config_path() -> pathlib.Path:

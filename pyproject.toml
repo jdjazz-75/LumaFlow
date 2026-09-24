@@ -9,6 +9,13 @@ dependencies = [
     "uvicorn>=0.29",
     "platformdirs>=4.0",
     "rawpy>=0.19",  # confirmed installable: 0.27.0 (cp313, win_amd64 precompiled wheel)
+    # Suppression d'objets' fill engine (LaMa, research.md R3). Pinned exactly, not `>=`: a future
+    # torch upgrade could silently change the pretrained model's numeric output. `pip install -e .`
+    # alone pulls PyPI's default wheel (bundles CUDA on Windows, multi-GB); the install scripts
+    # (install-and-run.ps1/.bat) and README instead install this from the CPU-only index first
+    # (https://download.pytorch.org/whl/cpu, ~130 Mo) -- pyproject.toml cannot express that index
+    # per-dependency, so this entry alone is not the full install story.
+    "torch==2.14.0",
 ]
 
 [project.optional-dependencies]
@@ -27,4 +34,5 @@ testpaths = ["tests"]
 markers = [
     "raw_fixture: requires a real decodable RAW file in tests/fixtures/raw/",
     "perf: performance-regression guard, timed against a generous ceiling (see PERF-ZOOM-RENDER-PLAN.md)",
+    "model: requires network access (first run) and real LaMa inference (research.md R3) -- excluded by default, run explicitly with `pytest -m model`",
 ]

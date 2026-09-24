@@ -13,6 +13,7 @@ endpoint" the plan's Phase 1 verification section calls for.
 """
 from __future__ import annotations
 
+import dataclasses
 import io
 import json
 import os
@@ -311,12 +312,14 @@ def test_two_sessions_stay_independent(client):
     session_a = _open(client)
     session_b = _open(client)
 
-    client.post(f"/sessions/{session_a}/steps/1/select", json={"identifier": "16:9"})
+    # Index 2 = "framing" (0 = removal, 1 = geometry, since feature 100) -- "16:9" is one of its
+    # free-form aspect-ratio identifiers.
+    client.post(f"/sessions/{session_a}/steps/2/select", json={"identifier": "16:9"})
 
     rows_a = client.get(f"/sessions/{session_a}/workflow").json()
     rows_b = client.get(f"/sessions/{session_b}/workflow").json()
-    assert rows_a[1]["selected_vignette_identifier"] == "16:9"
-    assert rows_b[1]["selected_vignette_identifier"] == "neutral"
+    assert rows_a[2]["selected_vignette_identifier"] == "16:9"
+    assert rows_b[2]["selected_vignette_identifier"] == "neutral"
 
 
 # --- Select / activate ---
@@ -324,10 +327,11 @@ def test_two_sessions_stay_independent(client):
 
 def test_select_vignette_records_choice_and_activates_that_row(client):
     session_id = _open(client)
-    response = client.post(f"/sessions/{session_id}/steps/1/select", json={"identifier": "16:9"})
+    # Index 2 = "framing" (0 = removal, 1 = geometry, since feature 100).
+    response = client.post(f"/sessions/{session_id}/steps/2/select", json={"identifier": "16:9"})
     assert response.status_code == 200
     rows = response.json()
-    assert rows[1]["selected_vignette_identifier"] == "16:9"
+    assert rows[2]["selected_vignette_identifier"] == "16:9"
 
 
 def test_select_vignette_out_of_range_step_returns_400(client):
@@ -891,8 +895,10 @@ def test_select_before_open_returns_400_not_500(client):
 
 def test_thumbnail_for_unresolved_row_returns_404(client):
     session_id = _open(client)
-    # Row far outside the visible 3-row window has no computed states yet.
-    response = client.get(f"/sessions/{session_id}/thumbnails/5/neutral")
+    # Row far outside the visible 3-row window (which starts at Film, the first visible row) has no
+    # computed states yet -- index 9 ("vignette", the last row) rather than 5 ("color_splash" since
+    # feature 100 inserted "removal" first, which now falls INSIDE a window starting at Film).
+    response = client.get(f"/sessions/{session_id}/thumbnails/9/neutral")
     assert response.status_code == 404
 
 
@@ -1446,9 +1452,10 @@ def test_list_presets_returns_json_files_sorted_alphabetically(client, isolated_
 
 def test_reset_session_clears_selections_back_to_neutral(client):
     session_id = _open(client)
-    select_response = client.post(f"/sessions/{session_id}/steps/1/select", json={"identifier": "16:9"})
+    # Index 2 = "framing" (0 = removal, 1 = geometry, since feature 100).
+    select_response = client.post(f"/sessions/{session_id}/steps/2/select", json={"identifier": "16:9"})
     assert select_response.status_code == 200, select_response.text
-    assert select_response.json()[1]["selected_vignette_identifier"] != api_session.NEUTRAL_PRESET_IDENTIFIER
+    assert select_response.json()[2]["selected_vignette_identifier"] != api_session.NEUTRAL_PRESET_IDENTIFIER
 
     reset_response = client.post(f"/sessions/{session_id}/reset")
     assert reset_response.status_code == 200, reset_response.text
@@ -1516,7 +1523,8 @@ def test_reset_session_without_image_returns_400(client):
 
 def _open_and_select(client: TestClient) -> str:
     session_id = _open(client)
-    response = client.post(f"/sessions/{session_id}/steps/1/select", json={"identifier": "16:9"})
+    # Index 2 = "framing" (0 = removal, 1 = geometry, since feature 100).
+    response = client.post(f"/sessions/{session_id}/steps/2/select", json={"identifier": "16:9"})
     assert response.status_code == 200, response.text
     return session_id
 
@@ -1573,10 +1581,11 @@ def test_save_recipe_onto_existing_file_requires_force(client, tmp_path):
 
 
 def test_load_recipe_applies_saved_selections_onto_a_fresh_session(client, tmp_path):
-    # Film (index 2), not Geometry/Framing (indices 0/1) -- those two are excluded from presets
-    # entirely (2026-08-24), so a selection made there would never round-trip through save/load.
+    # Film (index 3 since feature 100 inserted "removal" first), not Removal/Geometry/Framing
+    # (indices 0/1/2) -- those three are excluded from presets entirely, so a selection made there
+    # would never round-trip through save/load.
     session_a = _open(client)
-    select_response = client.post(f"/sessions/{session_a}/steps/2/select", json={"identifier": "Velvia"})
+    select_response = client.post(f"/sessions/{session_a}/steps/3/select", json={"identifier": "Velvia"})
     assert select_response.status_code == 200, select_response.text
     dest = tmp_path / "recipe.json"
     save_response = client.post(f"/sessions/{session_a}/recipe/save", json={"dest_path": str(dest)})
@@ -1586,7 +1595,7 @@ def test_load_recipe_applies_saved_selections_onto_a_fresh_session(client, tmp_p
     load_response = client.post(f"/sessions/{session_b}/recipe/load", json={"path": str(dest)})
     assert load_response.status_code == 200, load_response.text
     rows = load_response.json()["rows"]
-    assert rows[2]["selected_vignette_identifier"] == "Velvia"
+    assert rows[3]["selected_vignette_identifier"] == "Velvia"
 
 
 def test_load_recipe_missing_file_returns_400_not_500(client, tmp_path):
@@ -2540,19 +2549,21 @@ def test_zoom_parameter_declarations_vignetting_addon(large_fixture_image):
 
 
 def test_zoom_parameter_declarations_light_addon(large_fixture_image):
-    # Feature 047: light_adjustments declares `intensity` + 31 base-grade + 38 region-delta + 67
-    # mask zoom parameters (137 total), all shown regardless of which candidate (neutral or any
+    # Feature 047: light_adjustments declares `intensity` + 31 base-grade + 38 region-delta + 262
+    # mask zoom parameters (332 total, revised 2026-09-24: up to 4 subject-mask zones, see
+    # light.py's _MASK_ZONE_PREFIXES), all shown regardless of which candidate (neutral or any
     # preset) is open -- unlike Film's intensity, no neutral gating.
     session = create_session()
     open_image(session, large_fixture_image)
     light_index = next(i for i, row in enumerate(WORKFLOW_CONFIG.rows) if row.identifier == "light")
     open_zoom(session, light_index, "neutral")
     identifiers = {decl.identifier for decl in zoom_parameter_declarations(session)}
-    assert len(identifiers) == 137
+    assert len(identifiers) == 332
     assert {"intensity"} | set(_LIGHT_FIELD_BOUNDS) <= identifiers
     assert "subject_exposure" in identifiers
     assert "background_saturation" in identifiers
     assert "mask_point_count" in identifiers
+    assert "zone2_mask_point_count" in identifiers
     assert "mask_point_31_y" in identifiers
 
 
@@ -2863,7 +2874,7 @@ def test_put_workflow_config_reorders_visible_rows(client, isolated_workflow_con
 
     after = [row["identifier"] for row in client.get("/workflow-config").json()["rows"]]
     assert after.index("color_splash") < after.index("film")
-    assert after[:2] == identifiers[:2]  # geometry/framing still lead
+    assert after[:3] == identifiers[:3]  # removal/geometry/framing still lead, in that order
     assert sorted(after) == sorted(identifiers)  # same set
 
 
@@ -3132,3 +3143,200 @@ def test_workflow_config_export_pure_file_write_no_reload(client, isolated_workf
 
     unchanged = client.get("/workflow-config").json()
     assert unchanged == baseline
+
+
+# --- Object removal (feature 100): auxiliary batched endpoint, cache, recipe exclusion,
+# leading-rows order, workflow-config migration. Geometry/Framing's existing auxiliary_zoom_*
+# coverage above (singular endpoint, cancel/confirm semantics) is not duplicated here -- these
+# tests focus on what's NEW: the batched endpoint, the /after preview, and removal-specific wiring.
+# ---
+
+
+def _removal_step_index() -> int:
+    return next(i for i, row in enumerate(WORKFLOW_CONFIG.rows) if row.identifier == "removal")
+
+
+def _zone_updates(prefix: str, points: list[tuple[float, float]]) -> list[dict[str, float | str]]:
+    """Builds the flat `{identifier, value}` update list for one zone's polygon -- same shape
+    `web/src/lib/removalZones.ts`'s `removalValuesToUpdates` sends, minus the JS/TS layer."""
+    updates: list[dict[str, float | str]] = [{"identifier": f"{prefix}mask_point_count", "value": float(len(points))}]
+    for i, (x, y) in enumerate(points):
+        updates.append({"identifier": f"{prefix}mask_point_{i:02d}_x", "value": x})
+        updates.append({"identifier": f"{prefix}mask_point_{i:02d}_y", "value": y})
+    return updates
+
+
+def test_removal_is_the_first_row_and_precedes_geometry_framing(client):
+    session_id = _open(client)
+    rows = client.get(f"/sessions/{session_id}/workflow").json()
+    assert rows[0]["identifier"] == "removal"
+    assert rows[1]["identifier"] == "geometry"
+    assert rows[2]["identifier"] == "framing"
+
+
+def test_auxiliary_zoom_parameters_batched_endpoint_returns_204_without_rendering(client):
+    session_id = _open(client)
+    film_index = _film_step_index()
+    client.post(f"/sessions/{session_id}/zoom/{film_index}/open", json={"identifier": "neutral"})
+
+    updates = _zone_updates("zone_0_", [(0.3, 0.3), (0.6, 0.3), (0.6, 0.6), (0.3, 0.6)])
+    response = client.post(f"/sessions/{session_id}/zoom/auxiliary/removal/parameters", json={"updates": updates})
+    assert response.status_code == 204
+    assert response.content == b""
+
+    aux_state = client.get(f"/sessions/{session_id}/zoom/auxiliary/removal").json()
+    by_identifier = {s["identifier"]: s["value"] for s in aux_state["sliders"]}
+    assert by_identifier["zone_0_mask_point_count"] == 4.0
+    assert by_identifier["zone_0_mask_point_00_x"] == 0.3
+
+
+def test_auxiliary_zoom_parameters_batched_endpoint_without_open_zoom_returns_400(client):
+    session_id = _open(client)
+    response = client.post(
+        f"/sessions/{session_id}/zoom/auxiliary/removal/parameters",
+        json={"updates": [{"identifier": "dilation", "value": 1.0}]},
+    )
+    assert response.status_code == 400
+
+
+def test_auxiliary_zoom_removal_cancel_restores_previous_zones(client):
+    session_id = _open(client)
+    film_index = _film_step_index()
+    client.post(f"/sessions/{session_id}/zoom/{film_index}/open", json={"identifier": "neutral"})
+    updates = _zone_updates("zone_0_", [(0.3, 0.3), (0.6, 0.3), (0.6, 0.6), (0.3, 0.6)])
+    client.post(f"/sessions/{session_id}/zoom/auxiliary/removal/parameters", json={"updates": updates})
+    client.post(f"/sessions/{session_id}/zoom/cancel")
+
+    client.post(f"/sessions/{session_id}/zoom/{film_index}/open", json={"identifier": "neutral"})
+    aux_state = client.get(f"/sessions/{session_id}/zoom/auxiliary/removal").json()
+    by_identifier = {s["identifier"]: s["value"] for s in aux_state["sliders"]}
+    assert by_identifier["zone_0_mask_point_count"] == 0.0  # back to the pre-edit default
+
+
+def test_auxiliary_zoom_removal_confirm_keeps_zones(client):
+    session_id = _open(client)
+    film_index = _film_step_index()
+    client.post(f"/sessions/{session_id}/zoom/{film_index}/open", json={"identifier": "neutral"})
+    updates = _zone_updates("zone_0_", [(0.3, 0.3), (0.6, 0.3), (0.6, 0.6), (0.3, 0.6)])
+    client.post(f"/sessions/{session_id}/zoom/auxiliary/removal/parameters", json={"updates": updates})
+    confirm_response = client.post(f"/sessions/{session_id}/zoom/confirm")
+    assert confirm_response.status_code == 200
+
+    client.post(f"/sessions/{session_id}/zoom/{film_index}/open", json={"identifier": "neutral"})
+    aux_state = client.get(f"/sessions/{session_id}/zoom/auxiliary/removal").json()
+    by_identifier = {s["identifier"]: s["value"] for s in aux_state["sliders"]}
+    assert by_identifier["zone_0_mask_point_count"] == 4.0  # survives confirm
+
+
+def test_auxiliary_zoom_removal_after_matches_render_full_resolution_upto_1(client):
+    session_id = _open(client)
+    film_index = _film_step_index()
+    client.post(f"/sessions/{session_id}/zoom/{film_index}/open", json={"identifier": "neutral"})
+    updates = _zone_updates("zone_0_", [(0.3, 0.3), (0.6, 0.3), (0.6, 0.6), (0.3, 0.6)])
+    client.post(f"/sessions/{session_id}/zoom/auxiliary/removal/parameters", json={"updates": updates})
+
+    after_response = client.get(f"/sessions/{session_id}/zoom/auxiliary/removal/after")
+    assert after_response.status_code == 200
+    after_image = numpy.asarray(Image.open(io.BytesIO(after_response.content)).convert("RGB"))
+
+    session = api_app._get_session(session_id)
+    direct = render_full_resolution(session, upto_exclusive=_removal_step_index() + 1)
+    assert numpy.array_equal(after_image, direct)
+
+
+def test_removal_is_excluded_from_saved_recipes(client, tmp_path):
+    session_id = _open(client)
+    film_index = _film_step_index()
+    client.post(f"/sessions/{session_id}/zoom/{film_index}/open", json={"identifier": "neutral"})
+    updates = _zone_updates("zone_0_", [(0.3, 0.3), (0.6, 0.3), (0.6, 0.6), (0.3, 0.6)])
+    client.post(f"/sessions/{session_id}/zoom/auxiliary/removal/parameters", json={"updates": updates})
+    client.post(f"/sessions/{session_id}/zoom/confirm")
+
+    dest = tmp_path / "recipe.json"
+    save_response = client.post(f"/sessions/{session_id}/recipe/save", json={"dest_path": str(dest)})
+    assert save_response.status_code == 200
+    saved = json.loads(dest.read_text(encoding="utf-8"))
+    assert "removal" not in [step["step_identifier"] for step in saved["steps"]]
+
+
+def test_removal_processor_runs_once_and_is_reused_by_a_later_film_edit(client, monkeypatch):
+    """The per-pipeline-position render cache (session.py's step_render_cache) must compute
+    `removal` (position 0) once per parameter change, and a LATER row's own edit (Film) must never
+    re-trigger it -- this is what keeps an expensive removal computation from being repeated on
+    every unrelated click elsewhere in the pipeline."""
+    calls = {"count": 0}
+    original = api_session.ADDON_INDEX["object_removal"].processing_function
+
+    def counting(image, params):
+        calls["count"] += 1
+        return original(image, params)
+
+    monkeypatch.setitem(
+        api_session.ADDON_INDEX, "object_removal",
+        dataclasses.replace(api_session.ADDON_INDEX["object_removal"], processing_function=counting),
+    )
+
+    session_id = _open(client)
+    film_index = _film_step_index()
+    client.post(f"/sessions/{session_id}/zoom/{film_index}/open", json={"identifier": "neutral"})
+    updates = _zone_updates("zone_0_", [(0.3, 0.3), (0.6, 0.3), (0.6, 0.6), (0.3, 0.6)])
+    client.post(f"/sessions/{session_id}/zoom/auxiliary/removal/parameters", json={"updates": updates})
+    client.post(f"/sessions/{session_id}/zoom/confirm")
+
+    client.get(f"/sessions/{session_id}/zoom/auxiliary/removal/after")
+    after_first = calls["count"]
+    assert after_first >= 1
+
+    client.post(f"/sessions/{session_id}/zoom/{film_index}/open", json={"identifier": "Velvia"})
+    client.get(f"/sessions/{session_id}/zoom/{film_index}/after")
+
+    assert calls["count"] == after_first  # unchanged -- Film's own edit did not re-run removal
+
+
+def test_leading_rows_locked_rejects_removal_placed_after_geometry(client, isolated_workflow_config_path):
+    baseline = client.get("/workflow-config").json()
+    rows = list(baseline["rows"])
+    removal_row = next(r for r in rows if r["identifier"] == "removal")
+    rows.remove(removal_row)
+    rows.insert(1, removal_row)  # geometry, removal, framing, ... -- wrong order
+
+    response = client.put("/workflow-config", json={"rows": rows})
+    assert response.status_code == 400
+    assert response.json()["detail"]["category"] == "leading_rows_locked"
+
+
+def test_workflow_config_import_normalizes_a_config_missing_removal(client, isolated_workflow_config_path, tmp_path):
+    """A workflow config exported before feature 100 (no "removal" row at all) must still import
+    successfully, with "removal" transparently inserted first -- never rejected as a
+    row_set_mismatch, and never requiring the user to hand-edit the file."""
+    legacy_dict = json.loads(api_session.DEFAULT_WORKFLOW_CONFIG_PATH.read_text(encoding="utf-8"))
+    legacy_dict["rows"] = [row for row in legacy_dict["rows"] if row["identifier"] != "removal"]
+    legacy_path = tmp_path / "legacy_workflow.json"
+    original_bytes = json.dumps(legacy_dict).encode("utf-8")
+    legacy_path.write_bytes(original_bytes)
+
+    response = client.post("/workflow-config/import", json={"path": str(legacy_path)})
+    assert response.status_code == 200, response.text
+    identifiers = [row["identifier"] for row in response.json()["rows"]]
+    assert identifiers[0] == "removal"
+    assert identifiers[1] == "geometry"
+    # The file on disk is never touched by an import (draft only).
+    assert legacy_path.read_bytes() == original_bytes
+
+
+def test_workflow_config_with_no_pinned_row_at_all_is_left_unchanged():
+    """A hand-authored config (spec 023 style) that never declared removal/geometry/framing at all
+    must be returned as-is by normalize_pinned_leading_rows -- it is not this feature's job to
+    retrofit a leading section onto a config that deliberately has none."""
+    from lumaflow.config.workflow import WorkflowConfig, WorkflowRow, normalize_pinned_leading_rows
+
+    config = WorkflowConfig(rows=(WorkflowRow(identifier="film", category="film", thumbnail_presets=("neutral",)),))
+    reference = WorkflowConfig(
+        rows=(
+            WorkflowRow(identifier="removal", category="object_removal", thumbnail_presets=("neutral",)),
+            WorkflowRow(identifier="film", category="film", thumbnail_presets=("neutral",)),
+        )
+    )
+    normalized, inserted = normalize_pinned_leading_rows(config, reference)
+    assert normalized is config
+    assert inserted == ()

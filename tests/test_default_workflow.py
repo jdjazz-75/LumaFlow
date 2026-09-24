@@ -1,5 +1,5 @@
 # LumaFlow v1.0 (2026-08-07)
-# Vérifie le workflow par défaut (9 lignes déclarées dans l'ordre attendu, identifiants/libellés/
+# Vérifie le workflow par défaut (10 lignes déclarées dans l'ordre attendu, identifiants/libellés/
 # presets vignette neutres présents) ainsi que le remplacement de la config par une alternative
 # valide (ordre différent, nombre de lignes différent, config vide, identifiant réutilisé).
 
@@ -23,13 +23,16 @@ FIXTURES_ROOT = REPO_ROOT / "tests" / "fixtures" / "workflow_config"
 # 9 steps since 2026-07-26 -- Monochrome added between Color Splash and Light;
 # 10 steps since 2026-07-26 (later the same day) -- B&W added between Monochrome and Light;
 # 9 steps since 2026-07-31 -- "finishing" removed (spec 045 abandoned, never implemented --
-# no addon ever existed for it, only a Neutral placeholder; see constitution v1.6.0).)
+# no addon ever existed for it, only a Neutral placeholder; see constitution v1.6.0);
+# 10 steps since 2026-09-23 -- "removal" (feature 100, Suppression d'objets) inserted FIRST,
+# ahead of geometry/framing, per constitution v1.7.0's Contraintes Produit.)
 
 
-def test_default_loads_to_exactly_9_rows_in_declared_order():
-    # 9 rows since 2026-07-31 -- "finishing" removed (see module docstring above).
+def test_default_loads_to_exactly_10_rows_in_declared_order():
+    # 10 rows since 2026-09-23 -- "removal" added first (see module docstring above).
     config = load_workflow_config(DEFAULT_WORKFLOW_CONFIG_PATH)
     assert [row.identifier for row in config.rows] == [
+        "removal",
         "geometry",
         "framing",
         "film",
@@ -54,7 +57,7 @@ def test_default_rows_thumbnail_presets_first_is_neutral():
 
 def test_default_row_identifiers_are_mutually_distinct():
     config = load_workflow_config(DEFAULT_WORKFLOW_CONFIG_PATH)
-    assert len(set(row.identifier for row in config.rows)) == 9
+    assert len(set(row.identifier for row in config.rows)) == 10
 
 
 def test_default_loads_through_f022_unmodified_validation():

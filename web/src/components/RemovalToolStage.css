@@ -1,0 +1,74 @@
+/* LumaFlow v1.1 (2026-09-24)
+ * Styles de la scène Suppression d'objets (RemovalToolStage) : zones (polygones ambrés),
+ * sommets/milieux d'arête (réutilisés depuis SubjectMaskStage.css), voile de calcul, indice
+ * "aucune zone". Le panneau de contrôles (liste de zones, Marge/Fondu/Autre proposition) a été
+ * déplacé dans ZoomOverlay.css (revue d'ergonomie, voir ZoomOverlay.tsx's renderRemovalZonePanel).
+ */
+
+/* Stage/photo-bounds/viewport layout reused verbatim from crop-canvas__* (CropCanvas.css) and
+vertex/midpoint markers from subject-mask-stage__* (SubjectMaskStage.css) -- only additive rules
+below (feature 100). */
+
+.removal-stage__zone {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.removal-stage__zone path {
+  fill: var(--amber);
+  fill-opacity: 0.18;
+  stroke: var(--amber);
+  stroke-opacity: 0.55;
+  stroke-width: 1.5px;
+}
+
+.removal-stage__zone--active {
+  pointer-events: none; /* the active zone's own vertex/midpoint handles sit above it and must win */
+}
+
+.removal-stage__zone--active path {
+  fill-opacity: 0.28;
+  stroke-opacity: 0.9;
+  stroke-width: 2px;
+}
+
+/* Vertex markers reuse subject-mask-stage__vertex's size/shape; only the color differs (amber,
+matching the zone fill, instead of the guide-limit color a dimming mask uses). */
+.removal-stage__vertex {
+  background: var(--amber);
+  border-color: rgba(5, 8, 10, 0.6);
+}
+
+.removal-stage__hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--bd);
+  background: rgba(5, 8, 10, 0.72);
+  color: var(--t2);
+  font-size: var(--fs-14);
+  pointer-events: none;
+  text-align: center;
+  max-width: 70%;
+}
+
+.removal-stage__busy {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 8, 10, 0.55);
+  color: var(--t1);
+  font-size: var(--fs-14);
+}
+

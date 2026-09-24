@@ -21,6 +21,9 @@ import { HueRing, type HueRingHandle } from "./HueRing";
 import { ColorWheel } from "./ColorWheel";
 import { CropToolStage, cropValuesFromById, type CropToolStageHandle, type CropValues } from "./CropToolStage";
 import { GeometryToolStage, geometryValuesFromById, type GeometryToolStageHandle, type GeometryValues } from "./GeometryToolStage";
+import { RemovalToolStage, type RemovalToolStageHandle } from "./RemovalToolStage";
+import { useRemovalZones } from "../lib/useRemovalZones";
+import { MAX_REMOVAL_ZONES, polygonArea } from "../lib/removalZones";
 import {
   SubjectMaskLayer,
   SubjectMaskControls,
@@ -63,21 +66,39 @@ const VIGNETTE_SHAPE_GEOMETRY_FIELDS = new Set([
   "center_x", "center_y", "radius_x", "radius_y", "top_offset", "bottom_offset", "rotation_angle",
 ]);
 
-// Geometry/Cadrage integrated into Film/Color Splash's own Zoom (cross-row corrections): every
-// row except Geometry/Framing themselves gets the "Réglages manuels" toggles below. "framing" is
-// config_workflow.json's row identifier for Cadrage, matching lumaflow/api/session.py's auxiliary
-// endpoints.
+// Geometry/Cadrage/Suppression d'objets integrated into another row's own Zoom (cross-row
+// corrections): every row except these three themselves gets the "Réglages manuels" toggles
+// below. "framing" is config_workflow.json's row identifier for Cadrage, "removal" for Suppression
+// d'objets, matching lumaflow/api/session.py's auxiliary endpoints.
 //
 // Keyed by RowSpec.identifier since 2026-09-03 (i18n phase 1). Previously keyed by RowSpec.label
 // ("Film", "Bleach Bypass"...), a convention this file's own comments called
 // "fragile-but-established" -- and one that silently stopped matching the moment a row label was
 // translated, emptying the corrections panel with no error. Same change applied to SLIDER_GROUPS/
 // GROUP_ORDER/COLOR_WHEEL_PAIRS below and to filmstrip.ts's hidden-row set.
-type CorrectionKind = "geometry" | "framing";
-/** The two auxiliary correction editors offered inside another row's Zoom, in display order.
-Their visible labels are resolved through the i18n catalog at render time (i18n phase 2) --
-`geometry`/`framing` here are config_workflow.json row identifiers, not display text. */
+type CorrectionKind = "geometry" | "framing" | "removal";
+/** The three auxiliary correction editors offered inside another row's Zoom, in display order --
+"removal" LAST (rendered under "Cadrage") even though it runs FIRST in the actual pipeline: its
+zones are anchored to the source photo, but the switch's position in this panel is a UI ordering
+choice, unrelated to pipeline order (feature 100). Their visible labels are resolved through the
+i18n catalog at render time (i18n phase 2) -- `geometry`/`framing`/`removal` here are
+config_workflow.json row identifiers, not display text.
+
+Only `geometry`/`framing` render as a plain switch row via this list -- `removal` is rendered
+separately, as a `CollapsibleSection` (ergonomics revision, 2026-09-24: its zone list used to float
+as a panel over the photo, crowding the drawing surface; it now lives here instead, expanding to
+reveal per-zone on/off toggles plus Marge/Fondu/Autre proposition, see renderCorrections). */
 const CORRECTION_KINDS: CorrectionKind[] = ["geometry", "framing"];
+// Matches the plan's "grande zone" hint threshold (feature 100) -- moved here from
+// RemovalToolStage.tsx alongside the rest of the zone panel, ergonomics revision 2026-09-24.
+const LARGE_ZONE_AREA_FRACTION = 0.25;
+// Light's subject/background mask, up to 4 zones whose UNION defines the boundary (ergonomics
+// revision 2026-09-24, mirroring object_removal.py's own zone-toggle panel) -- mirrors
+// light.py's `_MASK_ZONE_PREFIXES` exactly. Zone 1 keeps the bare prefix (recipe back-compat: an
+// already-saved recipe's single polygon must keep reading back on the SAME keys); zones 2-4 are
+// new, share no feather/invert keys of their own (light.py declares none), see maskCommit's own
+// docstring for how that shared-value routing works.
+const LIGHT_MASK_ZONE_PREFIXES = ["", "zone2_", "zone3_", "zone4_"];
 const CORRECTION_ROWS: Record<string, true> = {
   film: true,
   bleach_bypass: true,
@@ -403,6 +424,20 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, rowIdentifier, ide
   const [correctionApplying, setCorrectionApplying] = useState(false);
   const geometryStageRef = useRef<GeometryToolStageHandle>(null);
   const cropStageRef = useRef<CropToolStageHandle>(null);
+  // Suppression d'objets (feature 100) -- unlike Geometry/Framing, its "before" is the SOURCE
+  // photo (removal runs first in the pipeline) and there is no imageSize dependency on the crop
+  // frame, but it otherwise follows the exact same auxiliary-row pattern: `removalAux` seeds the
+  // stage once per activation, `removalStageRef` exposes {reset, apply}. Zone state itself is
+  // owned by `removalZones` (useRemovalZones), whose `commit` callback writes through the BATCHED
+  // auxiliary endpoint (up to 8 zones x 65 keys per vertex drag -- the singular endpoint the other
+  // two auxiliary rows use would mean one round trip per scalar).
+  const [removalAux, setRemovalAux] = useState<{ photoSrc: string; imageSize: { width: number; height: number } | null } | null>(null);
+  const removalStageRef = useRef<RemovalToolStageHandle>(null);
+  const removalZones = useRemovalZones((updates) => {
+    trackCommit(
+      api.setAuxiliaryZoomParameters(sessionId, "removal", updates).catch((err) => setError(err instanceof Error ? err.message : String(err))),
+    );
+  });
 
   // Polygon-mask editor. Two rows use it, through the SAME state and handlers, distinguished only
   // by which parameter prefix they address (see maskValuesFromById's own `prefix` argument):
@@ -413,7 +448,9 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, rowIdentifier, ide
   // is needed: the "before" photo already loaded for the plain compare view (beforeSrc, below)
   // doubles as the editor's background. `activeMask` holds which mask is being edited, or null;
   // only ever one at a time, since they all share the single drawing layer below.
-  const [activeMask, setActiveMask] = useState<{ prefix: string; label: string } | null>(null);
+  const [activeMask, setActiveMask] = useState<
+    { prefix: string; label: string; sharedFeatherInvertPrefix?: string } | null
+  >(null);
   // Light only: which of the 3 slider sets (Global · Sujet · Fond) the accordion below shows --
   // independent of whether the mask editor itself is currently active, so a user can adjust
   // Sujet/Fond sliders without the mask overlay covering the compare view.
@@ -580,32 +617,107 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, rowIdentifier, ide
   magnification into the mask editor, showing only a fragment of the photo with no indication why
   (bug report 2026-07-31: "la photo est agrandie" for Masque Sujet). Always re-fit on activation so
   mask editing starts from a fully visible frame, matching the "Ajuster" button's own computation. */
-  function handleToggleMask(prefix: string, label: string) {
+  function handleToggleMask(prefix: string, label: string, opts?: { sharedFeatherInvertPrefix?: string }) {
     if (activeMask?.prefix === prefix) {
       setActiveMask(null);
       return;
     }
     if (naturalSize && viewportSize) setZoomPercent(computeFitPercent(naturalSize, viewportSize, zoomBounds));
     // Load THIS mask's working copy; switching straight from another range's zone therefore shows
-    // the right polygon instead of the previous one's.
+    // the right polygon instead of the previous one's. Feather/invert normally come from the SAME
+    // prefix as the points, except Light's zones 2-4 (opts.sharedFeatherInvertPrefix): those have
+    // no feather/invert keys of their own, so the shared (zone 1) values are read instead -- see
+    // maskCommit's own docstring.
     const values = maskValuesFromById(sliderValues, prefix);
+    const sharedValues =
+      opts?.sharedFeatherInvertPrefix !== undefined
+        ? maskValuesFromById(sliderValues, opts.sharedFeatherInvertPrefix)
+        : values;
     if (values.points.length < MIN_MASK_VERTICES) {
       // No zone drawn yet: seed the full frame so there is something to drag, and commit it. With
       // the 0% default feather this polygon is bit-identical to "no zone", so merely opening the
       // editor never changes the render (color_splash.py's _FULL_FRAME_POINTS carries the same
       // note on the backend side).
-      const seeded = { points: FULL_FRAME_POINTS, feather: values.feather, invert: values.invert };
-      setMaskPoints(seeded.points);
-      setMaskFeather(seeded.feather);
-      setMaskInvert(seeded.invert);
-      handleMaskCommit(maskValuesToUpdates(seeded, prefix));
-    } else {
-      setMaskPoints(values.points);
-      setMaskFeather(values.feather);
-      setMaskInvert(values.invert);
+      setMaskPoints(FULL_FRAME_POINTS);
+      setMaskFeather(sharedValues.feather);
+      setMaskInvert(sharedValues.invert);
+      setActiveCorrection(null);
+      setActiveMask({ prefix, label, sharedFeatherInvertPrefix: opts?.sharedFeatherInvertPrefix });
+      // Built directly via buildMaskUpdates (not maskCommit) -- maskCommit reads `activeMask` from
+      // its own closure, which would still see the PRE-update (stale) value within this same
+      // synchronous call.
+      handleMaskCommit(
+        buildMaskUpdates(
+          prefix,
+          opts?.sharedFeatherInvertPrefix ?? prefix,
+          FULL_FRAME_POINTS,
+          sharedValues.feather,
+          sharedValues.invert,
+        ),
+      );
+      return;
     }
+    setMaskPoints(values.points);
+    setMaskFeather(sharedValues.feather);
+    setMaskInvert(sharedValues.invert);
     setActiveCorrection(null);
-    setActiveMask({ prefix, label });
+    setActiveMask({ prefix, label, sharedFeatherInvertPrefix: opts?.sharedFeatherInvertPrefix });
+  }
+
+  /** Light's collapsible "Masque Sujet" header: opens on whichever zone is already enabled (zone 1
+  by default -- its own unprefixed fallback default already resolves to a visible rectangle, see
+  maskValuesFromById), or closes the editor entirely. Mirrors object_removal.py's panel, which
+  similarly opens regardless of any particular zone's own state. */
+  function handleLightMaskPanelToggle() {
+    if (activeMask) {
+      setActiveMask(null);
+      return;
+    }
+    const firstEnabledIndex = LIGHT_MASK_ZONE_PREFIXES.findIndex(
+      (prefix) => maskValuesFromById(sliderValues, prefix).points.length >= MIN_MASK_VERTICES,
+    );
+    const index = firstEnabledIndex === -1 ? 0 : firstEnabledIndex;
+    handleToggleMask(LIGHT_MASK_ZONE_PREFIXES[index], t("ui.light.mask_zone", { n: index + 1 }), {
+      sharedFeatherInvertPrefix: "",
+    });
+  }
+
+  /** One Light zone's own on/off switch -- turning ON seeds + selects it for editing (identical
+  seed behaviour to handleToggleMask, reused directly); turning OFF clears its points and, if it
+  was the zone being edited, hands editing over to another still-enabled zone, or closes the editor
+  if none remain (mirrors useRemovalZones.setZoneEnabled). */
+  function handleLightMaskZoneToggle(index: number) {
+    const prefix = LIGHT_MASK_ZONE_PREFIXES[index];
+    const label = t("ui.light.mask_zone", { n: index + 1 });
+    const enabled = maskValuesFromById(sliderValues, prefix).points.length >= MIN_MASK_VERTICES;
+    if (!enabled) {
+      handleToggleMask(prefix, label, { sharedFeatherInvertPrefix: "" });
+      return;
+    }
+    handleMaskCommit([{ identifier: `${prefix}mask_point_count`, value: 0 }]);
+    if (activeMask?.prefix !== prefix) return;
+    const nextIndex = LIGHT_MASK_ZONE_PREFIXES.findIndex(
+      (otherPrefix, otherIndex) =>
+        otherIndex !== index && maskValuesFromById(sliderValues, otherPrefix).points.length >= MIN_MASK_VERTICES,
+    );
+    if (nextIndex === -1) {
+      setActiveMask(null);
+      return;
+    }
+    const nextPrefix = LIGHT_MASK_ZONE_PREFIXES[nextIndex];
+    setMaskPoints(maskValuesFromById(sliderValues, nextPrefix).points);
+    setActiveMask({ prefix: nextPrefix, label: t("ui.light.mask_zone", { n: nextIndex + 1 }), sharedFeatherInvertPrefix: "" });
+  }
+
+  /** Selects an already-enabled Light zone for editing (its label, clicked) without toggling it --
+  mirrors removal's clickable zone label. */
+  function handleLightMaskZoneSelect(index: number) {
+    const prefix = LIGHT_MASK_ZONE_PREFIXES[index];
+    if (activeMask?.prefix === prefix) return;
+    const values = maskValuesFromById(sliderValues, prefix);
+    if (values.points.length < MIN_MASK_VERTICES) return;
+    setMaskPoints(values.points);
+    setActiveMask({ prefix, label: t("ui.light.mask_zone", { n: index + 1 }), sharedFeatherInvertPrefix: "" });
   }
 
   function handleZoomSliderChange(value: number) {
@@ -787,16 +899,32 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, rowIdentifier, ide
     });
   }
 
+  function loadRemovalAux() {
+    pendingCommit.current.then(() => {
+      Promise.all([api.getAuxiliaryZoomState(sessionId, "removal"), api.getSessionInfo(sessionId)])
+        .then(([state, info]) => {
+          const byId = Object.fromEntries(state.sliders.map((s) => [s.identifier, s.value]));
+          removalZones.load(byId);
+          setRemovalAux({
+            photoSrc: `${api.auxiliaryZoomBeforeUrl(sessionId, "removal")}?t=${Date.now()}`,
+            imageSize: info.source ? { width: info.source.width, height: info.source.height } : null,
+          });
+        })
+        .catch((err) => setError(err instanceof Error ? err.message : String(err)));
+    });
+  }
+
   function toggleCorrection(kind: CorrectionKind) {
     setActiveCorrection((current) => {
       if (current === kind) return null;
       // Always refetch on activation (not just the first time) -- a previous activation earlier
       // in this same Zoom session may have committed edits (corner drags, crop-frame drags) that
-      // a stale cached geometryAux/framingAux wouldn't reflect, e.g. re-showing a straightened
-      // photo as if it were still neutral after Geometry was toggled off and back on. Nulling the
-      // old value out first (rather than leaving it until the fetch resolves) avoids briefly
-      // mounting GeometryToolStage/CropToolStage with stale initialValues -- their internal quad/
-      // crop-box state is seeded once from props and won't re-sync on its own.
+      // a stale cached geometryAux/framingAux/removalAux wouldn't reflect, e.g. re-showing a
+      // straightened photo as if it were still neutral after Geometry was toggled off and back on.
+      // Nulling the old value out first (rather than leaving it until the fetch resolves) avoids
+      // briefly mounting GeometryToolStage/CropToolStage/RemovalToolStage with stale initialValues
+      // -- their internal quad/crop-box/zone state is seeded once from props and won't re-sync on
+      // its own.
       if (kind === "geometry") {
         setGeometryAux(null);
         loadGeometryAux();
@@ -805,6 +933,16 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, rowIdentifier, ide
         setFramingAux(null);
         loadFramingAux();
       }
+      if (kind === "removal") {
+        setRemovalAux(null);
+        loadRemovalAux();
+      }
+      // Bug fix (found alongside feature 100): activating ANY correction must close the polygon
+      // mask editor first -- previously `activeMask` could stay set while a correction stage
+      // mounted on top of it, so "Appliquer" ran handleMaskValidate() (closing the mask editor)
+      // instead of actually applying the correction the user just switched to. `handleToggleMask`
+      // already clears `activeCorrection` the other way; this makes it symmetric.
+      setActiveMask(null);
       return kind;
     });
   }
@@ -855,13 +993,48 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, rowIdentifier, ide
     trackCommit(applyRenderResponse(seq, api.setZoomParameters(sessionId, updates)));
   }
 
+  /** Builds the batched update list for one mask gesture, given EXPLICIT prefixes (never read from
+  `activeMask` state directly -- see maskCommit's own note on why: React state set earlier in the
+  same synchronous call is not yet visible via closure). Points always go under `pointsPrefix`;
+  feather/invert go under `featherInvertPrefix` when different (Light's zones 2-4 have no
+  feather/invert keys of their own, light.py's `_MASK_ZONE_PREFIXES`), else everything is a single
+  `maskValuesToUpdates` call as before. */
+  function buildMaskUpdates(
+    pointsPrefix: string,
+    featherInvertPrefix: string,
+    points: MaskPoint[],
+    feather: number,
+    invert: boolean,
+  ): Array<{ identifier: string; value: number }> {
+    if (featherInvertPrefix === pointsPrefix) {
+      return maskValuesToUpdates({ points, feather, invert }, pointsPrefix);
+    }
+    const pointUpdates = maskValuesToUpdates({ points, feather, invert }, pointsPrefix).filter(
+      (u) => !u.identifier.endsWith("mask_feather") && !u.identifier.endsWith("mask_invert"),
+    );
+    return [
+      ...pointUpdates,
+      { identifier: `${featherInvertPrefix}mask_feather`, value: feather },
+      { identifier: `${featherInvertPrefix}mask_invert`, value: invert ? 1 : 0 },
+    ];
+  }
+
   /** Commits the given shape/feather/invert via the batched write above -- called at the end of
   every mask gesture (vertex drag release, midpoint insert, vertex removal, feather/invert change).
-  Always addressed to the mask currently open in the editor, never to another one. */
+  Points are always addressed to the mask currently open in the editor; feather/invert normally
+  are too, EXCEPT for Light's multi-zone mask (`activeMask.sharedFeatherInvertPrefix`, set by
+  `handleToggleMask` whenever `isLight`): those two fields are always written under the shared
+  prefix (zone 1's bare keys) regardless of which zone's points are being edited. */
   function maskCommit(nextPoints: MaskPoint[], nextFeather: number, nextInvert: boolean) {
     if (!activeMask) return;
     handleMaskCommit(
-      maskValuesToUpdates({ points: nextPoints, feather: nextFeather, invert: nextInvert }, activeMask.prefix),
+      buildMaskUpdates(
+        activeMask.prefix,
+        activeMask.sharedFeatherInvertPrefix ?? activeMask.prefix,
+        nextPoints,
+        nextFeather,
+        nextInvert,
+      ),
     );
   }
 
@@ -1083,11 +1256,15 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, rowIdentifier, ide
       handleMaskValidate();
       return;
     }
-    const ref = activeCorrection === "geometry" ? geometryStageRef : activeCorrection === "framing" ? cropStageRef : null;
+    const ref =
+      activeCorrection === "geometry" ? geometryStageRef
+      : activeCorrection === "framing" ? cropStageRef
+      : activeCorrection === "removal" ? removalStageRef
+      : null;
     if (!ref) return;
     setCorrectionApplying(true);
-    // Waits for the last corner/rotation-drag commit to land before rendering "after" -- otherwise
-    // a fast click right after releasing a drag can render against the PREVIOUS value.
+    // Waits for the last corner/rotation-drag/vertex commit to land before rendering "after" --
+    // otherwise a fast click right after releasing a drag can render against the PREVIOUS value.
     pendingCommit.current
       .then(() => ref.current?.apply())
       .catch((err) => setError(err instanceof Error ? err.message : String(err)))
@@ -1237,6 +1414,10 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, rowIdentifier, ide
     }
     if (activeCorrection === "framing") {
       cropStageRef.current?.reset();
+      return;
+    }
+    if (activeCorrection === "removal") {
+      removalStageRef.current?.reset();
       return;
     }
     if (activeMask) {
@@ -1398,10 +1579,11 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, rowIdentifier, ide
     );
   }
 
-  /** Geometry/Cadrage toggle row -- extracted so Light can place it AFTER its own Global/Sujet/
-  Fond tabs (user request 2026-07-28) while every other row keeps it at the top of the panel,
-  without duplicating this JSX at both call sites. */
+  /** Geometry/Cadrage toggle rows + Suppression d'objets' collapsible zone panel -- extracted so
+  Light can place it AFTER its own Global/Sujet/Fond tabs (user request 2026-07-28) while every
+  other row keeps it at the top of the panel, without duplicating this JSX at both call sites. */
   function renderCorrections() {
+    const removalHasAnyZone = removalZones.values.zones.some((points) => points.length >= MIN_MASK_VERTICES);
     return (
       <div className="zoom-overlay__corrections">
         {CORRECTION_KINDS.map((kind) => (
@@ -1412,6 +1594,226 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, rowIdentifier, ide
             </div>
           </div>
         ))}
+        <CollapsibleSection
+          title={t("zoom.correction.removal")}
+          open={activeCorrection === "removal"}
+          onToggle={() => toggleCorrection("removal")}
+          hasModifiedValue={removalHasAnyZone}
+        >
+          {renderRemovalZonePanel()}
+        </CollapsibleSection>
+      </div>
+    );
+  }
+
+  /** Suppression d'objets' zone list (ergonomics revision, 2026-09-24 -- replaces the old floating
+  panel that used to sit on top of the photo in RemovalToolStage.tsx, crowding zone drawing, see
+  memory object-removal-addon-planned). MAX_REMOVAL_ZONES (4) fixed rows, each an on/off switch
+  (mirrors renderZoneToggle's own switch-per-zone shape): enabling an empty slot seeds a default
+  rectangle and selects it for on-canvas editing (only visible once this section's own open state,
+  shared with `activeCorrection === "removal"`, mounts RemovalToolStage); disabling one clears it.
+  Clicking an already-enabled row's label re-selects it, for switching which zone the canvas'
+  vertex handles currently show. Marge/Fondu/Autre proposition stay global, one set for every zone
+  on the photo, same as before. */
+  function renderRemovalZonePanel() {
+    const { values, activeZoneIndex } = removalZones;
+    const activePoints = activeZoneIndex !== null ? values.zones[activeZoneIndex] : null;
+    const activeArea = activePoints ? polygonArea(activePoints) : 0;
+    return (
+      <>
+        {Array.from({ length: MAX_REMOVAL_ZONES }, (_, index) => {
+          const enabled = (values.zones[index]?.length ?? 0) >= MIN_MASK_VERTICES;
+          const label = t("ui.removal.zone", { n: index + 1 });
+          return (
+            <div key={index} className="zoom-overlay__slider-row">
+              <div className="zoom-overlay__slider-header">
+                <span
+                  className={`zoom-overlay__slider-label${enabled ? " zoom-overlay__slider-label--clickable" : ""}${activeZoneIndex === index ? " zoom-overlay__slider-label--selected" : ""}`}
+                  onClick={() => enabled && removalZones.selectZone(index)}
+                  role={enabled ? "button" : undefined}
+                >
+                  {label}
+                </span>
+                {renderSwitch(label, enabled, () => removalZones.setZoneEnabled(index, !enabled))}
+              </div>
+            </div>
+          );
+        })}
+        {activeArea > LARGE_ZONE_AREA_FRACTION && <div className="zoom-overlay__hint-text">{t("ui.removal.large_zone_hint")}</div>}
+        <div className="zoom-overlay__slider-row">
+          <div className="zoom-overlay__slider-header">
+            <span className="zoom-overlay__slider-label">{t("ui.removal.margin")}</span>
+            <span className="zoom-overlay__slider-value">{values.dilation.toFixed(1)}</span>
+          </div>
+          <input
+            type="range" min={0} max={3} step={0.1}
+            value={values.dilation}
+            onChange={(event) => removalZones.setDilation(Number(event.target.value))}
+          />
+        </div>
+        <div className="zoom-overlay__slider-row">
+          <div className="zoom-overlay__slider-header">
+            <span className="zoom-overlay__slider-label">{t("ui.removal.feather")}</span>
+            <span className="zoom-overlay__slider-value">{values.feather.toFixed(1)}</span>
+          </div>
+          <input
+            type="range" min={0} max={2} step={0.1}
+            value={values.feather}
+            onChange={(event) => removalZones.setFeather(Number(event.target.value))}
+          />
+        </div>
+        <button
+          type="button"
+          className="zoom-overlay__variant-button"
+          onClick={() => {
+            removalZones.nextVariant();
+            handleCorrectionApply();
+          }}
+          disabled={!values.zones.some((points) => points.length >= MIN_MASK_VERTICES)}
+        >
+          {t("ui.removal.variant")}
+        </button>
+      </>
+    );
+  }
+
+  /** Light's "Masque Sujet" panel (ergonomics revision 2026-09-24) -- same shape as
+  renderRemovalZonePanel: 4 fixed zone rows (on/off + clickable label to select for editing), then
+  the shared Adoucissement/Inverser controls (unlike Suppression d'objets, these are feather/invert
+  for a subject boundary, not a dilation/feather blend budget, but the row markup is identical). */
+  function renderSubjectMaskZonePanel() {
+    return (
+      <>
+        {LIGHT_MASK_ZONE_PREFIXES.map((prefix, index) => {
+          const enabled = maskValuesFromById(sliderValues, prefix).points.length >= MIN_MASK_VERTICES;
+          const label = t("ui.light.mask_zone", { n: index + 1 });
+          const selected = activeMask?.prefix === prefix;
+          return (
+            <div key={prefix} className="zoom-overlay__slider-row">
+              <div className="zoom-overlay__slider-header">
+                <span
+                  className={`zoom-overlay__slider-label${enabled ? " zoom-overlay__slider-label--clickable" : ""}${selected ? " zoom-overlay__slider-label--selected" : ""}`}
+                  onClick={() => enabled && handleLightMaskZoneSelect(index)}
+                  role={enabled ? "button" : undefined}
+                >
+                  {label}
+                </span>
+                {renderSwitch(label, enabled, () => handleLightMaskZoneToggle(index))}
+              </div>
+            </div>
+          );
+        })}
+        <div className="zoom-overlay__slider-row">
+          <div className="zoom-overlay__slider-header">
+            <span className="zoom-overlay__slider-label">{t("ui.mask.feather")}</span>
+            <span className="zoom-overlay__slider-value">{maskFeather.toFixed(1)}</span>
+          </div>
+          <input
+            type="range" min={0} max={20} step={0.5}
+            value={maskFeather}
+            onChange={(event) => handleMaskFeatherChange(Number(event.target.value))}
+          />
+        </div>
+        <div className="zoom-overlay__slider-row">
+          <div className="zoom-overlay__slider-header">
+            <span className="zoom-overlay__slider-label">{t("ui.mask.invert")}</span>
+            {renderSwitch(t("ui.mask.invert"), maskInvert, handleMaskInvertToggle)}
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  /** Light's multi-zone drawing layer (ergonomics revision 2026-09-24) -- unlike Color Splash's
+  single-polygon `SubjectMaskLayer` (kept as-is, still used for its own per-range masks), this
+  shows the UNION of every enabled zone dimmed correctly (an SVG `<mask>` with a white background
+  and each zone drawn BLACK on top -- plain overlapping fills, so overlapping zones still union
+  correctly, unlike an even-odd path which would punch a hole back open in the overlap; see
+  light.py's `_union_mask` docstring for the backend equivalent of this same reasoning) plus a
+  feather halo and outline PER enabled zone, but only the zone currently open for editing
+  (`maskPoints`, the live drag working copy -- every other zone reads its last-committed value
+  straight from `sliderValues`) gets interactive vertex/midpoint handles. */
+  function renderLightMaskLayer() {
+    if (!activeMask) return null;
+    const featherRadiusPx =
+      naturalSize && zoomPercent !== null
+        ? (maskFeather / 100) * Math.min((naturalSize.width * zoomPercent) / 100, (naturalSize.height * zoomPercent) / 100)
+        : 0;
+    const zones = LIGHT_MASK_ZONE_PREFIXES.map((prefix) => ({
+      prefix,
+      points: activeMask.prefix === prefix ? maskPoints : maskValuesFromById(sliderValues, prefix).points,
+    })).filter((zone) => zone.points.length >= MIN_MASK_VERTICES);
+    const canSubdivide = maskPoints.length < MAX_MASK_VERTICES;
+    return (
+      <div
+        ref={maskPhotoRef}
+        className="crop-canvas__photo-bounds"
+        onPointerMove={handleMaskPointerMove}
+        onPointerUp={handleMaskPointerUp}
+        onPointerLeave={handleMaskPointerUp}
+      >
+        {beforeSrc && <img src={beforeSrc} alt="" className="crop-canvas__photo" draggable={false} />}
+        <svg className="crop-canvas__mask" viewBox="0 0 1 1" preserveAspectRatio="none">
+          <defs>
+            <mask id="zoom-overlay-light-mask-union">
+              <rect x="0" y="0" width="1" height="1" fill="white" />
+              {zones.map(({ prefix, points }) => (
+                <path key={prefix} d={`M ${points.map((p) => `${p.x} ${p.y}`).join(" L ")} Z`} fill="black" />
+              ))}
+            </mask>
+          </defs>
+          <path d="M0 0H1V1H0Z" mask="url(#zoom-overlay-light-mask-union)" />
+        </svg>
+        {featherRadiusPx > 0 &&
+          zones.map(({ prefix, points }) => (
+            <svg
+              key={`halo-${prefix}`}
+              className="subject-mask-stage__feather-halo"
+              viewBox="0 0 1 1"
+              preserveAspectRatio="none"
+              style={{ filter: `blur(${featherRadiusPx / 4}px)` }}
+            >
+              <path
+                d={`M ${points.map((p) => `${p.x} ${p.y}`).join(" L ")} Z`}
+                fill="none"
+                vectorEffect="non-scaling-stroke"
+                strokeWidth={featherRadiusPx}
+                strokeLinejoin="round"
+              />
+            </svg>
+          ))}
+        {zones.map(({ prefix, points }) => (
+          <svg key={`outline-${prefix}`} className="subject-mask-stage__outline" viewBox="0 0 1 1" preserveAspectRatio="none">
+            <path d={`M ${points.map((p) => `${p.x} ${p.y}`).join(" L ")} Z`} fill="none" vectorEffect="non-scaling-stroke" />
+          </svg>
+        ))}
+        {maskPoints.length >= MIN_MASK_VERTICES &&
+          maskPoints.map((point, index) => (
+            <div
+              key={index}
+              className="subject-mask-stage__vertex"
+              style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%` }}
+              onPointerDown={(event) => handleMaskVertexPointerDown(index, event)}
+              onDoubleClick={() => handleMaskVertexDoubleClick(index)}
+            />
+          ))}
+        {canSubdivide &&
+          maskPoints.length >= MIN_MASK_VERTICES &&
+          maskPoints.map((point, index) => {
+            const next = maskPoints[(index + 1) % maskPoints.length];
+            const mx = (point.x + next.x) / 2;
+            const my = (point.y + next.y) / 2;
+            return (
+              <div
+                key={`mid-${index}`}
+                className="subject-mask-stage__midpoint"
+                style={{ left: `${mx * 100}%`, top: `${my * 100}%` }}
+                onPointerDown={(event) => handleMaskMidpointPointerDown(index, event)}
+              >
+                +
+              </div>
+            );
+          })}
       </div>
     );
   }
@@ -1673,6 +2075,16 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, rowIdentifier, ide
             zoomBounds={zoomBounds}
             onCommitParameter={handleFramingCommitParameter}
           />
+        ) : activeCorrection === "removal" && removalAux ? (
+          <RemovalToolStage
+            ref={removalStageRef}
+            sessionId={sessionId}
+            photoSrc={removalAux.photoSrc}
+            imageSize={removalAux.imageSize}
+            zoomBounds={zoomBounds}
+            zones={removalZones}
+            busy={correctionApplying}
+          />
         ) : activeCorrection ? (
           <div className="zoom-overlay__compare zoom-overlay__compare--loading">{t("ui.loading")}</div>
         ) : (
@@ -1698,7 +2110,9 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, rowIdentifier, ide
                       : undefined
                   }
                 >
-                  {activeMask ? (
+                  {activeMask && isLight ? (
+                    renderLightMaskLayer()
+                  ) : activeMask ? (
                     <SubjectMaskLayer
                       photoSrc={beforeSrc}
                       points={maskPoints}
@@ -1764,15 +2178,16 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, rowIdentifier, ide
                 </div>
               </div>
               {renderPanZones()}
-              {activeMask && (
+              {/* Light's feather/invert now live inside the "Masque Sujet" collapsible panel in
+              "Réglages manuels" (renderSubjectMaskZonePanel, ergonomics revision 2026-09-24) --
+              this floating bar is Color Splash-only from here on. */}
+              {activeMask && !isLight && (
                 <SubjectMaskControls
                   feather={maskFeather}
                   invert={maskInvert}
                   onFeatherChange={handleMaskFeatherChange}
                   onInvertToggle={handleMaskInvertToggle}
-                  // Only a per-range zone has a "no zone" resting state to return to; Light's
-                  // subject mask has none, so it gets no such button (prefix "" === Light).
-                  onClearZone={activeMask.prefix ? handleMaskClearZone : undefined}
+                  onClearZone={handleMaskClearZone}
                 />
               )}
               {vignetteShape && vignetteValues && vignetteAidsEnabled && (
@@ -1858,12 +2273,9 @@ function ZoomOverlayGeneric({ sessionId, stepIndex, rowLabel, rowIdentifier, ide
               ))}
             </div>
             {regionTab !== "global" && (
-              <div className="zoom-overlay__slider-row">
-                <div className="zoom-overlay__slider-header">
-                  <span className="zoom-overlay__slider-label">{t("zoom.subject_mask")}</span>
-                  {renderSwitch(t("zoom.subject_mask"), Boolean(activeMask), () => handleToggleMask("", t("zoom.subject_mask")))}
-                </div>
-              </div>
+              <CollapsibleSection title={t("zoom.subject_mask")} open={Boolean(activeMask)} onToggle={handleLightMaskPanelToggle}>
+                {renderSubjectMaskZonePanel()}
+              </CollapsibleSection>
             )}
           </div>
         )}
